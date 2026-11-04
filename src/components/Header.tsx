@@ -87,11 +87,10 @@ export const Header: React.FC<HeaderProps> = ({
           className="w-full h-8 px-2.5 rounded-[6px] bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] hover:border-[#D1D1D6] dark:hover:border-[#3A3A3C] flex items-center justify-between text-[12.5px] text-[#86868B] transition-colors group"
         >
           <div className="flex items-center gap-2 truncate">
-            <Search className="w-3.5 h-3.5 text-[#86868B] group-hover:text-[#1D1D1F] dark:group-hover:text-[#F5F5F7] shrink-0" strokeWidth={1.5} />
             <span className="truncate">Search clients, tasks, or jump to...</span>
           </div>
           <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium text-[#86868B] bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded">
-            ⌘K
+            Ctrl+K
           </kbd>
         </button>
       </div>
