@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, Copy, Check } from 'lucide-react';
 import { MonthlyTask, ITRFiling, StaffTicket, DebtorRecord, GSTComplianceItem } from '../types/crm';
+import { 
+  getStoredWhatsAppTemplates, 
+  getStoredFirmProfile, 
+  renderTemplate, 
+  WhatsAppTemplateSettings, 
+  FirmProfileSettings 
+} from '../services/firmConfigService';
 
 interface WhatsAppModalProps {
   isOpen: boolean;
@@ -11,6 +18,8 @@ interface WhatsAppModalProps {
   ticket?: StaffTicket | null;
   gstItem?: GSTComplianceItem | null;
   staffName?: string;
+  customTemplates?: WhatsAppTemplateSettings;
+  firmProfile?: FirmProfileSettings;
 }
 
 export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
@@ -22,8 +31,13 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   ticket,
   gstItem,
   staffName = 'Ameen',
+  customTemplates,
+  firmProfile: propFirmProfile,
 }) => {
   if (!isOpen || (!task && !itrFiling && !debtor && !ticket && !gstItem)) return null;
+
+  const storedTemplates = customTemplates || getStoredWhatsAppTemplates();
+  const profile = propFirmProfile || getStoredFirmProfile();
 
   const clientName = gstItem?.clientName || task?.clientName || itrFiling?.clientName || debtor?.clientName || ticket?.clientName || 'Client';
   const tradeName = gstItem?.tradeName || task?.tradeName || debtor?.tradeName || ticket?.tradeName || clientName;
@@ -34,7 +48,17 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     {
       id: 'doc_request',
       label: 'Document Request',
-      text: `Hello ${tradeName},\n\nThis is ${staffName} from Shameer & Associates.\n\nPlease share your sales invoices, purchase registers, and bank statements for ${task?.period || 'the current period'}.\n\nStatutory cutoff: ${task?.dueDate || 'upcoming deadline'}.\n\nPlease share the records directly here on WhatsApp so our audit team can review.\n\nThank you,\n${staffName}`,
+      text: renderTemplate(storedTemplates.docRequest, {
+        clientName: tradeName,
+        period: task?.period || 'the current period',
+        dueDate: task?.dueDate || 'upcoming deadline',
+        amount: '',
+        upiId: profile.upiId,
+        arn: '',
+        bankName: profile.bankName,
+        accountNumber: profile.accountNumber,
+        ifscCode: profile.ifscCode,
+      }),
     },
     {
       id: 'tax_confirmation',
@@ -49,7 +73,17 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     {
       id: 'arn_delivery',
       label: 'Acknowledgment',
-      text: `Dear ${tradeName},\n\nYour ${task?.filingType || itrFiling?.itrForm || 'return'} for ${task?.period || itrFiling?.assessmentYear} has been filed on the statutory portal.\n\nFiling Reference / ARN: ${task?.arnNumber || itrFiling?.acknowledgmentNo || 'AA271126048192Z'}\n\nPlease let us know if you need the official acknowledgment PDF copy.\n\nRegards,\nShameer & Associates`,
+      text: renderTemplate(storedTemplates.filingAck, {
+        clientName: tradeName,
+        period: task?.filingType || itrFiling?.itrForm || 'return',
+        arn: task?.arnNumber || itrFiling?.acknowledgmentNo || 'AA321126048192Z',
+        dueDate: '',
+        amount: '',
+        upiId: profile.upiId,
+        bankName: profile.bankName,
+        accountNumber: profile.accountNumber,
+        ifscCode: profile.ifscCode,
+      }),
     },
   ];
 
@@ -57,17 +91,27 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     {
       id: 'fee_reminder',
       label: 'Fee Reminder',
-      text: `Dear ${tradeName},\n\nGentle reminder from Shameer & Associates regarding professional accounting and audit services.\n\nTotal Outstanding Balance: ₹${(debtor.currentBalance ?? debtor.outstandingBalance ?? 0).toLocaleString('en-IN')}\nAccount Status: ${debtor.agingBucket || 'Regular'}\n\nPlease arrange for the transfer to our bank account. Let us know once completed so we can credit your ledger.\n\nRegards,\n${debtor.assignedStaff || staffName}\nShameer & Associates`,
+      text: renderTemplate(storedTemplates.paymentReminder, {
+        clientName: tradeName,
+        amount: (debtor.currentBalance ?? debtor.outstandingBalance ?? 0).toLocaleString('en-IN'),
+        period: 'FY 2026-27',
+        dueDate: 'Immediate',
+        upiId: profile.upiId,
+        arn: '',
+        bankName: profile.bankName,
+        accountNumber: profile.accountNumber,
+        ifscCode: profile.ifscCode,
+      }),
     },
     {
       id: 'overdue_notice',
       label: 'Overdue Notice',
-      text: `URGENT NOTICE: ${tradeName}\n\nOur accounts ledger indicates an outstanding balance of ₹${(debtor.currentBalance ?? debtor.outstandingBalance ?? 0).toLocaleString('en-IN')} pending clearance with Shameer & Associates.\n\nKindly release the payment today or share the transaction UTR number to update your ledger.\n\nContact: ${debtor.assignedStaff || staffName} | Shameer & Associates`,
+      text: `URGENT NOTICE: ${tradeName}\n\nOur accounts ledger indicates an outstanding balance of ₹${(debtor.currentBalance ?? debtor.outstandingBalance ?? 0).toLocaleString('en-IN')} pending clearance with Shameer & Associates.\n\nKindly release the payment today via UPI (${profile.upiId}) or transfer to ${profile.bankName} Account (${profile.accountNumber}, IFSC: ${profile.ifscCode}) and share transaction UTR.\n\nContact: ${debtor.assignedStaff || staffName} | Shameer & Associates`,
     },
     {
       id: 'bank_details',
       label: 'Bank Details',
-      text: `Dear ${tradeName},\n\nHere are our payment details for settling your outstanding account balance (₹${(debtor.currentBalance ?? debtor.outstandingBalance ?? 0).toLocaleString('en-IN')}):\n\nBank: Federal Bank / HDFC Bank\nAccount Name: Shameer and Associates\nA/C No: 12450200045612\nIFSC: FDRL0001245\n\nPlease share the payment screenshot once transferred.\n\nThank you,\nShameer & Associates`,
+      text: `Dear ${tradeName},\n\nHere are our payment details for settling your outstanding account balance (₹${(debtor.currentBalance ?? debtor.outstandingBalance ?? 0).toLocaleString('en-IN')}):\n\nBank: ${profile.bankName}\nAccount Name: ${profile.beneficiaryName}\nA/C No: ${profile.accountNumber}\nIFSC: ${profile.ifscCode}\nUPI ID: ${profile.upiId}\n\nPlease share the payment screenshot once transferred.\n\nThank you,\nShameer & Associates`,
     },
     {
       id: 'receipt_ack',

@@ -1056,60 +1056,19 @@ export function App() {
                 </p>
               </div>
 
-              {/* Practice Configuration Manager (Admins can add/delete dropdown options directly) */}
+              {/* Practice Configuration Manager (Admins can customize dropdowns, templates, firm bank details & backup) */}
               <PracticeConfigManager
                 configs={practiceConfigs}
                 onAddOption={handleAddConfigOption}
                 onRemoveOption={handleRemoveConfigOption}
+                clients={clients}
+                monthlyTasks={monthlyTasks}
+                itrFilings={itrFilings}
+                debtors={debtors}
+                profiles={profiles}
+                tickets={tickets}
+                activityLogs={activityLogs}
               />
-
-              <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] p-4 rounded-[8px] border border-[#E5E5EA] dark:border-[#2C2C2E] space-y-3 max-w-3xl">
-                <h3 className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Practice Profile</h3>
-                <div className="grid grid-cols-2 gap-3 text-[13px]">
-                  <div>
-                    <span className="text-[#6E6E73] dark:text-[#8E8E93] text-[11px] block">Practice Name</span>
-                    <span className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">Shameer and Associates</span>
-                  </div>
-                  <div>
-                    <span className="text-[#6E6E73] dark:text-[#8E8E93] text-[11px] block">Category</span>
-                    <span className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">Accountants &amp; Practitioners</span>
-                  </div>
-                  <div>
-                    <span className="text-[#6E6E73] dark:text-[#8E8E93] text-[11px] block">Active Clients</span>
-                    <span className="font-tabular text-[#1D1D1F] dark:text-[#F5F5F7]">{clients.length} Master Accounts ({monthlyTasks.length} Monthly Active)</span>
-                  </div>
-                  <div>
-                    <span className="text-[#6E6E73] dark:text-[#8E8E93] text-[11px] block">Staff Accounts</span>
-                    <span className="font-tabular text-[#1D1D1F] dark:text-[#F5F5F7]">{profiles.length} Verified Users</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] p-4 rounded-[8px] border border-[#E5E5EA] dark:border-[#2C2C2E] space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Storage &amp; Database Backends</h3>
-                  <button
-                    onClick={() => setIsIntegrationsOpen(true)}
-                    className="text-[12px] text-[#0071E3] dark:text-[#2997FF] hover:underline"
-                  >
-                    Configure
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-[#F2F2F7] dark:bg-[#242426] rounded-[6px]">
-                    <span className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">Supabase (PostgreSQL with RLS)</span>
-                    <span className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] block mt-0.5">
-                      Client accounts, tasks, debtors ledger, and profiles
-                    </span>
-                  </div>
-                  <div className="p-3 bg-[#F2F2F7] dark:bg-[#242426] rounded-[6px]">
-                    <span className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">OneDrive (SharePoint Folders)</span>
-                    <span className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] block mt-0.5">
-                      Client folders, invoices, tax acknowledgments
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
         </main>
