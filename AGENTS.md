@@ -99,22 +99,15 @@ The UI is built for senior accountants and tax practitioners working with compli
 
 ---
 
-## 5. Themes & Warm Ledger Palette
+## 5. Themes
 
-The CRM supports 3 themes via `data-theme`:
-1. **Light Minimal** (`light`): Clean Apple / Vercel monochromatic canvas.
-2. **Warm Ledger** (`warm`): Archival stationery palette with deep espresso text:
-   * `--tea-green`: `#CCD5AE` (success badges, subtle borders)
-   * `--beige`: `#E9EDC9` (insets, filter bars, headers)
-   * `--cornsilk`: `#FEFAE0` (global canvas background)
-   * `--papaya-whip`: `#FAEDCD` (cards & modal surfaces)
-   * `--light-bronze`: `#D4A373` (primary CTA / focus accent)
-   * Contrast text: `#28231D` (deep charcoal espresso for crisp readability)
-3. **Dark Mode** (`dark`): Midnight OLED charcoal (`#121214` / `#1C1C1E`).
+The CRM strictly supports 2 themes via `data-theme`:
+1. **Light Minimal** (`light`): Clean Apple / Vercel monochromatic canvas (`#FAFAFA` background, `#FFFFFF` cards, `#0071E3` accent).
+2. **Dark Mode** (`dark`): Midnight OLED charcoal (`#121214` canvas, `#1C1C1E` cards, `#2997FF` accent).
 
 ---
 
-## 5. Component Construction Rules
+## 6. Component Construction Rules
 
 ### Centered Modals (Dialogs)
 * Structure:
@@ -141,7 +134,7 @@ The CRM supports 3 themes via `data-theme`:
 
 ---
 
-## 6. Multi-User & Access Rules
+## 7. Multi-User & Access Rules
 
 1. **Admins (`Shameer` & `Ameen`):**
    * Full access to all modules.
@@ -152,7 +145,7 @@ The CRM supports 3 themes via `data-theme`:
 
 ---
 
-## 7. Verification Checklist Before Any Commit
+## 8. Verification Checklist Before Any Commit
 - [ ] No "CA Shameer" anywhere (use "Shameer").
 - [ ] No fake 120/50 client clutter; all modules use the 6 authentic clients.
 - [ ] No 3D gradient spheres or shiny orbs; all status dots are flat and subtle.

@@ -26,6 +26,9 @@ export default {
       },
       fontFamily: {
         sans: [
+          'var(--font-family)',
+          'Figtree',
+          'Inter',
           '-apple-system',
           'BlinkMacSystemFont',
           '"SF Pro Text"',

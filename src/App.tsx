@@ -58,10 +58,10 @@ export function App() {
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Theme Management (Light Minimal / Warm Ledger / Dark)
-  const [theme, setTheme] = useState<'light' | 'warm' | 'dark'>(() => {
-    const saved = localStorage.getItem('crm-theme') as 'light' | 'warm' | 'dark' | null;
-    if (saved === 'dark' || saved === 'light' || saved === 'warm') return saved;
+  // Theme Management (Light Minimal / Dark)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('crm-theme') as 'light' | 'dark' | null;
+    if (saved === 'dark' || saved === 'light') return saved;
     return 'light';
   });
 
@@ -78,14 +78,10 @@ export function App() {
     root.setAttribute('data-theme', theme);
     if (theme === 'dark') {
       root.classList.add('dark');
-      root.classList.remove('warm');
-    } else if (theme === 'warm') {
-      root.classList.add('warm');
-      root.classList.remove('dark');
     } else {
       root.classList.remove('dark');
-      root.classList.remove('warm');
     }
+    root.classList.remove('warm');
   }, [theme]);
 
   useEffect(() => {
@@ -101,16 +97,8 @@ export function App() {
     }
   }, [font]);
 
-  const toggleTheme = (newTheme?: 'light' | 'warm' | 'dark') => {
-    if (newTheme) {
-      setTheme(newTheme);
-      return;
-    }
-    setTheme((prev) => {
-      if (prev === 'light') return 'warm';
-      if (prev === 'warm') return 'dark';
-      return 'light';
-    });
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
   const toggleFont = () => {

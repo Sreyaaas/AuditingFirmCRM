@@ -9,7 +9,6 @@ import {
   Shield,
   Menu,
   LogOut,
-  Sparkles,
   Type
 } from 'lucide-react';
 import { UserProfile } from '../types/crm';
@@ -21,8 +20,8 @@ interface HeaderProps {
   profiles: UserProfile[];
   onSwitchUser: (userId: string) => void;
   onLogout?: () => void;
-  theme: 'light' | 'warm' | 'dark';
-  onToggleTheme: (newTheme?: 'light' | 'warm' | 'dark') => void;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
   font: 'system' | 'figtree';
   onToggleFont: () => void;
   onOpenNewTask: () => void;
@@ -119,42 +118,18 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="font-semibold">{font === 'figtree' ? 'Figtree' : 'Inter'}</span>
         </button>
 
-        {/* 3-Way Theme Switcher (Clean Light / Warm Ledger / Dark) */}
-        <div className="flex items-center bg-[#F2F2F7] dark:bg-[#242426] p-0.5 rounded-[6px] border border-[#E5E5EA] dark:border-[#2C2C2E]">
-          <button
-            onClick={() => onToggleTheme('light')}
-            title="Clean Minimal Theme"
-            className={`p-1.5 rounded-[5px] transition-colors ${
-              theme === 'light' 
-                ? 'bg-white dark:bg-[#1C1C1E] text-[#0071E3] shadow-sm' 
-                : 'text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
-            }`}
-          >
-            <Sun className="w-3.5 h-3.5 stroke-[1.5]" />
-          </button>
-          <button
-            onClick={() => onToggleTheme('warm')}
-            title="Warm Ledger Theme (Tea Green & Bronze)"
-            className={`p-1.5 rounded-[5px] transition-colors ${
-              theme === 'warm' 
-                ? 'bg-[#d4a373] text-[#28231d] shadow-sm font-semibold' 
-                : 'text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 stroke-[1.5]" />
-          </button>
-          <button
-            onClick={() => onToggleTheme('dark')}
-            title="Dark Mode"
-            className={`p-1.5 rounded-[5px] transition-colors ${
-              theme === 'dark' 
-                ? 'bg-white dark:bg-[#1C1C1E] text-[#2997FF] shadow-sm' 
-                : 'text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
-            }`}
-          >
-            <Moon className="w-3.5 h-3.5 stroke-[1.5]" />
-          </button>
-        </div>
+        {/* Dark Mode Toggle */}
+        <button
+          onClick={onToggleTheme}
+          title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+          className="w-8 h-8 rounded-[6px] text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] flex items-center justify-center transition-colors"
+        >
+          {theme === 'light' ? (
+            <Moon className="w-4 h-4 stroke-[1.5]" />
+          ) : (
+            <Sun className="w-4 h-4 stroke-[1.5]" />
+          )}
+        </button>
 
         {/* User Session Switcher */}
         <div className="relative">

@@ -13,8 +13,7 @@ import {
   UserPlus, 
   KeyRound,
   ShieldAlert,
-  Building2,
-  Sparkles
+  Building2
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../types/crm';
 
@@ -22,8 +21,8 @@ interface LoginViewProps {
   profiles: UserProfile[];
   onLogin: (userId: string) => void;
   onRegisterEmployee: (profile: Omit<UserProfile, 'id' | 'assignedClientsCount' | 'assignedTasksCount' | 'completedThisMonth'>) => void;
-  theme: 'light' | 'warm' | 'dark';
-  onToggleTheme: (newTheme?: 'light' | 'warm' | 'dark') => void;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({
@@ -119,41 +118,17 @@ export const LoginView: React.FC<LoginViewProps> = ({
           <span className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] hidden sm:inline">
             Internal Practice Portal
           </span>
-          <div className="flex items-center bg-[#F2F2F7] dark:bg-[#242426] p-0.5 rounded-[6px] border border-[#E5E5EA] dark:border-[#2C2C2E]">
-            <button
-              onClick={() => onToggleTheme('light')}
-              title="Clean Minimal Theme"
-              className={`p-1.5 rounded-[5px] transition-colors ${
-                theme === 'light' 
-                  ? 'bg-white dark:bg-[#1C1C1E] text-[#0071E3] shadow-sm' 
-                  : 'text-[#6E6E73] hover:text-[#1D1D1F]'
-              }`}
-            >
-              <Sun className="w-3.5 h-3.5 stroke-[1.5]" />
-            </button>
-            <button
-              onClick={() => onToggleTheme('warm')}
-              title="Warm Ledger Theme"
-              className={`p-1.5 rounded-[5px] transition-colors ${
-                theme === 'warm' 
-                  ? 'bg-[#d4a373] text-[#28231d] shadow-sm font-semibold' 
-                  : 'text-[#6E6E73] hover:text-[#1D1D1F]'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 stroke-[1.5]" />
-            </button>
-            <button
-              onClick={() => onToggleTheme('dark')}
-              title="Dark Mode"
-              className={`p-1.5 rounded-[5px] transition-colors ${
-                theme === 'dark' 
-                  ? 'bg-white dark:bg-[#1C1C1E] text-[#2997FF] shadow-sm' 
-                  : 'text-[#6E6E73] hover:text-[#1D1D1F]'
-              }`}
-            >
-              <Moon className="w-3.5 h-3.5 stroke-[1.5]" />
-            </button>
-          </div>
+          <button
+            onClick={onToggleTheme}
+            aria-label="Toggle Theme"
+            className="w-8 h-8 rounded-[6px] text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#E5E5EA]/50 dark:hover:bg-[#2C2C2E] flex items-center justify-center transition-colors"
+          >
+            {theme === 'light' ? (
+              <Moon className="w-4 h-4 stroke-[1.5]" />
+            ) : (
+              <Sun className="w-4 h-4 stroke-[1.5]" />
+            )}
+          </button>
         </div>
       </header>
 

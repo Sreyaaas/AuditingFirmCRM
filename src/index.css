@@ -4,8 +4,8 @@
 
 :root {
   /* Shameer & Associates - Apple / Vercel Enterprise Minimalist */
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #FAFAFA;
+  --bg-primary: #FAFAFA;
+  --bg-secondary: #FFFFFF;
   --bg-tertiary: #F2F2F7;
   --bg-hover: #EAEAEE;
   --border-hairline: #E5E5EA;
@@ -26,38 +26,8 @@
   --status-red-bg: rgba(220, 38, 38, 0.1);
   --status-red-border: rgba(220, 38, 38, 0.2);
 
-  /* User-provided Warm Ledger Palette Tokens */
-  --tea-green: #ccd5ae;
-  --beige: #e9edc9;
-  --cornsilk: #fefae0;
-  --papaya-whip: #faedcd;
-  --light-bronze: #d4a373;
-}
-
-/* WARM THEME (Editorial Ledger: Tea Green, Beige, Cornsilk, Papaya Whip, Light Bronze) */
-[data-theme="warm"],
-html.warm {
-  --bg-primary: #fefae0;        /* Cornsilk: archival ledger canvas */
-  --bg-secondary: #faedcd;      /* Papaya Whip: card surfaces & modals */
-  --bg-tertiary: #e9edc9;       /* Beige: insets, headers, filters */
-  --bg-hover: #e2e8bd;          /* Slightly deeper beige for hover rows */
-  --border-hairline: #dbe0c1;   /* Organic hairline divider */
-  --border-subtle: #ccd5ae;     /* Tea green subtle border */
-  --text-primary: #28231d;      /* Deep rich charcoal for sharp contrast */
-  --text-secondary: #63584c;    /* Warm slate / umber */
-  --text-tertiary: #877a6c;     /* Subtle caption umber */
-  --accent: #d4a373;            /* Light bronze CTA / accent */
-  --accent-hover: #c49260;      /* Rich bronze on hover */
-  --accent-subtle: rgba(204, 213, 174, 0.35); /* Tea green tint */
-  --status-green: #3d6a22;
-  --status-green-bg: rgba(204, 213, 174, 0.45);
-  --status-green-border: #ccd5ae;
-  --status-amber: #b26c04;
-  --status-amber-bg: rgba(250, 237, 205, 0.85);
-  --status-amber-border: rgba(212, 163, 115, 0.4);
-  --status-red: #ba181b;
-  --status-red-bg: rgba(250, 225, 221, 0.6);
-  --status-red-border: #e5989b;
+  /* Default Font: Figtree (Erik Kennedy) */
+  --font-family: 'Figtree', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* DARK THEME (OLED Deep Charcoal) */
@@ -86,6 +56,27 @@ html.dark {
   --status-red-border: rgba(255, 69, 58, 0.25);
 }
 
+/* FIGTREE AS PRIMARY (OR SYSTEM INTER TOGGLE) */
+html,
+body,
+.font-sans,
+input,
+button,
+select,
+textarea {
+  font-family: var(--font-family) !important;
+}
+
+html[data-font="figtree"],
+html.font-figtree {
+  --font-family: 'Figtree', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+html[data-font="system"],
+html.font-system {
+  --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
+}
+
 @layer base {
   * {
     border-color: var(--border-hairline);
@@ -97,7 +88,6 @@ html.dark {
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
     color: var(--text-primary);
     background-color: var(--bg-primary);
     font-feature-settings: "tnum";
@@ -109,71 +99,9 @@ html.dark {
   }
 }
 
-/* FIGTREE TYPOGRAPHY OVERRIDE (Erik Kennedy) */
-html[data-font="figtree"],
-html.font-figtree,
-html[data-font="figtree"] body {
-  font-family: 'Figtree', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-}
-
-/* SYSTEM INTER TYPOGRAPHY OVERRIDE */
-html[data-font="system"],
-html.font-system,
-html[data-font="system"] body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif !important;
-}
-
 /* Tabular figures for exact numerical alignment */
 .tabular-nums,
 .font-tabular {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-}
-
-/* WARM THEME ADAPTATION OVERRIDES */
-html.warm body,
-html.warm .bg-\[\#FAFAFA\],
-html.warm .bg-\[\#FBFBFD\],
-html.warm .bg-\[\#F5F5F7\] {
-  background-color: var(--bg-primary) !important;
-}
-
-html.warm .bg-white,
-html.warm .bg-\[\#FFFFFF\] {
-  background-color: var(--bg-secondary) !important;
-}
-
-html.warm .bg-\[\#F2F2F7\] {
-  background-color: var(--bg-tertiary) !important;
-}
-
-html.warm .border-\[\#E5E5EA\],
-html.warm .border-\[\#D1D1D6\] {
-  border-color: var(--border-hairline) !important;
-}
-
-html.warm .text-\[\#1D1D1F\] {
-  color: var(--text-primary) !important;
-}
-
-html.warm .text-\[\#6E6E73\],
-html.warm .text-\[\#86868B\],
-html.warm .text-\[\#8E8E93\] {
-  color: var(--text-secondary) !important;
-}
-
-html.warm .bg-\[\#0071E3\],
-html.warm .hover\:bg-\[\#0077ED\]:hover {
-  background-color: var(--accent) !important;
-  color: #28231d !important;
-}
-
-html.warm .text-\[\#0071E3\] {
-  color: #a46328 !important;
-}
-
-html.warm .bg-\[\#0071E3\]\/10,
-html.warm .bg-\[\#EBF4FC\] {
-  background-color: rgba(204, 213, 174, 0.45) !important;
-  color: #28231d !important;
 }
