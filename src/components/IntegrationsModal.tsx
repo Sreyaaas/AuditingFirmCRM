@@ -26,6 +26,7 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
   const [testing, setTesting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ success: boolean; text: string } | null>(null);
   const [copiedSyncScript, setCopiedSyncScript] = useState(false);
+  const [copiedSchema, setCopiedSchema] = useState(false);
 
   const handleCopySyncScript = () => {
     navigator.clipboard.writeText(`-- SHAMEER & ASSOCIATES CRM — ENABLE FULL SUPABASE SYNC

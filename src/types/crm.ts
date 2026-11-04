@@ -125,6 +125,25 @@ export interface MonthDebtorLedger {
   currentBilling: number;
 }
 
+export interface DebtorAccount {
+  id: string;
+  clientId: string;
+  clientName: string;
+  tradeName: string;
+  phone: string;
+  serviceCategory: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string;
+  billedAmount: number;
+  paidAmount: number;
+  outstandingBalance: number;
+  agingDays: number;
+  agingBucket: string;
+  status: string;
+  assignedStaffId: string;
+}
+
 export interface DebtorRecord {
   sNo: number;
   id: string;

@@ -528,7 +528,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                     <div>
                       <span className="text-[#6E6E73] dark:text-[#8E8E93] block text-[11px]">Tax Amount</span>
                       <span className="font-mono tabular-nums text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold block">
-                        ₹{task.taxPayable.toLocaleString('en-IN')}
+                        ₹{(task.taxPayable || 0).toLocaleString('en-IN')}
                       </span>
                     </div>
                   </div>

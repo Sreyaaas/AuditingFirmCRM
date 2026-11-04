@@ -61,12 +61,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
     // Quick verification of Supabase connectivity
     if (supabaseConfig.isLive) {
       supabase.from('profiles').select('id', { head: true, count: 'exact' })
-        .then(({ error }) => {
-          if (!error || error.code === '42501' || error.message.includes('security policy')) {
-            setIsDbLive(true);
-          }
-        })
-        .catch(() => setIsDbLive(false));
+        .then(
+          ({ error }) => {
+            if (!error || error.code === '42501' || error.message.includes('security policy')) {
+              setIsDbLive(true);
+            }
+          },
+          () => setIsDbLive(false)
+        );
     }
   }, [supabaseConfig.isLive]);
 

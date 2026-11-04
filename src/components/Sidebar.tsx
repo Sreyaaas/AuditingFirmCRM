@@ -177,28 +177,40 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Footer System Status */}
       <div className="p-3 border-t border-[#E5E5EA] dark:border-[#2C2C2E] space-y-1 shrink-0 bg-[#FBFBFD] dark:bg-[#161618]">
-        <button
-          onClick={onOpenIntegrations}
-          className="w-full flex items-center justify-between px-2.5 py-1.5 text-[12px] rounded-[6px] text-[#6E6E73] dark:text-[#8E8E93] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <Database className="w-3.5 h-3.5 stroke-[1.5]" />
-            <span>Cloud Sync</span>
-          </div>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#34C759]"></span>
-        </button>
-
         {isAdmin && (
-          <button
-            onClick={() => handleSelectTab('settings')}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] rounded-[6px] transition-colors ${activeTab === 'settings'
-                ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
-                : 'text-[#6E6E73] dark:text-[#8E8E93] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
-              }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 stroke-[1.5]" />
-            <span>Settings</span>
-          </button>
+          <>
+            <button
+              onClick={onOpenIntegrations}
+              className="w-full flex items-center justify-between px-2.5 py-1.5 text-[12px] rounded-[6px] text-[#6E6E73] dark:text-[#8E8E93] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Database className="w-3.5 h-3.5 stroke-[1.5]" />
+                <span>Database Sync</span>
+              </div>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#34C759]" title="Connected to Supabase" />
+            </button>
+
+            <button
+              onClick={() => handleSelectTab('settings')}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] rounded-[6px] transition-colors ${activeTab === 'settings'
+                  ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
+                  : 'text-[#6E6E73] dark:text-[#8E8E93] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
+                }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 stroke-[1.5]" />
+              <span>Settings</span>
+            </button>
+          </>
+        )}
+
+        {!isAdmin && (
+          <div className="flex items-center justify-between px-2.5 py-1 text-[11px] text-[#86868B] dark:text-[#6E6E73]">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#34C759]" />
+              <span>Online • Practice Cloud</span>
+            </div>
+            <span className="text-[10px] font-mono">v1.0</span>
+          </div>
         )}
       </div>
     </div>
