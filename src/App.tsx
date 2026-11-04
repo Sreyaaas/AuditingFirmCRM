@@ -966,6 +966,9 @@ export function App() {
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         client={selectedClient}
+        task={selectedClient ? monthlyTasks.find((t) => t.clientId === selectedClient.id) : null}
+        itrFiling={selectedClient ? itrFilings.find((i) => i.clientId === selectedClient.id || i.clientName === selectedClient.name) : null}
+        debtor={selectedClient ? debtors.find((d) => d.clientName === selectedClient.name) : null}
         staff={selectedClient ? staffList.find((s) => s.id === selectedClient.assignedStaffId) : null}
         tickets={tickets}
         staffList={staffList}
