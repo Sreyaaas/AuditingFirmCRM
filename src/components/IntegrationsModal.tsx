@@ -25,7 +25,42 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
   const [keyInput, setKeyInput] = useState(currentConfig.isLive ? currentConfig.anonKey : '');
   const [testing, setTesting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ success: boolean; text: string } | null>(null);
-  const [copiedSchema, setCopiedSchema] = useState(false);
+  const [copiedSyncScript, setCopiedSyncScript] = useState(false);
+
+  const handleCopySyncScript = () => {
+    navigator.clipboard.writeText(`-- SHAMEER & ASSOCIATES CRM — ENABLE FULL SUPABASE SYNC
+-- Run in Supabase SQL Editor:
+ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all access for CRM clients" ON public.clients;
+CREATE POLICY "Enable all access for CRM clients" ON public.clients FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all access for CRM tasks" ON public.tasks;
+CREATE POLICY "Enable all access for CRM tasks" ON public.tasks FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all access for CRM profiles" ON public.profiles;
+CREATE POLICY "Enable all access for CRM profiles" ON public.profiles FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.debtor_records ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all access for CRM debtors" ON public.debtor_records;
+CREATE POLICY "Enable all access for CRM debtors" ON public.debtor_records FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.itr_filings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all access for CRM itr" ON public.itr_filings;
+CREATE POLICY "Enable all access for CRM itr" ON public.itr_filings FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all access for CRM tickets" ON public.tickets;
+CREATE POLICY "Enable all access for CRM tickets" ON public.tickets FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all access for CRM logs" ON public.activity_logs;
+CREATE POLICY "Enable all access for CRM logs" ON public.activity_logs FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+`);
+    setCopiedSyncScript(true);
+    setTimeout(() => setCopiedSyncScript(false), 2000);
+  };
 
   const handleConnectLive = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,15 +231,26 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
                     <span>{testing ? 'Testing connection...' : 'Test & Connect Instantly'}</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={handleCopySchemaPath}
-                    className="inline-flex items-center gap-1 text-[11px] text-[#0071E3] hover:underline"
-                    title="Copy schema file path"
-                  >
-                    <Copy className="w-3 h-3" />
-                    <span>{copiedSchema ? 'Copied path!' : 'Copy schema.sql path'}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopySyncScript}
+                      className="inline-flex items-center gap-1 text-[11px] text-[#0071E3] dark:text-[#2997FF] hover:underline"
+                      title="Copy SQL to enable CRM read/write sync in Supabase"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>{copiedSyncScript ? 'Copied sync SQL!' : 'Copy Sync SQL Script'}</span>
+                    </button>
+                    <span className="text-[#D1D1D6] dark:text-[#3A3A3C]">•</span>
+                    <button
+                      type="button"
+                      onClick={handleCopySchemaPath}
+                      className="inline-flex items-center gap-1 text-[11px] text-[#6E6E73] dark:text-[#8E8E93] hover:underline"
+                      title="Copy schema file path"
+                    >
+                      <span>{copiedSchema ? 'Copied path!' : 'schema.sql path'}</span>
+                    </button>
+                  </div>
                 </div>
               </form>
 

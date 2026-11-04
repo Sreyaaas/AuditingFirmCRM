@@ -439,13 +439,15 @@ export const INITIAL_TICKETS: StaffTicket[] = [
 export const INITIAL_CLOUD_INTEGRATIONS: CloudIntegration = {
   supabase: {
     status: 'connected',
-    url: 'https://[PLACEHOLDER: supabase-ref].supabase.co',
-    lastSynced: 'Synced',
+    url: 'https://nnndhmwzrwbtmojflmma.supabase.co',
+    lastSynced: 'Just now',
     tables: [
       { name: 'clients', count: 6 },
-      { name: 'monthly_tasks', count: 6 },
+      { name: 'tasks', count: 6 },
       { name: 'itr_filings', count: 6 },
-      { name: 'staff', count: 3 },
+      { name: 'debtor_records', count: 6 },
+      { name: 'tickets', count: 4 },
+      { name: 'profiles', count: 3 },
     ],
   },
   oneDrive: {

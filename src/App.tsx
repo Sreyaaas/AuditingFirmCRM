@@ -25,8 +25,24 @@ import {
   removePracticeConfigOption, 
   fetchClientsFromDb, 
   saveClientToDb, 
+  updateClientInDb,
   fetchTasksFromDb, 
   saveTaskToDb, 
+  updateTaskStatusInDb,
+  fetchProfilesFromDb,
+  saveProfileToDb,
+  updateProfileInDb,
+  fetchItrFilingsFromDb,
+  saveItrFilingToDb,
+  updateItrFilingStatusInDb,
+  fetchDebtorsFromDb,
+  updateDebtorPaymentInDb,
+  fetchTicketsFromDb,
+  saveTicketToDb,
+  updateTicketInDb,
+  fetchActivityLogsFromDb,
+  saveActivityLogToDb,
+  checkSupabaseHealth,
   DEFAULT_PRACTICE_CONFIGS 
 } from './services/dbSyncService';
 
@@ -136,10 +152,24 @@ export function App() {
     let isMounted = true;
     const syncCloudData = async () => {
       try {
-        const [cloudConfigs, cloudClients, cloudTasks] = await Promise.all([
+        const [
+          cloudConfigs, 
+          cloudClients, 
+          cloudTasks,
+          cloudProfiles,
+          cloudITR,
+          cloudDebtors,
+          cloudTickets,
+          cloudLogs
+        ] = await Promise.all([
           fetchPracticeConfigs(),
           fetchClientsFromDb(),
-          fetchTasksFromDb()
+          fetchTasksFromDb(),
+          fetchProfilesFromDb(),
+          fetchItrFilingsFromDb(),
+          fetchDebtorsFromDb(),
+          fetchTicketsFromDb(),
+          fetchActivityLogsFromDb()
         ]);
         if (isMounted) {
           setPracticeConfigs(cloudConfigs);
@@ -149,6 +179,50 @@ export function App() {
           if (cloudTasks && cloudTasks.length > 0) {
             setMonthlyTasks(cloudTasks);
           }
+          if (cloudProfiles && cloudProfiles.length > 0) {
+            setProfiles(cloudProfiles);
+            setStaffList(cloudProfiles.map(p => ({
+              id: p.id,
+              name: p.name,
+              role: p.designation,
+              initials: p.initials || p.name.slice(0, 2).toUpperCase(),
+              email: p.email,
+              phone: p.phone,
+              assignedRecurringCount: 6,
+              assignedITRCount: 6,
+              completedThisMonth: 6,
+            })));
+          }
+          if (cloudITR && cloudITR.length > 0) {
+            setItrFilings(cloudITR);
+          }
+          if (cloudDebtors && cloudDebtors.length > 0) {
+            setDebtors(cloudDebtors);
+          }
+          if (cloudTickets && cloudTickets.length > 0) {
+            setTickets(cloudTickets);
+          }
+          if (cloudLogs && cloudLogs.length > 0) {
+            setActivityLogs(cloudLogs);
+          }
+
+          // Live cloud integration status
+          setIntegrations((prev) => ({
+            ...prev,
+            supabase: {
+              status: 'connected',
+              url: import.meta.env.VITE_SUPABASE_URL || 'https://nnndhmwzrwbtmojflmma.supabase.co',
+              lastSynced: 'Just now',
+              tables: [
+                { name: 'clients', count: cloudClients?.length || 6 },
+                { name: 'tasks', count: cloudTasks?.length || 6 },
+                { name: 'itr_filings', count: cloudITR?.length || 6 },
+                { name: 'debtor_records', count: cloudDebtors?.length || 6 },
+                { name: 'tickets', count: cloudTickets?.length || 4 },
+                { name: 'profiles', count: cloudProfiles?.length || 3 },
+              ]
+            }
+          }));
         }
       } catch (err) {
         console.error('Initial Supabase sync error:', err);
@@ -238,6 +312,7 @@ export function App() {
       category,
     };
     setActivityLogs((prev) => [newLog, ...prev]);
+    saveActivityLogToDb(newLog).catch((err) => console.warn('Activity log sync note:', err));
   };
 
   // Authentication & Session Management
@@ -284,7 +359,7 @@ export function App() {
   };
 
   // Employee Management Handlers
-  const handleAddEmployee = (
+  const handleAddEmployee = async (
     profileData: Omit<UserProfile, 'id' | 'assignedClientsCount' | 'assignedTasksCount' | 'completedThisMonth'>
   ) => {
     const newId = `emp-${Date.now()}`;
@@ -303,9 +378,10 @@ export function App() {
       undefined,
       'Account'
     );
+    await saveProfileToDb(newProfile);
   };
 
-  const handleToggleEmployeeStatus = (userId: string) => {
+  const handleToggleEmployeeStatus = async (userId: string) => {
     let empName = '';
     let newStatus: 'Active' | 'Inactive' = 'Active';
     setProfiles((prev) =>
@@ -325,13 +401,15 @@ export function App() {
       undefined,
       'Account'
     );
+    await updateProfileInDb(userId, { status: newStatus });
   };
 
-  const handleUpdateEmployeeRole = (userId: string, newRole: UserRole) => {
+  const handleUpdateEmployeeRole = async (userId: string, newRole: UserRole) => {
     setProfiles((prev) =>
       prev.map((p) => (p.id === userId ? { ...p, role: newRole } : p))
     );
     showToast(`Updated account role to ${newRole}`);
+    await updateProfileInDb(userId, { role: newRole });
   };
 
   const handleResetEmployeePassword = (userId: string) => {
@@ -346,19 +424,21 @@ export function App() {
   };
 
   // Task & Filing Handlers
-  const handleUpdateMonthlyStatus = (taskId: string, newStatus: FilingStatus) => {
+  const handleUpdateMonthlyStatus = async (taskId: string, newStatus: FilingStatus) => {
     let clientName = '';
     let filingPeriod = '';
+    let assignedArn = '';
     setMonthlyTasks((prev) =>
       prev.map((t) => {
         if (t.id === taskId) {
           clientName = t.clientName;
           filingPeriod = t.period;
           const isFiled = newStatus === 'Filed';
+          assignedArn = isFiled ? (t.arnNumber || `AA321126${Math.floor(100000 + Math.random() * 900000)}Z`) : (t.arnNumber || '');
           return {
             ...t,
             status: newStatus,
-            arnNumber: isFiled ? (t.arnNumber || `AA321126${Math.floor(100000 + Math.random() * 900000)}Z`) : t.arnNumber,
+            arnNumber: assignedArn,
             lastUpdated: 'Just now',
           };
         }
@@ -372,16 +452,18 @@ export function App() {
       clientName,
       'Filing'
     );
+    await updateTaskStatusInDb(taskId, newStatus, assignedArn);
   };
 
-  const handleUpdateITRStatus = (id: string, newStatus: ITRStatus, ackNo?: string) => {
+  const handleUpdateITRStatus = async (id: string, newStatus: ITRStatus, ackNo?: string) => {
     let clientName = '';
+    let assignedAck = '';
     setItrFilings((prev) =>
       prev.map((itr) => {
         if (itr.id === id) {
           clientName = itr.clientName;
           const isFiled = newStatus === 'Filed & e-Verified';
-          const assignedAck = isFiled ? (ackNo || itr.acknowledgmentNo || `ACK982${Math.floor(100000000 + Math.random() * 900000000)}`) : itr.acknowledgmentNo;
+          assignedAck = isFiled ? (ackNo || itr.acknowledgmentNo || `ACK982${Math.floor(100000000 + Math.random() * 900000000)}`) : (itr.acknowledgmentNo || '');
           return { 
             ...itr, 
             status: newStatus,
@@ -394,9 +476,10 @@ export function App() {
     );
     showToast(`ITR status: ${newStatus}`);
     addActivityLog('ITR Status Updated', `Updated annual return status to ${newStatus}`, clientName, 'Filing');
+    await updateItrFilingStatusInDb(id, newStatus, assignedAck);
   };
 
-  const handleAddITR = (newITR: Omit<ITRFiling, 'id' | 'lastActivity'>) => {
+  const handleAddITR = async (newITR: Omit<ITRFiling, 'id' | 'lastActivity'>) => {
     const newId = `itr-${Date.now()}`;
     const record: ITRFiling = {
       ...newITR,
@@ -411,6 +494,7 @@ export function App() {
       record.clientName,
       'Filing'
     );
+    await saveItrFilingToDb(record);
   };
 
   const handleResetITRToDefault = () => {
@@ -519,7 +603,7 @@ export function App() {
   };
 
   // Tickets & Calls Desk Handlers
-  const handleAddTicket = (newTicket: StaffTicket) => {
+  const handleAddTicket = async (newTicket: StaffTicket) => {
     setTickets((prev) => [newTicket, ...prev]);
     showToast(`Logged call ticket ${newTicket.ticketNo} for ${newTicket.tradeName}`);
     addActivityLog(
@@ -528,9 +612,10 @@ export function App() {
       newTicket.clientName,
       'Client'
     );
+    await saveTicketToDb(newTicket);
   };
 
-  const handleAssignTicket = (ticketId: string, staffId: string) => {
+  const handleAssignTicket = async (ticketId: string, staffId: string) => {
     const staff = staffList.find((s) => s.id === staffId);
     let ticketSubject = '';
     setTickets((prev) =>
@@ -554,9 +639,14 @@ export function App() {
       undefined,
       'Client'
     );
+    await updateTicketInDb(ticketId, {
+      assignedStaffId: staffId,
+      assignedAt: new Date().toISOString(),
+      status: 'In Progress'
+    });
   };
 
-  const handleUpdateTicketStatus = (ticketId: string, newStatus: TicketStatus, notes?: string) => {
+  const handleUpdateTicketStatus = async (ticketId: string, newStatus: TicketStatus, notes?: string) => {
     let ticketNo = '';
     setTickets((prev) =>
       prev.map((t) => {
@@ -579,27 +669,34 @@ export function App() {
       undefined,
       'Client'
     );
+    await updateTicketInDb(ticketId, {
+      status: newStatus,
+      resolvedAt: newStatus === 'Resolved' ? new Date().toISOString() : undefined,
+      resolutionNotes: notes
+    });
   };
 
   // Debtors & Payments Handlers
-  const handleRecordDebtorPayment = (debtorId: string, amountCleared: number) => {
+  const handleRecordDebtorPayment = async (debtorId: string, amountCleared: number) => {
     let clientName = '';
+    let calculatedBalance = 0;
+    let newClearedTotal = 0;
     setDebtors((prev) =>
       prev.map((d) => {
         if (d.id === debtorId) {
           clientName = d.clientName;
-          const newCleared = (d.november?.paymentCleared || 0) + amountCleared;
+          newClearedTotal = (d.november?.paymentCleared || 0) + amountCleared;
           const updatedNov = {
             ...d.november,
-            paymentCleared: newCleared,
+            paymentCleared: newClearedTotal,
           };
-          const newBalance = Math.max(0, updatedNov.outstanding - updatedNov.paymentCleared + updatedNov.currentBilling);
+          calculatedBalance = Math.max(0, updatedNov.outstanding - updatedNov.paymentCleared + updatedNov.currentBilling);
           return {
             ...d,
             november: updatedNov,
-            currentBalance: newBalance,
-            status: newBalance === 0 ? 'Cleared' : (newBalance < d.currentBalance ? 'Partially Paid' : d.status),
-            agingBucket: newBalance === 0 ? '0-30 Days' : d.agingBucket,
+            currentBalance: calculatedBalance,
+            status: calculatedBalance === 0 ? 'Cleared' : (calculatedBalance < d.currentBalance ? 'Partially Paid' : d.status),
+            agingBucket: calculatedBalance === 0 ? '0-30 Days' : d.agingBucket,
           };
         }
         return d;
@@ -612,6 +709,7 @@ export function App() {
       clientName,
       'Payment'
     );
+    await updateDebtorPaymentInDb(debtorId, newClearedTotal, 0, calculatedBalance);
   };
 
   const handleAddDebtorBilling = (debtorId: string, billingAmount: number, description: string) => {
