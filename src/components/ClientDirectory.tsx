@@ -4,28 +4,40 @@ import {
   ChevronRight,
   MessageSquare,
   Search,
-  ArrowUpRight
+  ArrowUpRight,
+  Plus
 } from 'lucide-react';
 import { Client, StaffMember } from '../types/crm';
+import { NewClientModal } from './NewClientModal';
 
 interface ClientDirectoryProps {
   clients: Client[];
   staffList: StaffMember[];
+  isAdmin?: boolean;
+  entityTypes?: string[];
   onSelectClient: (clientId: string) => void;
   onOpenWhatsAppForClient: (client: Client) => void;
+  onAddClient?: (newClient: Client) => Promise<void>;
 }
 
 export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
   clients,
   staffList,
+  isAdmin = false,
+  entityTypes = ['Private Limited', 'LLP', 'Partnership', 'Proprietorship', 'Individual'],
   onSelectClient,
   onOpenWhatsAppForClient,
+  onAddClient,
 }) => {
   const [search, setSearch] = useState('');
   const [entityFilter, setEntityFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
   const itemsPerPage = 12;
+
+  // Auto-generate next sequential code e.g. C-007
+  const nextClientCode = `C-00${clients.length + 1}`;
 
   const filteredClients = clients.filter((c) => {
     if (entityFilter !== 'all' && c.entityType !== entityFilter) return false;
@@ -66,8 +78,20 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
           </p>
         </div>
 
-        <div className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-tabular">
-          {filteredClients.length} accounts listed
+        <div className="flex items-center gap-3">
+          <div className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-tabular hidden sm:block">
+            {filteredClients.length} accounts listed
+          </div>
+
+          {isAdmin && onAddClient && (
+            <button
+              onClick={() => setIsNewClientModalOpen(true)}
+              className="h-8 px-3 rounded-[6px] bg-[#0071E3] hover:bg-[#0077ED] text-white text-[13px] font-medium flex items-center gap-1.5 transition-colors shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2]" />
+              <span>Add Client</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -116,10 +140,9 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
             className="px-2.5 py-1 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] text-[12px] focus:outline-none"
           >
             <option value="all">All Entities</option>
-            <option value="Private Limited">Private Limited</option>
-            <option value="LLP">LLP</option>
-            <option value="Partnership">Partnership</option>
-            <option value="Proprietorship">Proprietorship</option>
+            {entityTypes.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
           </select>
 
           <div className="flex items-center gap-1.5 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-[#E5E5EA] dark:border-[#3A3A3C] px-2 py-1 rounded-[6px]">
@@ -249,6 +272,18 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Admin New Client Registration Modal */}
+      {isAdmin && onAddClient && (
+        <NewClientModal
+          isOpen={isNewClientModalOpen}
+          onClose={() => setIsNewClientModalOpen(false)}
+          staffList={staffList}
+          entityTypes={entityTypes}
+          nextClientCode={nextClientCode}
+          onAddClient={onAddClient}
+        />
+      )}
     </div>
   );
 };

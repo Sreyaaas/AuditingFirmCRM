@@ -12,6 +12,7 @@ interface ComplianceTaskManagerProps {
   tasks: MonthlyTask[];
   staffList: StaffMember[];
   selectedStaffId: string | null;
+  filingTypes?: string[];
   onUpdateStatus: (taskId: string, newStatus: FilingStatus) => void;
   onOpenWhatsApp: (task: MonthlyTask) => void;
   onSelectClient: (clientId: string) => void;
@@ -21,6 +22,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   tasks,
   staffList,
   selectedStaffId,
+  filingTypes = ['GSTR-1 (Sales)', 'GSTR-3B (Summary)', 'Statutory Audit', 'TDS Payment', 'PF & ESI', 'CMP-08', 'IFF'],
   onUpdateStatus,
   onOpenWhatsApp,
   onSelectClient,
@@ -35,7 +37,11 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   const filteredTasks = tasks.filter((task) => {
     if (selectedStaffId && task.assignedStaffId !== selectedStaffId) return false;
     if (statusFilter !== 'all' && task.status !== statusFilter) return false;
-    if (filingTypeFilter !== 'all' && task.filingType !== filingTypeFilter) return false;
+    if (filingTypeFilter !== 'all') {
+      const fNorm = filingTypeFilter.toLowerCase();
+      const tNorm = task.filingType.toLowerCase();
+      if (tNorm !== fNorm && !fNorm.includes(tNorm) && !tNorm.includes(fNorm)) return false;
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
@@ -191,11 +197,9 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
             className="px-2.5 py-1 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] text-[12px] focus:outline-none"
           >
             <option value="all">All Filing Types</option>
-            <option value="GSTR-1">GSTR-1 (Sales)</option>
-            <option value="GSTR-3B">GSTR-3B (Summary)</option>
-            <option value="Statutory Audit">Statutory Audit</option>
-            <option value="TDS Payment">TDS Payment</option>
-            <option value="PF/ESI">PF &amp; ESI</option>
+            {filingTypes.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
           </select>
 
           <div className="flex items-center gap-1.5 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-[#E5E5EA] dark:border-[#3A3A3C] px-2 py-1 rounded-[6px]">

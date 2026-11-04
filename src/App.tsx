@@ -18,6 +18,17 @@ import { NewTaskModal } from './components/NewTaskModal';
 import { NewTicketModal } from './components/NewTicketModal';
 import { CommandPalette } from './components/CommandPalette';
 import { LoginView } from './components/LoginView';
+import { PracticeConfigManager } from './components/PracticeConfigManager';
+import { 
+  fetchPracticeConfigs, 
+  savePracticeConfigOption, 
+  removePracticeConfigOption, 
+  fetchClientsFromDb, 
+  saveClientToDb, 
+  fetchTasksFromDb, 
+  saveTaskToDb, 
+  DEFAULT_PRACTICE_CONFIGS 
+} from './services/dbSyncService';
 
 import { 
   ACTUAL_STAFF, 
@@ -115,6 +126,37 @@ export function App() {
   const [staffList, setStaffList] = useState<StaffMember[]>(ACTUAL_STAFF);
   const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
   const [monthlyTasks, setMonthlyTasks] = useState<MonthlyTask[]>(INITIAL_MONTHLY_TASKS);
+  const [practiceConfigs, setPracticeConfigs] = useState<Record<string, string[]>>(() => {
+    const saved = localStorage.getItem('shameer_crm_practice_configs');
+    return saved ? JSON.parse(saved) : DEFAULT_PRACTICE_CONFIGS;
+  });
+
+  // Live Supabase Database Data Synchronization
+  useEffect(() => {
+    let isMounted = true;
+    const syncCloudData = async () => {
+      try {
+        const [cloudConfigs, cloudClients, cloudTasks] = await Promise.all([
+          fetchPracticeConfigs(),
+          fetchClientsFromDb(),
+          fetchTasksFromDb()
+        ]);
+        if (isMounted) {
+          setPracticeConfigs(cloudConfigs);
+          if (cloudClients && cloudClients.length > 0) {
+            setClients(cloudClients);
+          }
+          if (cloudTasks && cloudTasks.length > 0) {
+            setMonthlyTasks(cloudTasks);
+          }
+        }
+      } catch (err) {
+        console.error('Initial Supabase sync error:', err);
+      }
+    };
+    syncCloudData();
+    return () => { isMounted = false; };
+  }, []);
   const [itrFilings, setItrFilings] = useState<ITRFiling[]>(() => {
     try {
       const saved = localStorage.getItem('shameer_crm_itr_filings_v2');
@@ -382,10 +424,52 @@ export function App() {
     addActivityLog('ITR Dataset Reset', 'Restored master 6 client ITR records from workbook', undefined, 'Filing');
   };
 
-  const handleAddTask = (newTask: MonthlyTask) => {
+  // Admin Practice Config Handlers
+  const handleAddConfigOption = async (categoryKey: string, newOption: string): Promise<boolean> => {
+    const result = await savePracticeConfigOption(categoryKey, newOption);
+    if (result.success) {
+      setPracticeConfigs((prev) => ({ ...prev, [categoryKey]: result.options }));
+      showToast(`Added "${newOption}" to ${categoryKey.replace('_', ' ')} (Synced with Supabase)`);
+      addActivityLog('Practice Config Updated', `Added option "${newOption}" to ${categoryKey}`, undefined, 'Task');
+      return true;
+    }
+    showToast(result.error || 'Failed to save option');
+    return false;
+  };
+
+  const handleRemoveConfigOption = async (categoryKey: string, optionToRemove: string): Promise<boolean> => {
+    const result = await removePracticeConfigOption(categoryKey, optionToRemove);
+    if (result.success) {
+      setPracticeConfigs((prev) => ({ ...prev, [categoryKey]: result.options }));
+      showToast(`Removed "${optionToRemove}" from ${categoryKey.replace('_', ' ')}`);
+      return true;
+    }
+    return false;
+  };
+
+  // Admin New Client Registration Handler
+  const handleAddNewClient = async (newClient: Client) => {
+    setClients((prev) => [newClient, ...prev]);
+    showToast(`Client ${newClient.name} registered`);
+    addActivityLog('Client Registered', `Registered new entity ${newClient.name} (${newClient.clientCode})`, newClient.name, 'Client');
+
+    const res = await saveClientToDb(newClient);
+    if (res.success) {
+      showToast(`✓ Client ${newClient.name} synced directly to Supabase cloud!`);
+    } else {
+      console.warn('Saved client locally, cloud sync pending:', res.error);
+    }
+  };
+
+  const handleAddTask = async (newTask: MonthlyTask) => {
     setMonthlyTasks((prev) => [newTask, ...prev]);
     showToast(`Task created for ${newTask.tradeName}`);
     addActivityLog('New Task Created', `Scheduled ${newTask.filingType} for ${newTask.period}`, newTask.clientName, 'Task');
+
+    const res = await saveTaskToDb(newTask);
+    if (res.success) {
+      showToast(`✓ Task synced directly to Supabase cloud!`);
+    }
   };
 
   // WhatsApp reminder handlers
@@ -727,6 +811,7 @@ export function App() {
                   tasks={monthlyTasks}
                   staffList={staffList}
                   selectedStaffId={selectedStaffId}
+                  filingTypes={practiceConfigs.filing_types}
                   onUpdateStatus={handleUpdateMonthlyStatus}
                   onOpenWhatsApp={handleOpenWhatsAppForMonthly}
                   onSelectClient={handleSelectClient}
@@ -741,6 +826,7 @@ export function App() {
               complianceItems={gstCompliance}
               staffList={staffList}
               selectedStaffId={selectedStaffId}
+              returnTypes={practiceConfigs.return_types}
               onOpenWhatsApp={handleOpenWhatsAppForGST}
               onMarkAsFiled={handleMarkGSTAsFiled}
             />
@@ -752,6 +838,7 @@ export function App() {
               tasks={monthlyTasks}
               staffList={staffList}
               selectedStaffId={selectedStaffId}
+              filingTypes={practiceConfigs.filing_types}
               onUpdateStatus={handleUpdateMonthlyStatus}
               onOpenWhatsApp={handleOpenWhatsAppForMonthly}
               onSelectClient={handleSelectClient}
@@ -778,6 +865,9 @@ export function App() {
             <ClientDirectory
               clients={clients}
               staffList={staffList}
+              isAdmin={isAdmin}
+              entityTypes={practiceConfigs.entity_types}
+              onAddClient={handleAddNewClient}
               onSelectClient={handleSelectClient}
               onOpenWhatsAppForClient={(c) => {
                 const task = monthlyTasks.find((t) => t.clientId === c.id);
@@ -872,17 +962,24 @@ export function App() {
 
           {/* VIEW: Settings */}
           {activeTab === 'settings' && (
-            <div className="max-w-2xl space-y-5 text-[13px]">
+            <div className="space-y-6 text-[13px]">
               <div>
                 <h1 className="text-[22px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
-                  Firm Settings
+                  Firm Settings &amp; Dropdown Configurations
                 </h1>
                 <p className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-                  Practice details, storage connections, and database parameters
+                  Manage practice metadata, filing types, return categories, and live Supabase cloud database sync
                 </p>
               </div>
 
-              <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] p-4 rounded-[8px] border border-[#E5E5EA] dark:border-[#2C2C2E] space-y-3">
+              {/* Practice Configuration Manager (Admins can add/delete dropdown options directly) */}
+              <PracticeConfigManager
+                configs={practiceConfigs}
+                onAddOption={handleAddConfigOption}
+                onRemoveOption={handleRemoveConfigOption}
+              />
+
+              <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] p-4 rounded-[8px] border border-[#E5E5EA] dark:border-[#2C2C2E] space-y-3 max-w-3xl">
                 <h3 className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Practice Profile</h3>
                 <div className="grid grid-cols-2 gap-3 text-[13px]">
                   <div>
@@ -992,6 +1089,7 @@ export function App() {
         isOpen={isNewTaskOpen}
         onClose={() => setIsNewTaskOpen(false)}
         staffList={staffList}
+        filingTypes={practiceConfigs.filing_types}
         onAddTask={handleAddTask}
       />
 

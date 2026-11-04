@@ -19,6 +19,7 @@ interface GSTComplianceTrackerProps {
   complianceItems: GSTComplianceItem[];
   staffList: StaffMember[];
   selectedStaffId: string | null;
+  returnTypes?: string[];
   onOpenWhatsApp: (item: GSTComplianceItem) => void;
   onMarkAsFiled: (id: string, arn: string) => void;
 }
@@ -27,6 +28,7 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
   complianceItems,
   staffList,
   selectedStaffId,
+  returnTypes = ['GSTR-1', 'GSTR-3B', 'CMP-08', 'GSTR-9', 'GSTR-9C'],
   onOpenWhatsApp,
   onMarkAsFiled,
 }) => {
@@ -288,10 +290,10 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
             onChange={(e) => setReturnTypeFilter(e.target.value)}
             className="px-2.5 py-1 bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] text-[12px] focus:outline-none"
           >
-            <option value="all">All Returns (GSTR-1, 3B, CMP-08)</option>
-            <option value="GSTR-1">GSTR-1</option>
-            <option value="GSTR-3B">GSTR-3B</option>
-            <option value="CMP-08">CMP-08</option>
+            <option value="all">All Returns ({returnTypes.slice(0, 3).join(', ')})</option>
+            {returnTypes.map((ret) => (
+              <option key={ret} value={ret}>{ret}</option>
+            ))}
           </select>
 
           <select

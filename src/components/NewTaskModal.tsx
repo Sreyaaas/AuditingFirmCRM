@@ -6,6 +6,7 @@ interface NewTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   staffList: StaffMember[];
+  filingTypes?: string[];
   onAddTask: (task: MonthlyTask) => void;
 }
 
@@ -13,6 +14,7 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
   isOpen,
   onClose,
   staffList,
+  filingTypes = ['GSTR-1 (Sales)', 'GSTR-3B (Summary)', 'Statutory Audit', 'TDS Payment', 'PF & ESI', 'CMP-08', 'IFF'],
   onAddTask,
 }) => {
   if (!isOpen) return null;
@@ -114,11 +116,9 @@ export const NewTaskModal: React.FC<NewTaskModalProps> = ({
                 onChange={(e) => setFilingType(e.target.value as any)}
                 className="w-full px-3 py-1.5 bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none text-[#1D1D1F] dark:text-[#F5F5F7]"
               >
-                <option value="GSTR-1">GSTR-1 (Sales)</option>
-                <option value="GSTR-3B">GSTR-3B (Summary)</option>
-                <option value="Statutory Audit">Statutory Audit</option>
-                <option value="TDS Payment">TDS Payment</option>
-                <option value="PF/ESI">PF/ESI</option>
+                {filingTypes.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
               </select>
             </div>
             <div>
