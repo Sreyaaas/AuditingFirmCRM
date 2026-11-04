@@ -166,13 +166,13 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[14px] border-collapse">
             <thead>
-              <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[13px] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-                <th className="py-3 px-3.5 font-semibold min-w-[200px]">Client Code &amp; Legal Name</th>
-                <th className="py-3 px-3.5 font-semibold">Entity Type</th>
-                <th className="py-3 px-3.5 font-semibold">GSTIN / PAN</th>
-                <th className="py-3 px-3.5 font-semibold">Staff</th>
-                <th className="py-3 px-3.5 font-semibold">Filing Plan</th>
-                <th className="py-3 px-3.5 font-semibold text-right">Actions</th>
+              <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[11px] uppercase tracking-[0.04em] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
+                <th className="py-2 px-3.5 font-semibold min-w-[200px]">Client Code &amp; Legal Name</th>
+                <th className="py-2 px-3.5 font-semibold">Entity Type</th>
+                <th className="py-2 px-3.5 font-semibold">GSTIN / PAN</th>
+                <th className="py-2 px-3.5 font-semibold">Staff</th>
+                <th className="py-2 px-3.5 font-semibold">Filing Plan</th>
+                <th className="py-2 px-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">
@@ -180,59 +180,60 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                 const staff = getStaff(client.assignedStaffId);
                 return (
                   <tr key={client.id} className="hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors group">
-                    <td className="py-3 px-3.5">
+                    <td className="py-2.5 px-3.5">
                       <button
                         onClick={() => onSelectClient(client.id)}
-                        className="font-semibold text-[14px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-xs"
+                        className="font-semibold text-[13.5px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-xs"
                       >
                         {client.tradeName}
                       </button>
                       <div className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] flex items-center gap-1.5 mt-0.5">
-                        <span className="font-tabular font-medium">{client.clientCode}</span>
+                        <span className="font-mono tabular-nums font-medium">{client.clientCode}</span>
                         <span>•</span>
                         <span className="truncate">{client.name}</span>
                       </div>
                     </td>
 
-                    <td className="py-2.5 px-3">
+                    <td className="py-2.5 px-3.5">
                       <span className="text-[#1D1D1F] dark:text-[#F5F5F7] font-medium block">{client.entityType}</span>
                       <span className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">{client.city}</span>
                     </td>
 
-                    <td className="py-2.5 px-3 font-tabular text-[12px]">
+                    <td className="py-2.5 px-3.5 font-mono tabular-nums text-[12px]">
                       <span className="text-[#1D1D1F] dark:text-[#F5F5F7] block">{client.gstin}</span>
                       <span className="text-[#6E6E73] dark:text-[#8E8E93] block">{client.pan}</span>
                     </td>
 
-                    <td className="py-2.5 px-3 text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">
+                    <td className="py-2.5 px-3.5 text-[12.5px] text-[#1D1D1F] dark:text-[#F5F5F7]">
                       {staff?.name || 'Unassigned'}
                     </td>
 
-                    <td className="py-2.5 px-3">
-                      <span className={`inline-block px-1.5 py-0.2 rounded text-[11px] font-medium ${
+                    <td className="py-2.5 px-3.5">
+                      <span className={`inline-block px-1.5 py-0.2 rounded-[4px] text-[11px] font-medium ${
                         client.isRecurringGST 
                           ? 'bg-[#0071E3]/10 text-[#0071E3] dark:text-[#2997FF]' 
                           : 'bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93]'
                       }`}>
                         {client.isRecurringGST ? 'Monthly GST' : 'Annual ITR'}
                       </span>
-                      <div className="font-tabular text-[11px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
+                      <div className="font-mono tabular-nums text-[11px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
                         ₹{client.monthlyAuditFee.toLocaleString('en-IN')}/mo
                       </div>
                     </td>
 
-                    <td className="py-2.5 px-3 text-right">
+                    <td className="py-2.5 px-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => onOpenWhatsAppForClient(client)}
                           title="Message on WhatsApp"
-                          className="p-1 text-[#34C759] hover:bg-[#34C759]/10 rounded transition-colors"
+                          className="h-7 px-2 border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-[5px] flex items-center gap-1 transition-colors text-[11px] font-medium"
                         >
-                          <MessageSquare className="w-3.5 h-3.5 stroke-[1.5]" />
+                          <MessageSquare className="w-3 h-3 text-[#16A34A] dark:text-[#34C759]" strokeWidth={1.5} />
+                          <span className="hidden sm:inline">Notice</span>
                         </button>
                         <button
                           onClick={() => onSelectClient(client.id)}
-                          className="px-2 py-1 text-[11px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] bg-[#F2F2F7] dark:bg-[#2C2C2E] hover:bg-[#E5E5EA] dark:hover:bg-[#3A3A3C] rounded-[4px] transition-colors"
+                          className="h-7 px-2 text-[11px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] bg-[#F2F2F7] dark:bg-[#2C2C2E] hover:bg-[#E5E5EA] dark:hover:bg-[#3A3A3C] rounded-[5px] transition-colors"
                         >
                           View Account
                         </button>

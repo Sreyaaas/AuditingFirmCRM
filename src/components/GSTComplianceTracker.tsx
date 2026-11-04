@@ -110,55 +110,56 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
             <div className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">{item.tradeName}</div>
           )}
         </td>
-        <td className="py-2.5 px-3 font-tabular text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">{item.gstin}</td>
-        <td className="py-2.5 px-3">
-          <span className="font-tabular text-[11px] font-medium px-1.5 py-0.5 rounded bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7]">
+        <td className="py-2.5 px-3.5 font-mono tabular-nums text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">{item.gstin}</td>
+        <td className="py-2.5 px-3.5">
+          <span className="font-mono tabular-nums text-[11px] font-medium px-1.5 py-0.5 rounded-[4px] bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7]">
             {item.returnType}
           </span>
         </td>
-        <td className="py-2.5 px-3 text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">{item.filingMonth}</td>
-        <td className="py-2.5 px-3 font-tabular text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">{item.dueDate}</td>
-        <td className="py-2.5 px-3">
+        <td className="py-2.5 px-3.5 text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">{item.filingMonth}</td>
+        <td className="py-2.5 px-3.5 font-mono tabular-nums text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">{item.dueDate}</td>
+        <td className="py-2.5 px-3.5">
           {item.priorityLevel === 'overdue' ? (
-            <span className="font-tabular text-[11px] text-[#FF3B30] font-semibold">
-              {Math.abs(item.daysRemaining)} days late
+            <span className="font-mono tabular-nums text-[11px] text-[#DC2626] font-medium bg-[#DC2626]/10 px-1.5 py-0.5 rounded-[4px]">
+              {Math.abs(item.daysRemaining)}d late
             </span>
           ) : item.priorityLevel === 'due-2-days' ? (
-            <span className="font-tabular text-[11px] text-[#FF9500] font-semibold">
-              {item.daysRemaining === 1 ? 'Due tomorrow' : `In ${item.daysRemaining} days`}
+            <span className="font-mono tabular-nums text-[11px] text-[#D97706] font-medium bg-[#D97706]/10 px-1.5 py-0.5 rounded-[4px]">
+              {item.daysRemaining === 1 ? 'Due tomorrow' : `In ${item.daysRemaining}d`}
             </span>
           ) : item.priorityLevel === 'filed' ? (
-            <span className="font-tabular text-[11px] text-[#34C759] font-medium">
+            <span className="font-mono tabular-nums text-[11px] text-[#16A34A] dark:text-[#34C759] font-medium bg-[#16A34A]/10 px-1.5 py-0.5 rounded-[4px]">
               Filed ({item.filedDate || 'Recorded'})
             </span>
           ) : (
-            <span className="font-tabular text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">
-              In {item.daysRemaining} days
+            <span className="font-mono tabular-nums text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">
+              In {item.daysRemaining}d
             </span>
           )}
         </td>
-        <td className="py-2.5 px-3 text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">{item.assignedStaff}</td>
-        <td className="py-2.5 px-3 font-tabular text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7] text-right">
+        <td className="py-2.5 px-3.5 text-[12.5px] text-[#1D1D1F] dark:text-[#F5F5F7]">{item.assignedStaff}</td>
+        <td className="py-2.5 px-3.5 font-mono tabular-nums text-[12.5px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] text-right">
           ₹{(item.taxPayable || 0).toLocaleString('en-IN')}
         </td>
-        <td className="py-2.5 px-3 text-right">
+        <td className="py-2.5 px-3.5 text-right">
           <div className="flex items-center justify-end gap-1.5">
             <button
               onClick={() => onOpenWhatsApp(item)}
               title="Send WhatsApp Notice"
-              className="p-1 text-[#34C759] hover:bg-[#34C759]/10 rounded transition-colors"
+              className="h-7 px-2 border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-[5px] flex items-center gap-1 transition-colors text-[11px] font-medium"
             >
-              <MessageSquare className="w-3.5 h-3.5 stroke-[1.5]" />
+              <MessageSquare className="w-3 h-3 text-[#16A34A] dark:text-[#34C759]" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Notice</span>
             </button>
             {item.priorityLevel !== 'filed' ? (
               <button
                 onClick={() => handleOpenFilingModal(item)}
-                className="px-2 py-1 text-[11px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[4px] transition-colors"
+                className="h-7 px-2 text-[11px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[5px] transition-colors"
               >
                 Mark Filed
               </button>
             ) : (
-              <span className="font-tabular text-[11px] text-[#34C759] font-medium truncate max-w-[90px]" title={item.arnNumber}>
+              <span className="font-mono tabular-nums text-[11px] text-[#16A34A] dark:text-[#34C759] font-medium truncate max-w-[90px]" title={item.arnNumber}>
                 {item.arnNumber || 'ARN Logged'}
               </span>
             )}
@@ -329,16 +330,16 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[13px] border-collapse">
             <thead>
-              <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[12px] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-                <th className="py-2.5 px-3 font-semibold min-w-[200px]">Client Account</th>
-                <th className="py-2.5 px-3 font-semibold">GSTIN</th>
-                <th className="py-2.5 px-3 font-semibold">Return</th>
-                <th className="py-2.5 px-3 font-semibold">Period</th>
-                <th className="py-2.5 px-3 font-semibold">Due Date</th>
-                <th className="py-2.5 px-3 font-semibold">Timeline</th>
-                <th className="py-2.5 px-3 font-semibold">Staff</th>
-                <th className="py-2.5 px-3 font-semibold text-right">Tax Payable</th>
-                <th className="py-2.5 px-3 font-semibold text-right">Actions</th>
+              <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[11px] uppercase tracking-[0.04em] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
+                <th className="py-2 px-3.5 font-semibold min-w-[200px]">Client Account</th>
+                <th className="py-2 px-3.5 font-semibold">GSTIN</th>
+                <th className="py-2 px-3.5 font-semibold">Return</th>
+                <th className="py-2 px-3.5 font-semibold">Period</th>
+                <th className="py-2 px-3.5 font-semibold">Due Date</th>
+                <th className="py-2 px-3.5 font-semibold">Timeline</th>
+                <th className="py-2 px-3.5 font-semibold">Staff</th>
+                <th className="py-2 px-3.5 font-semibold text-right">Tax Payable</th>
+                <th className="py-2 px-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">

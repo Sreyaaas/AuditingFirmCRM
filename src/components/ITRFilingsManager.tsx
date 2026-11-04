@@ -411,15 +411,15 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[13px] border-collapse">
             <thead>
-          <tr className="bg-[#F9FAFB] dark:bg-[#18191B] text-[#4B5563] dark:text-[#9CA3AF] text-[12px] font-semibold uppercase tracking-wider border-b border-[#E5E7EB] dark:border-[#2C2C2E]">
-            <th className="py-3 px-3.5 font-semibold min-w-[210px]">Client Account &amp; PAN</th>
-            <th className="py-3 px-3.5 font-semibold w-28">Entity &amp; Form</th>
-            <th className="py-3 px-3.5 font-semibold w-36">Target Cutoff &amp; Urgency</th>
-            <th className="py-3 px-3.5 font-semibold w-36">Tax Position</th>
-            <th className="py-3 px-3.5 font-semibold w-32">Assigned Staff</th>
-            <th className="py-3 px-3.5 font-semibold w-40">Filing Status</th>
-            <th className="py-3 px-3.5 font-semibold text-right w-36">Actions</th>
-          </tr>
+              <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[11px] uppercase tracking-[0.04em] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
+                <th className="py-2 px-3.5 font-semibold min-w-[210px]">Client Account &amp; PAN</th>
+                <th className="py-2 px-3.5 font-semibold w-28">Entity &amp; Form</th>
+                <th className="py-2 px-3.5 font-semibold w-36">Target Cutoff</th>
+                <th className="py-2 px-3.5 font-semibold w-36">Tax Position</th>
+                <th className="py-2 px-3.5 font-semibold w-32">Assigned Staff</th>
+                <th className="py-2 px-3.5 font-semibold w-40">Filing Status</th>
+                <th className="py-2 px-3.5 font-semibold text-right w-36">Actions</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E7EB] dark:divide-[#242528]">
               {paginatedList.length === 0 ? (
@@ -438,67 +438,67 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                       key={itr.id} 
                       className="bg-white dark:bg-[#1C1C1E] hover:bg-[#F9FAFB] dark:hover:bg-[#232428] transition-colors"
                     >
-                      {/* Client Account & PAN (Clean Vertical Alignment) */}
-                      <td className="py-3.5 px-3.5 align-middle">
+                      {/* Client Account & PAN */}
+                      <td className="py-2.5 px-3.5 align-middle">
                         <button
                           onClick={() => onSelectClient(itr.clientId)}
-                          className="font-semibold text-[14px] text-[#111827] dark:text-[#F3F4F6] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-[220px]"
+                          className="font-semibold text-[13.5px] text-[#111827] dark:text-[#F3F4F6] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-[220px]"
                         >
                           {itr.clientName}
                         </button>
-                        <div className="font-mono text-[12px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5 tracking-tight">
+                        <div className="font-mono tabular-nums text-[12px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5 tracking-tight">
                           {itr.pan} <span className="text-[#D1D5DB] dark:text-[#4B5563]">•</span> {itr.assessmentYear}
                         </div>
                       </td>
 
                       {/* Entity & Form */}
-                      <td className="py-3.5 px-3.5 align-middle">
-                        <div className="font-semibold text-[13px] text-[#111827] dark:text-[#F3F4F6]">
+                      <td className="py-2.5 px-3.5 align-middle">
+                        <div className="font-medium text-[13px] text-[#111827] dark:text-[#F3F4F6]">
                           {itr.itrForm}
                         </div>
-                        <div className="text-[12px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
+                        <div className="text-[11.5px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
                           {itr.entityType}
                         </div>
                       </td>
 
-                      {/* Target Cutoff & Urgency (Clean Typographic Hierarchy) */}
-                      <td className="py-3.5 px-3.5 align-middle font-tabular">
-                        <div className="font-medium text-[13px] text-[#111827] dark:text-[#F3F4F6]">
+                      {/* Target Cutoff */}
+                      <td className="py-2.5 px-3.5 align-middle font-mono tabular-nums">
+                        <div className="font-medium text-[12.5px] text-[#111827] dark:text-[#F3F4F6]">
                           {formatReadableDate(itr.dueDate)}
                         </div>
-                        <div className={`text-[12px] font-medium mt-0.5 ${itr.meta.color}`}>
+                        <div className={`text-[11px] font-medium mt-0.5 ${itr.meta.color}`}>
                           {itr.meta.label}
                         </div>
                       </td>
 
                       {/* Tax Position */}
-                      <td className="py-3.5 px-3.5 align-middle font-tabular">
+                      <td className="py-2.5 px-3.5 align-middle font-mono tabular-nums">
                         {isRefund ? (
-                          <div className="font-semibold text-[13px] text-[#059669] dark:text-[#10B981]">
-                            ₹{Math.abs(itr.taxLiabilityOrRefund).toLocaleString('en-IN')} <span className="text-[11px] font-normal text-[#059669]/80">refund</span>
+                          <div className="font-medium text-[12.5px] text-[#1D1D1F] dark:text-[#F5F5F7]">
+                            ₹{Math.abs(itr.taxLiabilityOrRefund).toLocaleString('en-IN')} <span className="text-[11px] text-[#16A34A] dark:text-[#34C759]">refund</span>
                           </div>
                         ) : (
-                          <div className="font-semibold text-[13px] text-[#111827] dark:text-[#F3F4F6]">
-                            ₹{itr.taxLiabilityOrRefund.toLocaleString('en-IN')} <span className="text-[11px] font-normal text-[#6B7280]">tax</span>
+                          <div className="font-medium text-[12.5px] text-[#1D1D1F] dark:text-[#F5F5F7]">
+                            ₹{itr.taxLiabilityOrRefund.toLocaleString('en-IN')} <span className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">tax</span>
                           </div>
                         )}
-                        <div className="text-[12px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
+                        <div className="text-[11px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5 font-sans">
                           {itr.regime.includes('New') ? '115BAC (New)' : 'Old Regime'}
                         </div>
                       </td>
 
                       {/* Assigned Staff */}
-                      <td className="py-3.5 px-3.5 align-middle">
-                        <div className="font-medium text-[13px] text-[#111827] dark:text-[#F3F4F6]">
+                      <td className="py-2.5 px-3.5 align-middle">
+                        <div className="font-medium text-[12.5px] text-[#111827] dark:text-[#F3F4F6]">
                           {staff?.name || 'Unassigned'}
                         </div>
-                        <div className="text-[12px] font-mono text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
+                        <div className="text-[11px] font-mono tabular-nums text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
                           {itr.phone}
                         </div>
                       </td>
 
-                      {/* Filing Status (Uniform Enterprise Select) */}
-                      <td className="py-3 px-3.5 align-middle">
+                      {/* Filing Status */}
+                      <td className="py-2.5 px-3.5 align-middle">
                         <select
                           value={itr.status}
                           onChange={(e) => {
@@ -510,7 +510,7 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                               onUpdateITRStatus(itr.id, newSt);
                             }
                           }}
-                          className="h-7 px-2.5 rounded-[4px] text-[12px] font-medium border border-[#E5E7EB] dark:border-[#374151] bg-[#F9FAFB] dark:bg-[#202124] text-[#1F2937] dark:text-[#E5E7EB] hover:bg-white dark:hover:bg-[#1A1A1C] focus:outline-none focus:ring-1 focus:ring-[#0071E3] transition-colors cursor-pointer w-[140px]"
+                          className="h-7 px-2 rounded-[5px] text-[11.5px] font-medium border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] focus:outline-none transition-colors cursor-pointer w-[130px]"
                         >
                           <option value="Docs Pending">Docs Pending</option>
                           <option value="26AS Reconciled">26AS Done</option>
@@ -520,23 +520,23 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                         </select>
 
                         {itr.acknowledgmentNo && (
-                          <div className="font-mono text-[10px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5 truncate max-w-[140px]" title={itr.acknowledgmentNo}>
+                          <div className="font-mono tabular-nums text-[10px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5 truncate max-w-[130px]" title={itr.acknowledgmentNo}>
                             Ack: {itr.acknowledgmentNo}
                           </div>
                         )}
                       </td>
 
-                      {/* Actions: Subtle WhatsApp CTA & Account Link */}
-                      <td className="py-3 px-3.5 align-middle text-right">
+                      {/* Actions */}
+                      <td className="py-2.5 px-3.5 align-middle text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
                             onClick={() => onOpenWhatsApp(itr)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium text-[#374151] dark:text-[#D1D5DB] bg-[#F3F4F6] dark:bg-[#26272B] hover:bg-[#E5E7EB] dark:hover:bg-[#323438] hover:text-[#111827] dark:hover:text-white rounded-[4px] border border-transparent hover:border-[#D1D5DB] dark:hover:border-[#4B5563] transition-colors"
-                            title="Open WhatsApp templates"
+                            className="h-7 px-2 border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-[5px] flex items-center gap-1 transition-colors text-[11px] font-medium"
+                            title="Open WhatsApp notice"
                           >
-                            <MessageSquare className="w-3.5 h-3.5 text-[#10B981] stroke-[1.75]" />
-                            <span>WhatsApp</span>
+                            <MessageSquare className="w-3 h-3 text-[#16A34A] dark:text-[#34C759]" strokeWidth={1.5} />
+                            <span className="hidden sm:inline">Notice</span>
                           </button>
 
                           <button

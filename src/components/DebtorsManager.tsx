@@ -420,16 +420,16 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px] border-collapse">
               <thead>
-                <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[12px] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-                  <th className="py-2.5 px-3 font-semibold text-center w-10">#</th>
-                  <th className="py-2.5 px-3 font-semibold min-w-[200px]">Client Account</th>
-                  <th className="py-2.5 px-3 font-semibold">Staff</th>
-                  <th className="py-2.5 px-3 font-semibold text-right">Opening Dues</th>
-                  <th className="py-2.5 px-3 font-semibold text-right text-[#34C759]">Cleared</th>
-                  <th className="py-2.5 px-3 font-semibold text-right text-[#0071E3] dark:text-[#2997FF]">New Billing</th>
-                  <th className="py-2.5 px-3 font-semibold text-right">Closing Balance</th>
-                  <th className="py-2.5 px-3 font-semibold text-center">Status</th>
-                  <th className="py-2.5 px-3 font-semibold text-right">Actions</th>
+                <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[11px] uppercase tracking-[0.04em] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
+                  <th className="py-2 px-3.5 font-semibold text-center w-10">#</th>
+                  <th className="py-2 px-3.5 font-semibold min-w-[200px]">Client Account</th>
+                  <th className="py-2 px-3.5 font-semibold">Staff</th>
+                  <th className="py-2 px-3.5 font-semibold text-right">Opening Dues</th>
+                  <th className="py-2 px-3.5 font-semibold text-right">Cleared</th>
+                  <th className="py-2 px-3.5 font-semibold text-right">New Billing</th>
+                  <th className="py-2 px-3.5 font-semibold text-right">Closing Balance</th>
+                  <th className="py-2 px-3.5 font-semibold text-center">Status</th>
+                  <th className="py-2 px-3.5 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">
@@ -439,67 +439,64 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
 
                   return (
                     <tr key={client.id} className="hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors">
-                      <td className="py-2.5 px-3 text-center font-tabular text-[12px] text-[#86868B]">
+                      <td className="py-2.5 px-3.5 text-center font-mono tabular-nums text-[12px] text-[#86868B]">
                         {client.sNo || index + 1}
                       </td>
 
-                      <td className="py-2.5 px-3">
+                      <td className="py-2.5 px-3.5">
                         <button
                           onClick={() => setInspectClient(client)}
-                          className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left truncate block max-w-xs"
+                          className="font-medium text-[13.5px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left truncate block max-w-xs"
                         >
                           {client.clientName}
                         </button>
                         <div className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-                          {client.entityType} • {client.phone}
+                          {client.entityType} • <span className="font-mono tabular-nums">{client.phone}</span>
                         </div>
                       </td>
 
-                      <td className="py-2.5 px-3 text-[#6E6E73] dark:text-[#8E8E93] text-[12px]">
+                      <td className="py-2.5 px-3.5 text-[#6E6E73] dark:text-[#8E8E93] text-[12.5px]">
                         {client.assignedStaff}
                       </td>
 
-                      <td className="py-2.5 px-3 text-right font-tabular text-[#6E6E73] dark:text-[#8E8E93]">
+                      <td className="py-2.5 px-3.5 text-right font-mono tabular-nums text-[12.5px] text-[#1D1D1F] dark:text-[#F5F5F7]">
                         {opening > 0 ? `₹${opening.toLocaleString('en-IN')}` : '₹0'}
                       </td>
 
-                      <td className="py-2.5 px-3 text-right font-tabular text-[#34C759]">
+                      <td className="py-2.5 px-3.5 text-right font-mono tabular-nums text-[12.5px] text-[#1D1D1F] dark:text-[#F5F5F7]">
                         {paid > 0 ? `₹${paid.toLocaleString('en-IN')}` : '—'}
                       </td>
 
-                      <td className="py-2.5 px-3 text-right font-tabular text-[#0071E3] dark:text-[#2997FF]">
+                      <td className="py-2.5 px-3.5 text-right font-mono tabular-nums text-[12.5px] text-[#1D1D1F] dark:text-[#F5F5F7]">
                         {billed > 0 ? `₹${billed.toLocaleString('en-IN')}` : '—'}
                       </td>
 
-                      <td className="py-2.5 px-3 text-right font-tabular font-semibold">
-                        {isPositiveBalance ? (
-                          <span className="text-[#FF3B30]">₹{closing.toLocaleString('en-IN')}</span>
-                        ) : (
-                          <span className="text-[#34C759]">Cleared</span>
-                        )}
+                      <td className="py-2.5 px-3.5 text-right font-mono tabular-nums text-[12.5px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                        ₹{closing.toLocaleString('en-IN')}
                       </td>
 
-                      <td className="py-2.5 px-3 text-center">
+                      <td className="py-2.5 px-3.5 text-center">
                         <span className={`inline-block text-[11px] font-medium px-2 py-0.5 rounded-[4px] ${
                           status === 'Cleared'
-                            ? 'bg-[#34C759]/10 text-[#34C759] dark:bg-[#34C759]/20'
+                            ? 'bg-[#16A34A]/10 text-[#16A34A] dark:text-[#34C759]'
                             : status === 'Partially Paid'
-                            ? 'bg-[#FF9500]/10 text-[#FF9500] dark:bg-[#FF9500]/20'
-                            : 'bg-[#FF3B30]/10 text-[#FF3B30] dark:bg-[#FF3B30]/20'
+                            ? 'bg-[#D97706]/10 text-[#D97706] dark:text-[#FF9F0A]'
+                            : 'bg-[#DC2626]/10 text-[#DC2626]'
                         }`}>
                           {status}
                         </span>
                       </td>
 
-                      <td className="py-2.5 px-3 text-right">
+                      <td className="py-2.5 px-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {isPositiveBalance && (
                             <button
                               onClick={() => onOpenWhatsApp(client)}
                               title="Send WhatsApp Reminder"
-                              className="p-1 text-[#34C759] hover:bg-[#34C759]/10 rounded transition-colors"
+                              className="h-7 px-2 border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-[5px] flex items-center gap-1 transition-colors text-[11px] font-medium"
                             >
-                              <MessageSquare className="w-3.5 h-3.5 stroke-[1.5]" />
+                              <MessageSquare className="w-3 h-3 text-[#16A34A] dark:text-[#34C759]" strokeWidth={1.5} />
+                              <span className="hidden sm:inline">Notice</span>
                             </button>
                           )}
 
@@ -508,7 +505,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
                               setPaymentModalRecord(client);
                               setPaymentInput(closing > 0 ? closing.toString() : '');
                             }}
-                            className="px-2 py-1 text-[11px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[4px] transition-colors"
+                            className="h-7 px-2 text-[11px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[5px] transition-colors"
                           >
                             Pay
                           </button>
