@@ -57,8 +57,8 @@ export const Header: React.FC<HeaderProps> = ({
   const currentTabInfo = tabMeta[activeTab] || { title: 'Firm Overview', subtitle: 'Shameer & Associates' };
 
   return (
-    <header className="h-14 px-4 sm:px-6 flex items-center justify-between border-b border-[#E5E5EA] dark:border-[#2C2C2E] bg-white/90 dark:bg-[#1C1C1E]/90 backdrop-blur-md sticky top-0 z-30 transition-colors">
-      {/* Left: Mobile hamburger + Active Screen Title & Practice Context */}
+    <header className="h-14 px-4 sm:px-6 flex items-center justify-between border-b border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] sticky top-0 z-20 shrink-0 transition-colors">
+      {/* Left: Mobile hamburger + Active Screen Title & Breadcrumb */}
       <div className="flex items-center gap-3 min-w-0">
         {onToggleMobileSidebar && (
           <button
@@ -69,50 +69,54 @@ export const Header: React.FC<HeaderProps> = ({
             <Menu className="w-5 h-5 stroke-[1.5]" />
           </button>
         )}
-        <div className="min-w-0">
-          <h1 className="text-[17px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight truncate">
+        <div className="min-w-0 flex items-center gap-2">
+          <h1 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight truncate">
             {currentTabInfo.title}
           </h1>
-          <p className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] truncate hidden sm:block">
+          <span className="hidden sm:inline-block text-[#D1D1D6] dark:text-[#3A3A3C] text-[13px]">/</span>
+          <span className="text-[12px] text-[#86868B] dark:text-[#8E8E93] truncate hidden sm:inline-block font-normal">
             {currentTabInfo.subtitle}
-          </p>
+          </span>
         </div>
       </div>
 
-      {/* Center: Clean Search Bar (Spotlight logo removed) */}
-      <div className="flex-1 max-w-md mx-4 lg:mx-8 hidden md:block">
+      {/* Center: Clean Search Bar */}
+      <div className="flex-1 max-w-sm mx-4 lg:mx-8 hidden md:block">
         <button
           onClick={onOpenCommandPalette}
-          className="w-full h-9 px-3 rounded-[6px] bg-[#F2F2F7] dark:bg-[#242426] border border-transparent hover:border-[#D1D1D6] dark:hover:border-[#3A3A3C] flex items-center justify-between text-[13px] text-[#86868B] transition-colors group"
+          className="w-full h-8 px-2.5 rounded-[6px] bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] hover:border-[#D1D1D6] dark:hover:border-[#3A3A3C] flex items-center justify-between text-[12.5px] text-[#86868B] transition-colors group"
         >
-          <div className="flex items-center gap-2.5 truncate">
-            <Search className="w-4 h-4 text-[#86868B] group-hover:text-[#1D1D1F] dark:group-hover:text-[#F5F5F7] shrink-0" strokeWidth={1.5} />
+          <div className="flex items-center gap-2 truncate">
+            <Search className="w-3.5 h-3.5 text-[#86868B] group-hover:text-[#1D1D1F] dark:group-hover:text-[#F5F5F7] shrink-0" strokeWidth={1.5} />
             <span className="truncate">Search clients, tasks, or jump to...</span>
           </div>
+          <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium text-[#86868B] bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded">
+            ⌘K
+          </kbd>
         </button>
       </div>
 
-      {/* Right Controls: Font Switcher, Theme Switcher, User Session, Primary Action */}
-      <div className="flex items-center gap-2.5 shrink-0">
+      {/* Right Controls: Exactly unified h-8 height */}
+      <div className="flex items-center gap-2 shrink-0">
         {/* Mobile Search Button */}
         <button
           onClick={onOpenCommandPalette}
-          className="md:hidden p-1.5 text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] rounded-[6px]"
+          className="md:hidden h-8 w-8 text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] rounded-[6px] border border-[#E5E5EA] dark:border-[#2C2C2E] flex items-center justify-center transition-colors"
           title="Search"
         >
-          <Search className="w-4 h-4 stroke-[1.5]" />
+          <Search className="w-3.5 h-3.5 stroke-[1.5]" />
         </button>
 
         {/* Dark Mode Toggle */}
         <button
           onClick={onToggleTheme}
           title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
-          className="w-8 h-8 rounded-[6px] text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] flex items-center justify-center transition-colors"
+          className="h-8 w-8 rounded-[6px] text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] flex items-center justify-center transition-colors"
         >
           {theme === 'light' ? (
-            <Moon className="w-4 h-4 stroke-[1.5]" />
+            <Moon className="w-3.5 h-3.5 stroke-[1.5]" />
           ) : (
-            <Sun className="w-4 h-4 stroke-[1.5]" />
+            <Sun className="w-3.5 h-3.5 stroke-[1.5]" />
           )}
         </button>
 
@@ -120,15 +124,15 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative">
           <button
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="flex items-center gap-2 px-2.5 py-1 rounded-[6px] text-[13px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] transition-colors"
+            className="h-8 flex items-center gap-2 px-2.5 rounded-[6px] text-[13px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] transition-colors"
           >
-            <span className="w-6 h-6 rounded-full bg-[#0071E3] text-white text-[11px] font-semibold flex items-center justify-center">
+            <span className="w-5 h-5 rounded-full bg-[#0071E3] text-white text-[10px] font-semibold flex items-center justify-center shrink-0">
               {currentUser.initials || currentUser.name.slice(0, 1)}
             </span>
-            <span className="font-medium hidden sm:inline max-w-[120px] truncate">
+            <span className="font-medium hidden sm:inline max-w-[120px] truncate text-[13px]">
               {currentUser.name}
             </span>
-            <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93] hidden xl:inline">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93] uppercase tracking-wider hidden xl:inline">
               {isAdmin ? 'Admin' : 'Staff'}
             </span>
             <ChevronDown className="w-3 h-3 text-[#86868B] stroke-[1.5]" />
@@ -204,7 +208,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Primary Action Button */}
         <button
           onClick={onOpenNewTask}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[6px] transition-colors shadow-sm"
+          className="h-8 inline-flex items-center gap-1.5 px-3 text-[13px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[6px] transition-colors shadow-sm shrink-0"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2]" />
           <span>Add Task</span>

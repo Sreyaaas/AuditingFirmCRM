@@ -68,42 +68,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const sidebarContent = (
-    <div className="w-64 min-h-screen bg-[#FBFBFD] dark:bg-[#161618] border-r border-[#E5E5EA] dark:border-[#2C2C2E] flex flex-col justify-between p-3 select-none text-[#1D1D1F] dark:text-[#F5F5F7] transition-colors">
-      <div className="space-y-4">
-        {/* Practice Identity / Official Firm Brand */}
-        <div className="px-3 pt-2 pb-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              {/* Light mode crisp letterhead */}
-              <img
-                src="/logo-light.png"
-                alt="Shameer and Associates - Accountants and Practitioners"
-                className="h-10 w-auto object-contain block dark:hidden max-w-[200px]"
-              />
-              {/* Dark mode crisp silver-white letterhead */}
-              <img
-                src="/logo-dark.png"
-                alt="Shameer and Associates - Accountants and Practitioners"
-                className="h-10 w-auto object-contain hidden dark:block max-w-[200px]"
-              />
-            </div>
-            {onCloseMobile && (
-              <button
-                onClick={onCloseMobile}
-                className="lg:hidden p-1 text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] rounded-[6px]"
-                aria-label="Close menu"
-              >
-                <X className="w-4 h-4 stroke-[1.5]" />
-              </button>
-            )}
+    <div className="w-64 h-full bg-[#FBFBFD] dark:bg-[#161618] border-r border-[#E5E5EA] dark:border-[#2C2C2E] flex flex-col justify-between select-none text-[#1D1D1F] dark:text-[#F5F5F7] transition-colors">
+      <div className="flex flex-col flex-1 min-h-0">
+        {/* Practice Identity / Official Firm Brand — EXACTLY h-14 (56px) to align with Header */}
+        <div className="h-14 px-4 border-b border-[#E5E5EA] dark:border-[#2C2C2E] flex items-center justify-between shrink-0 bg-white dark:bg-[#161618]">
+          <div className="flex items-center min-w-0">
+            {/* Light mode crisp letterhead */}
+            <img
+              src="/logo-light.png"
+              alt="Shameer and Associates - Accountants and Practitioners"
+              className="h-8 w-auto object-contain block dark:hidden max-w-[190px]"
+            />
+            {/* Dark mode crisp silver-white letterhead */}
+            <img
+              src="/logo-dark.png"
+              alt="Shameer and Associates - Accountants and Practitioners"
+              className="h-8 w-auto object-contain hidden dark:block max-w-[190px]"
+            />
           </div>
+          {onCloseMobile && (
+            <button
+              onClick={onCloseMobile}
+              className="lg:hidden p-1.5 text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] rounded-[6px]"
+              aria-label="Close menu"
+            >
+              <X className="w-4 h-4 stroke-[1.5]" />
+            </button>
+          )}
         </div>
 
         {/* Navigation Items */}
-        <nav className="space-y-0.5">
-          <div className="text-[12px] font-semibold text-[#86868B] dark:text-[#6E6E73] px-3 py-1.5 tracking-wider uppercase">
-            Workflows
-          </div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
+          <nav className="space-y-0.5">
+            <div className="text-[12px] font-semibold text-[#86868B] dark:text-[#6E6E73] px-3 py-1.5 tracking-wider uppercase">
+              Workflows
+            </div>
 
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -173,10 +172,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </nav>
+        </div>
       </div>
 
       {/* Footer System Status */}
-      <div className="pt-2 border-t border-[#E5E5EA] dark:border-[#2C2C2E] space-y-1">
+      <div className="p-3 border-t border-[#E5E5EA] dark:border-[#2C2C2E] space-y-1 shrink-0 bg-[#FBFBFD] dark:bg-[#161618]">
         <button
           onClick={onOpenIntegrations}
           className="w-full flex items-center justify-between px-2.5 py-1.5 text-[12px] rounded-[6px] text-[#6E6E73] dark:text-[#8E8E93] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors"
@@ -207,7 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
       {/* Desktop Persistent Sidebar */}
-      <aside className="hidden lg:block shrink-0">
+      <aside className="hidden lg:block shrink-0 h-screen">
         {sidebarContent}
       </aside>
 
@@ -218,7 +218,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
             onClick={onCloseMobile}
           />
-          <div className="relative z-10 animate-in slide-in-from-left duration-200 shadow-2xl">
+          <div className="relative z-10 animate-in slide-in-from-left duration-200 shadow-2xl h-screen">
             {sidebarContent}
           </div>
         </div>
