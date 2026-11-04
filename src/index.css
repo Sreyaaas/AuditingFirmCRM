@@ -64,14 +64,16 @@ html.dark {
   }
 
   body {
-    font-family: "Google Sans Text", "Google Sans", "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
     color: var(--text-primary);
     background-color: var(--bg-primary);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
     font-variant-numeric: tabular-nums;
+    font-weight: 450;
     letter-spacing: -0.01em;
     font-size: 13.5px;
     line-height: 1.5;
+    text-rendering: optimizeLegibility;
   }
 }
 

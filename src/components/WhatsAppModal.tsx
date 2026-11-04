@@ -34,7 +34,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     {
       id: 'doc_request',
       label: 'Document Request',
-      text: `Hello ${tradeName},\n\nThis is ${staffName} from Shameer & Associates.\n\nPlease share your sales invoices, purchase registers, and bank statements for ${task?.period || 'the current period'}.\n\nStatutory cutoff: ${task?.dueDate || 'upcoming deadline'}.\n\nYou can upload files to your OneDrive folder or reply with documents directly on WhatsApp.\n\nThank you,\n${staffName}`,
+      text: `Hello ${tradeName},\n\nThis is ${staffName} from Shameer & Associates.\n\nPlease share your sales invoices, purchase registers, and bank statements for ${task?.period || 'the current period'}.\n\nStatutory cutoff: ${task?.dueDate || 'upcoming deadline'}.\n\nPlease share the records directly here on WhatsApp so our audit team can review.\n\nThank you,\n${staffName}`,
     },
     {
       id: 'tax_confirmation',
@@ -49,7 +49,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     {
       id: 'arn_delivery',
       label: 'Acknowledgment',
-      text: `Dear ${tradeName},\n\nYour ${task?.filingType || itrFiling?.itrForm || 'return'} for ${task?.period || itrFiling?.assessmentYear} has been filed on the statutory portal.\n\nFiling Reference / ARN: ${task?.arnNumber || itrFiling?.acknowledgmentNo || 'AA271126048192Z'}\n\nThe acknowledgment PDF has been saved to your firm folder.\n\nRegards,\nShameer & Associates`,
+      text: `Dear ${tradeName},\n\nYour ${task?.filingType || itrFiling?.itrForm || 'return'} for ${task?.period || itrFiling?.assessmentYear} has been filed on the statutory portal.\n\nFiling Reference / ARN: ${task?.arnNumber || itrFiling?.acknowledgmentNo || 'AA271126048192Z'}\n\nPlease let us know if you need the official acknowledgment PDF copy.\n\nRegards,\nShameer & Associates`,
     },
   ];
 
@@ -95,7 +95,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     {
       id: 'gst_arn_confirmation',
       label: 'Return Filed',
-      text: `Dear ${tradeName},\n\nYour ${gstItem.returnType} for ${gstItem.filingMonth} has been filed successfully on the GST portal.\n\nGSTIN: ${gstItem.gstin}\nARN Number: ${gstItem.arnNumber || 'AA321126' + Math.floor(100000 + Math.random() * 900000) + 'Z'}\nFiled on: ${gstItem.filedDate || new Date().toLocaleDateString('en-IN')}\n\nAcknowledgment receipt has been archived to your OneDrive client folder.\n\nRegards,\nShameer & Associates`,
+      text: `Dear ${tradeName},\n\nYour ${gstItem.returnType} for ${gstItem.filingMonth} has been filed successfully on the GST portal.\n\nGSTIN: ${gstItem.gstin}\nARN Number: ${gstItem.arnNumber || 'AA321126' + Math.floor(100000 + Math.random() * 900000) + 'Z'}\nFiled on: ${gstItem.filedDate || new Date().toLocaleDateString('en-IN')}\n\nAcknowledgment receipt is generated and filed for your records.\n\nRegards,\nShameer & Associates`,
     },
   ] : [];
 
@@ -121,7 +121,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     {
       id: 'itr_doc_request',
       label: 'Document Checklist',
-      text: `Hello ${tradeName},\n\nThis is ${staffName} from Shameer & Associates.\n\nTo prepare your Annual Income Tax Return (${itrFiling.itrForm} for ${itrFiling.assessmentYear}), please share the following records:\n1. Form 16 / Form 16A (if TDS deducted)\n2. Bank Account Statements (all active accounts)\n3. Capital gains summary / Mutual fund P&L\n4. AIS / TIS OTP confirmation\n\nFiling Target Date: ${itrFiling.dueDate}.\n\nPlease upload to your OneDrive client folder or share here on WhatsApp.\n\nThank you,\nShameer & Associates`,
+      text: `Hello ${tradeName},\n\nThis is ${staffName} from Shameer & Associates.\n\nTo prepare your Annual Income Tax Return (${itrFiling.itrForm} for ${itrFiling.assessmentYear}), please share the following records:\n1. Form 16 / Form 16A (if TDS deducted)\n2. Bank Account Statements (all active accounts)\n3. Capital gains summary / Mutual fund P&L\n4. AIS / TIS OTP confirmation\n\nFiling Target Date: ${itrFiling.dueDate}.\n\nPlease share the records directly here on WhatsApp.\n\nThank you,\nShameer & Associates`,
     },
     {
       id: 'itr_urgent_deadline',
@@ -136,7 +136,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     {
       id: 'itr_ack_confirmation',
       label: 'Filing Acknowledgment',
-      text: `Dear ${tradeName},\n\nYour Income Tax Return (${itrFiling.itrForm}) for Assessment Year ${itrFiling.assessmentYear} has been filed on the Income Tax e-filing portal.\n\nPAN: ${itrFiling.pan}\nITR-V Acknowledgment No: ${itrFiling.acknowledgmentNo || 'ACK98200' + Math.floor(100000 + Math.random() * 900000)}\nStatus: Filed & e-Verified\n\nThe ITR-V acknowledgment receipt has been archived to your client folder.\n\nThank you for choosing Shameer & Associates.`,
+      text: `Dear ${tradeName},\n\nYour Income Tax Return (${itrFiling.itrForm}) for Assessment Year ${itrFiling.assessmentYear} has been filed on the Income Tax e-filing portal.\n\nPAN: ${itrFiling.pan}\nITR-V Acknowledgment No: ${itrFiling.acknowledgmentNo || 'ACK98200' + Math.floor(100000 + Math.random() * 900000)}\nStatus: Filed & e-Verified\n\nThe ITR-V acknowledgment receipt is ready for your records.\n\nThank you for choosing Shameer & Associates.`,
     },
   ] : [];
 

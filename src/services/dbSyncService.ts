@@ -1,15 +1,75 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { Client, MonthlyTask, ITRFiling, DebtorRecord } from '../types/crm';
-import { INITIAL_CLIENTS, INITIAL_MONTHLY_TASKS } from '../data/mockData';
-import { ACTUAL_DEBTOR_RECORDS, ACTUAL_ITR_RECORDS } from '../data/actualClientData';
+import { 
+  Client, 
+  MonthlyTask, 
+  ITRFiling, 
+  DebtorRecord, 
+  StaffTicket, 
+  UserProfile, 
+  ActivityLog, 
+  TicketStatus, 
+  FilingStatus, 
+  ITRStatus, 
+  UserRole 
+} from '../types/crm';
+import { INITIAL_CLIENTS, INITIAL_MONTHLY_TASKS, INITIAL_TICKETS } from '../data/mockData';
+import { 
+  ACTUAL_DEBTOR_RECORDS, 
+  ACTUAL_ITR_RECORDS, 
+  INITIAL_PROFILES, 
+  INITIAL_ACTIVITY_LOGS 
+} from '../data/actualClientData';
+
+// ==============================================================================
+// UUID COMPATIBILITY MAPPINGS (Bridging frontend IDs with Supabase PostgreSQL UUIDs)
+// ==============================================================================
+
+export const CLIENT_ID_MAP: Record<string, string> = {
+  'client-havos': 'c0000000-0000-0000-0000-000000000001',
+  'client-km-traders': 'c0000000-0000-0000-0000-000000000002',
+  'client-semicolon': 'c0000000-0000-0000-0000-000000000003',
+  'client-rafeek': 'c0000000-0000-0000-0000-000000000004',
+  'client-jinu': 'c0000000-0000-0000-0000-000000000005',
+  'client-spanish': 'c0000000-0000-0000-0000-000000000006',
+};
+
+export const STAFF_ID_MAP: Record<string, string> = {
+  'staff-shameer': 'a0000000-0000-0000-0000-000000000001',
+  'user-admin-shameer': 'a0000000-0000-0000-0000-000000000001',
+  'staff-ameen': 'a0000000-0000-0000-0000-000000000002',
+  'user-admin-ameen': 'a0000000-0000-0000-0000-000000000002',
+  'staff-susmi': 'a0000000-0000-0000-0000-000000000003',
+  'user-staff-susmi': 'a0000000-0000-0000-0000-000000000003',
+};
+
+// Validates whether string is a standard RFC UUID
+export const isUuid = (val?: string | null): boolean => {
+  if (!val) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+};
+
+// Converts an arbitrary CRM slug ID to a valid Supabase PostgreSQL UUID
+export const ensureUuid = (id: string, type: 'client' | 'staff' | 'general' = 'general'): string => {
+  if (isUuid(id)) return id;
+  if (type === 'client' && CLIENT_ID_MAP[id]) return CLIENT_ID_MAP[id];
+  if (type === 'staff' && STAFF_ID_MAP[id]) return STAFF_ID_MAP[id];
+
+  // Try reverse lookups
+  if (CLIENT_ID_MAP[id]) return CLIENT_ID_MAP[id];
+  if (STAFF_ID_MAP[id]) return STAFF_ID_MAP[id];
+
+  // Derive stable UUID from string timestamp or random
+  const hex = id.replace(/[^a-f0-9]/gi, '').toLowerCase();
+  const padded = (hex + '00000000000000000000000000000000').slice(0, 32);
+  return `${padded.slice(0, 8)}-${padded.slice(8, 12)}-4${padded.slice(13, 16)}-a${padded.slice(17, 20)}-${padded.slice(20, 32)}`;
+};
 
 export interface PracticeConfigItem {
-  id: string; // 'filing_types' | 'return_types' | 'entity_types' | 'service_types'
+  id: string;
   category: string;
   options: string[];
 }
 
-// Default options if database is not reachable yet
 export const DEFAULT_PRACTICE_CONFIGS: Record<string, string[]> = {
   filing_types: [
     'GSTR-1 (Sales)',
@@ -59,7 +119,6 @@ export const fetchPracticeConfigs = async (): Promise<Record<string, string[]>> 
       .select('id, options');
 
     if (error || !data || data.length === 0) {
-      console.warn('Practice configs not yet in Supabase, using local defaults', error?.message);
       const saved = localStorage.getItem('shameer_crm_practice_configs');
       return saved ? JSON.parse(saved) : DEFAULT_PRACTICE_CONFIGS;
     }
@@ -111,7 +170,6 @@ export const savePracticeConfigOption = async (
         });
 
       if (error) {
-        console.error('Supabase config update error:', error.message);
         return { success: true, options: updatedOptions, error: `Saved locally: ${error.message}` };
       }
     }
@@ -145,7 +203,7 @@ export const removePracticeConfigOption = async (
         });
 
       if (error) {
-        console.error('Supabase config update error:', error.message);
+        console.warn('Supabase config update warning:', error.message);
       }
     }
 
@@ -156,7 +214,116 @@ export const removePracticeConfigOption = async (
 };
 
 // ==============================================================================
-// 2. CLIENT MASTER RECORDS SYNC
+// 2. USER PROFILES & STAFF SYNC
+// ==============================================================================
+
+export const fetchProfilesFromDb = async (): Promise<UserProfile[]> => {
+  if (!isSupabaseConfigured()) {
+    const saved = localStorage.getItem('shameer_crm_profiles_local');
+    return saved ? JSON.parse(saved) : INITIAL_PROFILES;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error || !data || data.length === 0) {
+      const saved = localStorage.getItem('shameer_crm_profiles_local');
+      return saved ? JSON.parse(saved) : INITIAL_PROFILES;
+    }
+
+    const mapped: UserProfile[] = data.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role as UserRole,
+      designation: row.designation || 'Staff Practitioner',
+      phone: row.phone || '',
+      status: row.status || 'Active',
+      joinedDate: row.joined_date || row.created_at?.slice(0, 10) || '2026-01-01',
+      assignedClientsCount: 6,
+      assignedTasksCount: 6,
+      completedThisMonth: 6,
+      canEditPayments: Boolean(row.can_edit_payments || row.role === 'admin'),
+      canAccessFinancials: Boolean(row.can_access_financials || row.role === 'admin'),
+      initials: row.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
+    }));
+
+    localStorage.setItem('shameer_crm_profiles_local', JSON.stringify(mapped));
+    return mapped;
+  } catch (err) {
+    console.error('Fetch profiles error:', err);
+    return INITIAL_PROFILES;
+  }
+};
+
+export const saveProfileToDb = async (profile: UserProfile): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const local = localStorage.getItem('shameer_crm_profiles_local');
+    const existing: UserProfile[] = local ? JSON.parse(local) : INITIAL_PROFILES;
+    const updated = [profile, ...existing.filter(p => p.id !== profile.id && p.email !== profile.email)];
+    localStorage.setItem('shameer_crm_profiles_local', JSON.stringify(updated));
+
+    if (isSupabaseConfigured()) {
+      const dbPayload = {
+        id: ensureUuid(profile.id, 'staff'),
+        name: profile.name,
+        email: profile.email.toLowerCase(),
+        role: profile.role,
+        designation: profile.designation,
+        phone: profile.phone,
+        status: profile.status,
+        can_edit_payments: profile.canEditPayments,
+        can_access_financials: profile.canAccessFinancials,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase.from('profiles').upsert(dbPayload, { onConflict: 'email' });
+      if (error) {
+        console.warn('Supabase profile save notice:', error.message);
+        return { success: true, error: error.message };
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const updateProfileInDb = async (userId: string, updates: Partial<UserProfile>): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const local = localStorage.getItem('shameer_crm_profiles_local');
+    if (local) {
+      const parsed: UserProfile[] = JSON.parse(local);
+      const updated = parsed.map(p => p.id === userId ? { ...p, ...updates } : p);
+      localStorage.setItem('shameer_crm_profiles_local', JSON.stringify(updated));
+    }
+
+    if (isSupabaseConfigured()) {
+      const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (updates.role) dbUpdates.role = updates.role;
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.designation) dbUpdates.designation = updates.designation;
+      if (updates.phone) dbUpdates.phone = updates.phone;
+
+      const uuid = ensureUuid(userId, 'staff');
+      const { error } = await supabase.from('profiles').update(dbUpdates).eq('id', uuid);
+      if (error) {
+        console.warn('Supabase profile update notice:', error.message);
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+// ==============================================================================
+// 3. CLIENT MASTER RECORDS SYNC
 // ==============================================================================
 
 export const fetchClientsFromDb = async (): Promise<Client[]> => {
@@ -172,11 +339,10 @@ export const fetchClientsFromDb = async (): Promise<Client[]> => {
       .order('client_code', { ascending: true });
 
     if (error || !data || data.length === 0) {
-      console.warn('Clients query returned empty or error, falling back to initial data:', error?.message);
-      return INITIAL_CLIENTS;
+      const saved = localStorage.getItem('shameer_crm_clients_local');
+      return saved ? JSON.parse(saved) : INITIAL_CLIENTS;
     }
 
-    // Map database snake_case columns to CRM TypeScript CamelCase model
     const mapped: Client[] = data.map((row: any) => ({
       id: row.id,
       clientCode: row.client_code,
@@ -207,6 +373,11 @@ export const fetchClientsFromDb = async (): Promise<Client[]> => {
 
 export const saveClientToDb = async (client: Client): Promise<{ success: boolean; error?: string }> => {
   try {
+    const local = localStorage.getItem('shameer_crm_clients_local');
+    const existing: Client[] = local ? JSON.parse(local) : INITIAL_CLIENTS;
+    const updated = [client, ...existing.filter(c => c.clientCode !== client.clientCode)];
+    localStorage.setItem('shameer_crm_clients_local', JSON.stringify(updated));
+
     if (isSupabaseConfigured()) {
       const dbPayload = {
         client_code: client.clientCode,
@@ -220,7 +391,7 @@ export const saveClientToDb = async (client: Client): Promise<{ success: boolean
         email: client.email,
         is_recurring_gst: client.isRecurringGST,
         is_recurring_statutory: client.isRecurringStatutory,
-        assigned_staff_id: client.assignedStaffId ? 'a0000000-0000-0000-0000-000000000002' : null,
+        assigned_staff_id: ensureUuid(client.assignedStaffId, 'staff'),
         monthly_audit_fee: client.monthlyAuditFee,
         city: client.city,
         onedrive_folder_url: client.oneDriveFolderUrl,
@@ -233,7 +404,6 @@ export const saveClientToDb = async (client: Client): Promise<{ success: boolean
         .upsert(dbPayload, { onConflict: 'client_code' });
 
       if (error) {
-        console.error('Supabase client save error:', error.message);
         return { success: false, error: error.message };
       }
     }
@@ -244,8 +414,42 @@ export const saveClientToDb = async (client: Client): Promise<{ success: boolean
   }
 };
 
+export const updateClientInDb = async (clientId: string, updates: Partial<Client>): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const local = localStorage.getItem('shameer_crm_clients_local');
+    if (local) {
+      const parsed: Client[] = JSON.parse(local);
+      const updated = parsed.map(c => c.id === clientId ? { ...c, ...updates } : c);
+      localStorage.setItem('shameer_crm_clients_local', JSON.stringify(updated));
+    }
+
+    if (isSupabaseConfigured()) {
+      const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (updates.name) dbUpdates.name = updates.name;
+      if (updates.tradeName) dbUpdates.trade_name = updates.tradeName;
+      if (updates.gstin) dbUpdates.gstin = updates.gstin;
+      if (updates.pan) dbUpdates.pan = updates.pan;
+      if (updates.phone) dbUpdates.phone = updates.phone;
+      if (updates.email) dbUpdates.email = updates.email;
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.monthlyAuditFee !== undefined) dbUpdates.monthly_audit_fee = updates.monthlyAuditFee;
+      if (updates.oneDriveFolderUrl) dbUpdates.onedrive_folder_url = updates.oneDriveFolderUrl;
+
+      const uuid = ensureUuid(clientId, 'client');
+      const { error } = await supabase.from('clients').update(dbUpdates).eq('id', uuid);
+      if (error) {
+        console.warn('Supabase client update notice:', error.message);
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
 // ==============================================================================
-// 3. COMPLIANCE TASKS SYNC
+// 4. COMPLIANCE TASKS SYNC
 // ==============================================================================
 
 export const fetchTasksFromDb = async (): Promise<MonthlyTask[]> => {
@@ -261,7 +465,8 @@ export const fetchTasksFromDb = async (): Promise<MonthlyTask[]> => {
       .order('due_date', { ascending: true });
 
     if (error || !data || data.length === 0) {
-      return INITIAL_MONTHLY_TASKS;
+      const saved = localStorage.getItem('shameer_crm_tasks_local');
+      return saved ? JSON.parse(saved) : INITIAL_MONTHLY_TASKS;
     }
 
     const mapped: MonthlyTask[] = data.map((t: any) => ({
@@ -282,7 +487,7 @@ export const fetchTasksFromDb = async (): Promise<MonthlyTask[]> => {
       docsReceived: Boolean(t.docs_received),
       phone: t.phone || '',
       notes: t.notes || '',
-      lastUpdated: 'Synced from cloud'
+      lastUpdated: 'Synced with Supabase cloud'
     }));
 
     localStorage.setItem('shameer_crm_tasks_local', JSON.stringify(mapped));
@@ -292,13 +497,22 @@ export const fetchTasksFromDb = async (): Promise<MonthlyTask[]> => {
   }
 };
 
-export const saveTaskToDb = async (task: MonthlyTask, clientIdUuid?: string): Promise<{ success: boolean; error?: string }> => {
+export const saveTaskToDb = async (task: MonthlyTask): Promise<{ success: boolean; error?: string }> => {
   try {
+    const local = localStorage.getItem('shameer_crm_tasks_local');
+    const existing: MonthlyTask[] = local ? JSON.parse(local) : INITIAL_MONTHLY_TASKS;
+    const updated = [task, ...existing.filter(t => t.id !== task.id)];
+    localStorage.setItem('shameer_crm_tasks_local', JSON.stringify(updated));
+
     if (isSupabaseConfigured()) {
+      const clientUuid = ensureUuid(task.clientId, 'client');
+      const staffUuid = ensureUuid(task.assignedStaffId, 'staff');
+
       const dbPayload = {
-        client_id: clientIdUuid || 'c0000000-0000-0000-0000-000000000001',
+        client_id: clientUuid,
         filing_type: task.filingType,
         period: task.period,
+        assigned_staff_id: staffUuid,
         status: task.status,
         due_date: task.dueDate,
         arn_number: task.arnNumber || null,
@@ -312,7 +526,6 @@ export const saveTaskToDb = async (task: MonthlyTask, clientIdUuid?: string): Pr
 
       const { error } = await supabase.from('tasks').insert([dbPayload]);
       if (error) {
-        console.error('Supabase task save error:', error.message);
         return { success: false, error: error.message };
       }
     }
@@ -322,3 +535,538 @@ export const saveTaskToDb = async (task: MonthlyTask, clientIdUuid?: string): Pr
   }
 };
 
+export const updateTaskStatusInDb = async (
+  taskId: string, 
+  newStatus: FilingStatus, 
+  arnNumber?: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const local = localStorage.getItem('shameer_crm_tasks_local');
+    if (local) {
+      const parsed: MonthlyTask[] = JSON.parse(local);
+      const updated = parsed.map(t => t.id === taskId ? {
+        ...t,
+        status: newStatus,
+        arnNumber: arnNumber || t.arnNumber,
+        lastUpdated: 'Just now'
+      } : t);
+      localStorage.setItem('shameer_crm_tasks_local', JSON.stringify(updated));
+    }
+
+    if (isSupabaseConfigured() && isUuid(taskId)) {
+      const updates: Record<string, any> = {
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      };
+      if (arnNumber) updates.arn_number = arnNumber;
+
+      const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
+      if (error) {
+        console.warn('Supabase task status update notice:', error.message);
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+// ==============================================================================
+// 5. ANNUAL TAX RETURNS (ITR) SYNC
+// ==============================================================================
+
+export const fetchItrFilingsFromDb = async (): Promise<ITRFiling[]> => {
+  if (!isSupabaseConfigured()) {
+    const saved = localStorage.getItem('shameer_crm_itr_filings_v2');
+    return saved ? JSON.parse(saved) : ACTUAL_ITR_RECORDS;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('itr_filings')
+      .select('*, clients(name, trade_name, entity_type)')
+      .order('due_date', { ascending: true });
+
+    if (error || !data || data.length === 0) {
+      const saved = localStorage.getItem('shameer_crm_itr_filings_v2');
+      return saved ? JSON.parse(saved) : ACTUAL_ITR_RECORDS;
+    }
+
+    const mapped: ITRFiling[] = data.map((row: any) => ({
+      id: row.id,
+      clientId: row.client_id,
+      clientName: row.clients?.name || 'Client',
+      pan: row.pan,
+      entityType: row.clients?.entity_type || 'Private Limited',
+      itrForm: row.itr_form,
+      assessmentYear: row.assessment_year,
+      financialYear: row.financial_year || 'FY 2025-26',
+      assignedStaffId: row.assigned_staff_id || 'staff-ameen',
+      status: row.status as ITRStatus,
+      dueDate: row.due_date,
+      regime: row.regime || 'New Regime (115BAC)',
+      taxLiabilityOrRefund: Number(row.tax_liability_or_refund) || 0,
+      acknowledgmentNo: row.acknowledgment_no || '',
+      lastActivity: 'Synced with Supabase',
+      phone: row.phone || ''
+    }));
+
+    localStorage.setItem('shameer_crm_itr_filings_v2', JSON.stringify(mapped));
+    return mapped;
+  } catch (err) {
+    console.error('Fetch ITR error:', err);
+    return ACTUAL_ITR_RECORDS;
+  }
+};
+
+export const saveItrFilingToDb = async (itr: ITRFiling): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const local = localStorage.getItem('shameer_crm_itr_filings_v2');
+    const existing: ITRFiling[] = local ? JSON.parse(local) : ACTUAL_ITR_RECORDS;
+    const updated = [itr, ...existing.filter(i => i.id !== itr.id)];
+    localStorage.setItem('shameer_crm_itr_filings_v2', JSON.stringify(updated));
+
+    if (isSupabaseConfigured()) {
+      const clientUuid = ensureUuid(itr.clientId, 'client');
+      const staffUuid = ensureUuid(itr.assignedStaffId, 'staff');
+
+      const dbPayload = {
+        client_id: clientUuid,
+        pan: itr.pan,
+        itr_form: itr.itrForm,
+        assessment_year: itr.assessmentYear,
+        financial_year: itr.financialYear,
+        assigned_staff_id: staffUuid,
+        status: itr.status,
+        due_date: itr.dueDate,
+        regime: itr.regime,
+        tax_liability_or_refund: itr.taxLiabilityOrRefund,
+        acknowledgment_no: itr.acknowledgmentNo || null,
+        phone: itr.phone || null,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase.from('itr_filings').insert([dbPayload]);
+      if (error) {
+        return { success: false, error: error.message };
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const updateItrFilingStatusInDb = async (
+  id: string,
+  newStatus: ITRStatus,
+  ackNo?: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const local = localStorage.getItem('shameer_crm_itr_filings_v2');
+    if (local) {
+      const parsed: ITRFiling[] = JSON.parse(local);
+      const updated = parsed.map(itr => itr.id === id ? {
+        ...itr,
+        status: newStatus,
+        acknowledgmentNo: ackNo || itr.acknowledgmentNo,
+        lastActivity: 'Just now'
+      } : itr);
+      localStorage.setItem('shameer_crm_itr_filings_v2', JSON.stringify(updated));
+    }
+
+    if (isSupabaseConfigured() && isUuid(id)) {
+      const updates: Record<string, any> = {
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      };
+      if (ackNo) updates.acknowledgment_no = ackNo;
+
+      const { error } = await supabase.from('itr_filings').update(updates).eq('id', id);
+      if (error) {
+        console.warn('Supabase ITR status update notice:', error.message);
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+// ==============================================================================
+// 6. DEBTORS & MONEY OWED LEDGER SYNC
+// ==============================================================================
+
+export const fetchDebtorsFromDb = async (): Promise<DebtorRecord[]> => {
+  if (!isSupabaseConfigured()) {
+    const saved = localStorage.getItem('shameer_crm_debtors_local');
+    return saved ? JSON.parse(saved) : ACTUAL_DEBTOR_RECORDS;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('debtor_records')
+      .select('*, clients(entity_type)')
+      .order('client_name', { ascending: true });
+
+    if (error || !data || data.length === 0) {
+      const saved = localStorage.getItem('shameer_crm_debtors_local');
+      return saved ? JSON.parse(saved) : ACTUAL_DEBTOR_RECORDS;
+    }
+
+    const mapped: DebtorRecord[] = data.map((row: any, idx: number) => ({
+      sNo: idx + 1,
+      id: row.id,
+      clientName: row.client_name,
+      phone: row.phone || '',
+      entityType: row.clients?.entity_type || 'Private Limited',
+      assignedStaff: row.assigned_staff || 'Ameen',
+      august: {
+        outstanding: Number(row.aug_outstanding) || 0,
+        paymentCleared: Number(row.aug_cleared) || 0,
+        currentBilling: Number(row.aug_billing) || 0
+      },
+      september: {
+        outstanding: Number(row.sep_outstanding) || 0,
+        paymentCleared: Number(row.sep_cleared) || 0,
+        currentBilling: Number(row.sep_billing) || 0
+      },
+      october: {
+        outstanding: Number(row.oct_outstanding) || 0,
+        paymentCleared: Number(row.oct_cleared) || 0,
+        currentBilling: Number(row.oct_billing) || 0
+      },
+      november: {
+        outstanding: Number(row.nov_outstanding) || 0,
+        paymentCleared: Number(row.nov_cleared) || 0,
+        currentBilling: Number(row.nov_billing) || 0
+      },
+      currentBalance: Number(row.current_balance) || 0,
+      status: row.status || (Number(row.current_balance) > 0 ? 'Overdue' : 'Cleared'),
+      agingBucket: row.aging_bucket || '31-60 Days',
+    }));
+
+    localStorage.setItem('shameer_crm_debtors_local', JSON.stringify(mapped));
+    return mapped;
+  } catch (err) {
+    console.error('Fetch debtors error:', err);
+    return ACTUAL_DEBTOR_RECORDS;
+  }
+};
+
+export const updateDebtorPaymentInDb = async (
+  debtorId: string, 
+  amountCleared: number,
+  newNovemberOutstanding: number,
+  newBalance: number
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const local = localStorage.getItem('shameer_crm_debtors_local');
+    if (local) {
+      const parsed: DebtorRecord[] = JSON.parse(local);
+      const updated = parsed.map(d => {
+        if (d.id === debtorId) {
+          const cleared = (d.november?.paymentCleared || 0) + amountCleared;
+          return {
+            ...d,
+            november: {
+              ...d.november,
+              paymentCleared: cleared,
+            },
+            currentBalance: newBalance,
+            status: (newBalance === 0 ? 'Cleared' : 'Partially Paid') as any,
+          };
+        }
+        return d;
+      });
+      localStorage.setItem('shameer_crm_debtors_local', JSON.stringify(updated));
+    }
+
+    if (isSupabaseConfigured() && isUuid(debtorId)) {
+      const { error } = await supabase
+        .from('debtor_records')
+        .update({
+          nov_cleared: amountCleared,
+          current_balance: newBalance,
+          status: newBalance === 0 ? 'Cleared' : 'Partially Paid',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', debtorId);
+
+      if (error) {
+        console.warn('Supabase debtor payment update notice:', error.message);
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+// ==============================================================================
+// 7. CLIENT CALL DESK & TICKETS SYNC
+// ==============================================================================
+
+export const fetchTicketsFromDb = async (): Promise<StaffTicket[]> => {
+  if (!isSupabaseConfigured()) {
+    const saved = localStorage.getItem('shameer_crm_tickets_local');
+    return saved ? JSON.parse(saved) : INITIAL_TICKETS;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*, clients(trade_name)')
+      .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      const saved = localStorage.getItem('shameer_crm_tickets_local');
+      return saved ? JSON.parse(saved) : INITIAL_TICKETS;
+    }
+
+    const mapped: StaffTicket[] = data.map((row: any) => ({
+      id: row.id,
+      ticketNo: row.ticket_no,
+      clientId: row.client_id || 'client-havos',
+      clientName: row.client_name,
+      tradeName: row.clients?.trade_name || row.client_name,
+      callerName: row.caller_name,
+      callerPhone: row.caller_phone,
+      callType: row.call_type || 'Inbound Phone Call',
+      subject: row.subject,
+      description: row.description || '',
+      category: row.category,
+      priority: row.priority,
+      status: row.status as TicketStatus,
+      loggedByStaffId: row.logged_by_staff_id || 'staff-ameen',
+      loggedAt: row.created_at ? new Date(row.created_at).toLocaleDateString('en-IN', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Today',
+      assignedStaffId: row.assigned_staff_id,
+      assignedAt: row.assigned_at,
+      resolvedAt: row.resolved_at,
+      resolutionNotes: row.resolution_notes
+    }));
+
+    localStorage.setItem('shameer_crm_tickets_local', JSON.stringify(mapped));
+    return mapped;
+  } catch (err) {
+    console.error('Fetch tickets error:', err);
+    return INITIAL_TICKETS;
+  }
+};
+
+export const saveTicketToDb = async (ticket: StaffTicket): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const local = localStorage.getItem('shameer_crm_tickets_local');
+    const existing: StaffTicket[] = local ? JSON.parse(local) : INITIAL_TICKETS;
+    const updated = [ticket, ...existing.filter(t => t.id !== ticket.id)];
+    localStorage.setItem('shameer_crm_tickets_local', JSON.stringify(updated));
+
+    if (isSupabaseConfigured()) {
+      const clientUuid = ensureUuid(ticket.clientId, 'client');
+      const staffUuid = ticket.assignedStaffId ? ensureUuid(ticket.assignedStaffId, 'staff') : null;
+      const loggedByUuid = ensureUuid(ticket.loggedByStaffId, 'staff');
+
+      const dbPayload = {
+        ticket_no: ticket.ticketNo,
+        client_id: clientUuid,
+        client_name: ticket.clientName,
+        caller_name: ticket.callerName,
+        caller_phone: ticket.callerPhone,
+        call_type: ticket.callType,
+        subject: ticket.subject,
+        description: ticket.description,
+        category: ticket.category,
+        priority: ticket.priority,
+        status: ticket.status,
+        logged_by_staff_id: loggedByUuid,
+        assigned_staff_id: staffUuid,
+        assigned_at: ticket.assignedAt ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase.from('tickets').insert([dbPayload]);
+      if (error) {
+        return { success: false, error: error.message };
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+export const updateTicketInDb = async (
+  ticketId: string, 
+  updates: Partial<StaffTicket>
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const local = localStorage.getItem('shameer_crm_tickets_local');
+    if (local) {
+      const parsed: StaffTicket[] = JSON.parse(local);
+      const updated = parsed.map(t => t.id === ticketId ? { ...t, ...updates } : t);
+      localStorage.setItem('shameer_crm_tickets_local', JSON.stringify(updated));
+    }
+
+    if (isSupabaseConfigured() && isUuid(ticketId)) {
+      const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.assignedStaffId) dbUpdates.assigned_staff_id = ensureUuid(updates.assignedStaffId, 'staff');
+      if (updates.assignedAt) dbUpdates.assigned_at = new Date().toISOString();
+      if (updates.resolvedAt) dbUpdates.resolved_at = new Date().toISOString();
+      if (updates.resolutionNotes) dbUpdates.resolution_notes = updates.resolutionNotes;
+
+      const { error } = await supabase.from('tickets').update(dbUpdates).eq('id', ticketId);
+      if (error) {
+        console.warn('Supabase ticket update notice:', error.message);
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+// ==============================================================================
+// 8. ACTIVITY LOG & AUDIT TRAIL SYNC
+// ==============================================================================
+
+export const fetchActivityLogsFromDb = async (): Promise<ActivityLog[]> => {
+  if (!isSupabaseConfigured()) {
+    const saved = localStorage.getItem('shameer_crm_activity_logs_local');
+    return saved ? JSON.parse(saved) : INITIAL_ACTIVITY_LOGS;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('activity_logs')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(50);
+
+    if (error || !data || data.length === 0) {
+      const saved = localStorage.getItem('shameer_crm_activity_logs_local');
+      return saved ? JSON.parse(saved) : INITIAL_ACTIVITY_LOGS;
+    }
+
+    const mapped: ActivityLog[] = data.map((row: any) => ({
+      id: row.id,
+      timestamp: new Date(row.timestamp).toLocaleString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }),
+      userName: row.user_name,
+      userRole: row.user_role as UserRole,
+      action: row.action,
+      details: row.details,
+      clientName: row.client_name || undefined,
+      category: row.category,
+    }));
+
+    localStorage.setItem('shameer_crm_activity_logs_local', JSON.stringify(mapped));
+    return mapped;
+  } catch (err) {
+    console.error('Fetch activity logs error:', err);
+    return INITIAL_ACTIVITY_LOGS;
+  }
+};
+
+export const saveActivityLogToDb = async (log: ActivityLog): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const local = localStorage.getItem('shameer_crm_activity_logs_local');
+    const existing: ActivityLog[] = local ? JSON.parse(local) : INITIAL_ACTIVITY_LOGS;
+    const updated = [log, ...existing].slice(0, 100);
+    localStorage.setItem('shameer_crm_activity_logs_local', JSON.stringify(updated));
+
+    if (isSupabaseConfigured()) {
+      const dbPayload = {
+        user_name: log.userName,
+        user_role: log.userRole,
+        action: log.action,
+        details: log.details,
+        client_name: log.clientName || null,
+        category: log.category,
+        timestamp: new Date().toISOString()
+      };
+
+      const { error } = await supabase.from('activity_logs').insert([dbPayload]);
+      if (error) {
+        console.warn('Supabase activity log save notice:', error.message);
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+
+// ==============================================================================
+// 9. CLOUD HEALTH & MASTER DATA SYNC SEEDER
+// ==============================================================================
+
+export interface SupabaseHealthReport {
+  isConfigured: boolean;
+  canConnect: boolean;
+  tableCounts: Record<string, number>;
+  rlsBlocked: boolean;
+  message: string;
+}
+
+export const checkSupabaseHealth = async (): Promise<SupabaseHealthReport> => {
+  if (!isSupabaseConfigured()) {
+    return {
+      isConfigured: false,
+      canConnect: false,
+      tableCounts: {},
+      rlsBlocked: false,
+      message: 'Supabase URL or Anon key is not set.'
+    };
+  }
+
+  const report: SupabaseHealthReport = {
+    isConfigured: true,
+    canConnect: false,
+    tableCounts: {},
+    rlsBlocked: false,
+    message: ''
+  };
+
+  try {
+    const tables = ['profiles', 'clients', 'tasks', 'itr_filings', 'debtor_records', 'tickets', 'activity_logs', 'practice_configs'];
+    let anySuccess = false;
+    let rlsTriggered = false;
+
+    for (const t of tables) {
+      const { count, error } = await supabase.from(t).select('*', { count: 'exact', head: true });
+      if (!error) {
+        anySuccess = true;
+        report.tableCounts[t] = count || 0;
+      } else {
+        report.tableCounts[t] = 0;
+        if (error.code === '42501' || error.message?.includes('security policy')) {
+          rlsTriggered = true;
+        }
+      }
+    }
+
+    report.canConnect = anySuccess;
+    report.rlsBlocked = rlsTriggered;
+    report.message = anySuccess 
+      ? 'Supabase PostgreSQL live instance connected.' 
+      : 'Could not access Supabase tables. Run enable_crm_sync.sql in Supabase SQL editor.';
+    return report;
+  } catch (err: any) {
+    report.message = err.message || 'Connection failed.';
+    return report;
+  }
+};

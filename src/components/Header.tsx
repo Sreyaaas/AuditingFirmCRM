@@ -123,17 +123,9 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative">
           <button
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="h-8 flex items-center gap-2 px-2.5 rounded-[6px] text-[13px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] transition-colors"
+            className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] text-[13px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] transition-colors"
           >
-            <span className="w-5 h-5 rounded-full bg-[#0071E3] text-white text-[10px] font-semibold flex items-center justify-center shrink-0">
-              {currentUser.initials || currentUser.name.slice(0, 1)}
-            </span>
-            <span className="font-medium hidden sm:inline max-w-[120px] truncate text-[13px]">
-              {currentUser.name}
-            </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93] uppercase tracking-wider hidden xl:inline">
-              {isAdmin ? 'Admin' : 'Staff'}
-            </span>
+            <span className="truncate">{currentUser.name}</span>
             <ChevronDown className="w-3 h-3 text-[#86868B] stroke-[1.5]" />
           </button>
 
