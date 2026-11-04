@@ -166,3 +166,4 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
     </div>
   );
 };
+

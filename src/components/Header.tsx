@@ -44,12 +44,12 @@ export const Header: React.FC<HeaderProps> = ({
   const tabMeta: Record<string, { title: string; subtitle: string }> = {
     dashboard: { title: 'Firm Overview', subtitle: 'Shameer & Associates • FY 2026-27' },
     'gst-tracker': { title: 'Upcoming Deadlines & Filings', subtitle: 'GST & Statutory Compliance' },
-    monthly: { title: 'Monthly Work (GST & Audit)', subtitle: 'Recurring Practice Filings' },
+    monthly: { title: 'Monthly Work (GST & Audit)', subtitle: 'Monthly GST and TDS filings' },
     itr: { title: 'Annual Tax Returns (ITR)', subtitle: 'Assessment Year 2026-27' },
-    clients: { title: 'Client Accounts', subtitle: 'Registered Practice Entities' },
-    debtors: { title: 'Money Owed to Us', subtitle: 'Client Fee Accounts & Collections' },
+    clients: { title: 'Clients', subtitle: 'Registered Practice Entities' },
+    debtors: { title: 'Debtors', subtitle: 'Client Fee Accounts & Collections' },
     staff: { title: 'Client Calls & Follow-ups', subtitle: 'Inbound Inquiries & Workload Queue' },
-    employees: { title: 'Employee Management', subtitle: 'Staff Accounts & Access Controls' },
+    employees: { title: 'Team', subtitle: 'Staff Accounts & Access Controls' },
     activity: { title: 'Activity History & Audit Trail', subtitle: 'Immutable System Activity' },
     settings: { title: 'Firm Settings', subtitle: 'Practice Parameters & Setup' },
   };

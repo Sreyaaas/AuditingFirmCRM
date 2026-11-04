@@ -145,11 +145,11 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
           <div className="flex items-center justify-end gap-1.5">
             <button
               onClick={() => onOpenWhatsApp(item)}
-              title="Send WhatsApp Notice"
+              title="Message on WhatsApp"
               className="h-7 px-2 border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-[5px] flex items-center gap-1 transition-colors text-[11px] font-medium"
             >
               <MessageSquare className="w-3 h-3 text-[#16A34A] dark:text-[#34C759]" strokeWidth={1.5} />
-              <span className="hidden sm:inline">Notice</span>
+              <span className="hidden sm:inline">Remind</span>
             </button>
             {item.priorityLevel !== 'filed' ? (
               <button

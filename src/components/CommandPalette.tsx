@@ -68,13 +68,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     { id: 'nav-gst', label: 'Go to Upcoming Deadlines & Filings', category: 'Navigation', icon: ShieldCheck, action: () => onNavigateTab('gst-tracker') },
     { id: 'nav-monthly', label: 'Go to Monthly Work (GST & Audit)', category: 'Navigation', icon: FileText, action: () => onNavigateTab('monthly') },
     { id: 'nav-itr', label: 'Go to Annual Tax Returns (ITR)', category: 'Navigation', icon: FileText, action: () => onNavigateTab('itr') },
-    { id: 'nav-clients', label: 'Go to Client Accounts', category: 'Navigation', icon: Users, action: () => onNavigateTab('clients') },
-    { id: 'nav-debtors', label: 'Go to Money Owed to Us', category: 'Navigation', icon: Receipt, action: () => onNavigateTab('debtors') },
+    { id: 'nav-clients', label: 'Go to Clients', category: 'Navigation', icon: Users, action: () => onNavigateTab('clients') },
+    { id: 'nav-debtors', label: 'Go to Debtors', category: 'Navigation', icon: Receipt, action: () => onNavigateTab('debtors') },
     { id: 'nav-calls', label: 'Go to Client Calls & Follow-ups', category: 'Navigation', icon: PhoneCall, action: () => onNavigateTab('staff') },
   ];
 
   if (currentUser.role === 'admin') {
-    navigationItems.push({ id: 'nav-employees', label: 'Go to Employee Management', category: 'Navigation', icon: User, action: () => onNavigateTab('employees') });
+    navigationItems.push({ id: 'nav-employees', label: 'Go to Team', category: 'Navigation', icon: User, action: () => onNavigateTab('employees') });
   }
 
   const actionItems = [

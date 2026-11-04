@@ -303,3 +303,4 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
     </div>
   );
 };
+

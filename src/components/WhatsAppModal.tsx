@@ -183,8 +183,8 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
           <div>
             <h3 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
               {ticket 
-                ? 'Client Call Notice' 
-                : (debtor ? 'Fee Reminder Notice' : 'WhatsApp Message')}
+                ? 'Follow-up Call' 
+                : (debtor ? 'Fee Reminder' : 'Message on WhatsApp')}
             </h3>
             <p className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
               Recipient: {clientName} ({tradeName})

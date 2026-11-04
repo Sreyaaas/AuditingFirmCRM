@@ -71,7 +71,7 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E] pb-3">
         <div>
           <h1 className="text-[22px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
-            Client Accounts
+            Clients
           </h1>
           <p className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
             {clients.length} registered companies, firms, and individual accounts

@@ -77,7 +77,7 @@ async function runTests() {
 
     // TEST 4: Client Accounts Directory
     try {
-      const clientsBtn = await driver.findElement(By.xpath("//button[contains(., 'Client Accounts')]"));
+      const clientsBtn = await driver.findElement(By.xpath("//button[contains(., 'Clients')]"));
       await clientsBtn.click();
       await driver.sleep(700);
 

@@ -253,7 +253,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                 : 'border-transparent text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
             }`}
           >
-            Statutory &amp; Dues
+            Filings &amp; Billing
           </button>
 
           <button
@@ -264,7 +264,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                 : 'border-transparent text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
             }`}
           >
-            <span>Calls &amp; Desk</span>
+            <span>Call Log</span>
             {clientTickets.length > 0 && (
               <span className="font-mono text-[11px] px-1.5 py-0.2 rounded-[4px] bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93]">
                 {clientTickets.length}
@@ -278,10 +278,10 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
           {/* TAB 1: Company Profile */}
           {activeTab === 'profile' && (
             <div>
-              {/* Section 1: Tax & Legal Identifiers */}
+              {/* Section 1: Tax & Legal Details */}
               <div className="py-4">
                 <span className="text-[11px] font-semibold text-[#86868B] dark:text-[#6E6E73] uppercase tracking-wider block mb-3">
-                  Tax &amp; Legal Identifiers
+                  Tax &amp; Legal Details
                 </span>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-3.5">
                   <div className="group">
@@ -317,14 +317,14 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                   </div>
 
                   <div>
-                    <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-normal mb-0.5 block">Entity Constitution</span>
+                    <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-normal mb-0.5 block">Business Type</span>
                     <span className="text-[13.5px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
                       {client.entityType}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-normal mb-0.5 block">Jurisdiction &amp; Branch</span>
+                    <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-normal mb-0.5 block">Location</span>
                     <span className="text-[13.5px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
                       {client.city}, Kerala, India
                     </span>
@@ -332,10 +332,10 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Section 2: Primary Contact */}
+              {/* Section 2: Contact Details */}
               <div className="py-4">
                 <span className="text-[11px] font-semibold text-[#86868B] dark:text-[#6E6E73] uppercase tracking-wider block mb-3">
-                  Primary Contact
+                  Contact Details
                 </span>
                 <div className="grid grid-cols-3 gap-x-6 gap-y-3">
                   <div>
@@ -367,14 +367,14 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Section 3: Billing & Assignment */}
+              {/* Section 3: Billing & Team */}
               <div className="py-4">
                 <span className="text-[11px] font-semibold text-[#86868B] dark:text-[#6E6E73] uppercase tracking-wider block mb-3">
-                  Billing &amp; Assignment
+                  Billing &amp; Team
                 </span>
                 <div className="grid grid-cols-3 gap-x-6 gap-y-3">
                   <div>
-                    <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-normal mb-0.5 block">Assigned Executive</span>
+                    <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-normal mb-0.5 block">Handled By</span>
                     <span className="text-[13.5px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
                       {staff?.name || 'Ameen'}
                     </span>
@@ -384,17 +384,17 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                   </div>
 
                   <div>
-                    <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-normal mb-0.5 block">Monthly Retainer</span>
+                    <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-normal mb-0.5 block">Monthly Fee</span>
                     <span className="font-mono tabular-nums text-[13.5px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
                       ₹{client.monthlyAuditFee.toLocaleString('en-IN')}
                     </span>
                     <span className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] block mt-0.5">
-                      Monthly compliance billing
+                      Monthly retainer
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-normal mb-0.5 block">Outstanding Balance</span>
+                    <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-normal mb-0.5 block">Pending Amount</span>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="font-mono tabular-nums text-[13.5px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
                         {debtor ? `₹${debtor.currentBalance.toLocaleString('en-IN')}` : '₹0'}
@@ -677,7 +677,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
               className="h-8 px-3.5 rounded-[6px] text-[12.5px] font-medium bg-[#0071E3] hover:bg-[#0077ED] text-white flex items-center gap-1.5 transition-colors shadow-sm"
             >
               <MessageSquare className="w-3.5 h-3.5 stroke-[1.5]" />
-              <span>Send WhatsApp Notice</span>
+              <span>Message on WhatsApp</span>
             </button>
           </div>
         </div>

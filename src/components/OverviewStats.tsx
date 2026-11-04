@@ -68,8 +68,8 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
   // Statutory Cutoffs Countdown with Live Client Completion
   const statutoryDeadlines = [
     {
-      code: 'TDS Challan',
-      title: 'TDS Challan 281 Deposit',
+      code: 'TDS Payment',
+      title: 'TDS Payment',
       targetDate: new Date(2026, 10, 7),
       formattedCutoff: '07 Nov 2026',
       period: 'October 2026 Deductions',
@@ -77,15 +77,15 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
     },
     {
       code: 'GSTR-1',
-      title: 'Monthly Outward Supplies',
+      title: 'GSTR-1 (Sales Return)',
       targetDate: new Date(2026, 10, 11),
       formattedCutoff: '11 Nov 2026',
       period: 'October 2026 Invoices',
       returnTypeFilter: 'GSTR-1 (Sales)',
     },
     {
-      code: 'PF / ESI',
-      title: 'Provident Fund & ESI Deposit',
+      code: 'PF & ESI',
+      title: 'PF & ESI',
       targetDate: new Date(2026, 10, 15),
       formattedCutoff: '15 Nov 2026',
       period: 'October 2026 Payroll',
@@ -125,12 +125,12 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
             {isAdmin ? 'Practice Operations' : `Work Desk — ${currentUser.name}`}
           </h1>
           <p className="text-[12.5px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-            {totalClients} Registered Master Clients • Active Compliance Overview
+            {totalClients} active clients
           </p>
         </div>
         <div className="text-left sm:text-right text-[12.5px]">
           <span className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">{formattedToday}</span>
-          <span className="text-[#86868B] dark:text-[#6E6E73] ml-1.5">• Q3 FY 2026-27</span>
+          <span className="text-[#86868B] dark:text-[#6E6E73] ml-1.5">• Q3 • FY 2026–27</span>
         </div>
       </div>
 
@@ -211,7 +211,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
       <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] overflow-hidden">
         <div className="px-4 py-2.5 border-b border-[#E5E5EA] dark:border-[#2C2C2E] flex items-center justify-between">
           <span className="text-[12px] uppercase tracking-[0.04em] font-semibold text-[#6E6E73] dark:text-[#8E8E93]">
-            Items Requiring Action
+            Needs Attention
           </span>
           <span className="font-mono tabular-nums text-[11px] text-[#86868B]">
             {immediateRisks.length + (docsPendingCount > 0 ? 1 : 0) + (overdueDebtorsCount > 0 ? 1 : 0)} Active Bottlenecks
@@ -318,8 +318,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
               </div>
 
               <div className="flex items-center gap-1 text-[12px] text-[#0071E3] dark:text-[#2997FF] font-medium shrink-0">
-                <span>Open Debtors</span>
-                <ArrowRight className="w-3.5 h-3.5 stroke-[1.5]" />
+                <span>View Debtors →</span>
               </div>
             </div>
           )}
@@ -402,7 +401,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
               onClick={() => onNavigateTab('staff')}
               className="text-[12px] text-[#0071E3] dark:text-[#2997FF] hover:underline"
             >
-              Staff Desk
+              View Calls
             </button>
           </div>
 
@@ -416,7 +415,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
               const percent = staffTasks.length > 0 ? Math.round((staffFiled / staffTasks.length) * 100) : 0;
 
               // Compact role badge
-              const compactRole = staff.role.includes('Partner') ? 'Partner' : 'Audit Exec';
+              const compactRole = staff.role.includes('Partner') ? 'Partner' : 'Tax Executive';
 
               return (
                 <div key={staff.id} className="space-y-1.5">

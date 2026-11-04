@@ -108,3 +108,4 @@ ON public.activity_logs FOR ALL
 TO anon, authenticated 
 USING (true) 
 WITH CHECK (true);
+

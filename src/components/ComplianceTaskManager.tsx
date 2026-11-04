@@ -250,7 +250,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
             Monthly Work (GST &amp; Audit)
           </h1>
           <p className="text-[12.5px] text-[#4B5563] dark:text-[#8E8E93] mt-0.5">
-            {tasks.length} client accounts • Recurring compliance and portal filings
+            {tasks.length} clients • Monthly GST and TDS filings
           </p>
         </div>
 
@@ -380,7 +380,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
               <Search className="w-3.5 h-3.5 absolute left-2 text-[#86868B] stroke-[1.5]" />
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search clients..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -409,7 +409,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                 <th className="py-2 px-3.5 font-semibold">Return Type</th>
                 <th className="py-2 px-3.5 font-semibold">Staff</th>
                 <th className="py-2 px-3.5 font-semibold">Due Date</th>
-                <th className="py-2 px-3.5 font-semibold">Status &amp; Portal ARN</th>
+                <th className="py-2 px-3.5 font-semibold">Status</th>
                 <th className="py-2 px-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
@@ -546,7 +546,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                             title={isFiled ? 'Share filing acknowledgment via WhatsApp' : 'Send WhatsApp reminder'}
                           >
                             <MessageSquare className="w-3 h-3 text-[#16A34A] dark:text-[#34C759]" strokeWidth={1.5} />
-                            <span>{isFiled ? 'Share Ack' : 'Notice'}</span>
+                            <span>{isFiled ? 'Send Receipt' : 'Remind'}</span>
                           </button>
 
                           <button

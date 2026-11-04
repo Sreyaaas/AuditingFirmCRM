@@ -55,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'gst-tracker', label: 'Deadlines & Filings', icon: ShieldCheck, badge: gstOverdueCount > 0 ? `${gstOverdueCount} due` : null, badgeUrgent: true },
     { id: 'monthly', label: 'Monthly Work', icon: CalendarCheck, badge: monthlyTaskCount },
     { id: 'itr', label: 'ITR', icon: FileSpreadsheet, badge: itrCount },
-    { id: 'clients', label: 'Client Accounts', icon: Users, badge: totalClientsCount },
+    { id: 'clients', label: 'Clients', icon: Users, badge: totalClientsCount },
     { id: 'debtors', label: 'Debtors', icon: Receipt, badge: debtorsCount },
     { id: 'staff', label: 'Calls & Tickets', icon: PhoneCall, badge: unassignedTicketsCount > 0 ? `${unassignedTicketsCount} pool` : null },
   ];
@@ -152,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <UserCheck className={`w-4 h-4 shrink-0 stroke-[1.5] ${activeTab === 'employees' ? 'text-[#0071E3] dark:text-[#2997FF]' : 'text-[#6E6E73] dark:text-[#8E8E93]'}`} />
-                  <span className="truncate">Employees</span>
+                  <span className="truncate">Team</span>
                 </div>
                 <span className="font-tabular text-[12px] text-[#6E6E73] dark:text-[#8E8E93] shrink-0 ml-2">{staffList.length}</span>
               </button>
