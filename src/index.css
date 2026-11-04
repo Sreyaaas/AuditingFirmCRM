@@ -25,9 +25,6 @@
   --status-red: #DC2626;
   --status-red-bg: rgba(220, 38, 38, 0.1);
   --status-red-border: rgba(220, 38, 38, 0.2);
-
-  /* Default Font: Figtree (Erik Kennedy) */
-  --font-family: 'Figtree', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* DARK THEME (OLED Deep Charcoal) */
@@ -56,27 +53,6 @@ html.dark {
   --status-red-border: rgba(255, 69, 58, 0.25);
 }
 
-/* FIGTREE AS PRIMARY (OR SYSTEM INTER TOGGLE) */
-html,
-body,
-.font-sans,
-input,
-button,
-select,
-textarea {
-  font-family: var(--font-family) !important;
-}
-
-html[data-font="figtree"],
-html.font-figtree {
-  --font-family: 'Figtree', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-html[data-font="system"],
-html.font-system {
-  --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
-}
-
 @layer base {
   * {
     border-color: var(--border-hairline);
@@ -88,13 +64,14 @@ html.font-system {
   }
 
   body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
     color: var(--text-primary);
     background-color: var(--bg-primary);
     font-feature-settings: "tnum";
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-size: 14px;
+    font-size: 13.5px;
     line-height: 1.5;
   }
 }

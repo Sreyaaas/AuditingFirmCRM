@@ -8,8 +8,7 @@ import {
   ChevronDown,
   Shield,
   Menu,
-  LogOut,
-  Type
+  LogOut
 } from 'lucide-react';
 import { UserProfile } from '../types/crm';
 
@@ -22,8 +21,6 @@ interface HeaderProps {
   onLogout?: () => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
-  font: 'system' | 'figtree';
-  onToggleFont: () => void;
   onOpenNewTask: () => void;
   onOpenIntegrations: () => void;
   onToggleMobileSidebar?: () => void;
@@ -38,8 +35,6 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   theme,
   onToggleTheme,
-  font,
-  onToggleFont,
   onOpenNewTask,
   onToggleMobileSidebar,
 }) => {
@@ -106,16 +101,6 @@ export const Header: React.FC<HeaderProps> = ({
           title="Search"
         >
           <Search className="w-4 h-4 stroke-[1.5]" />
-        </button>
-
-        {/* Font Switcher (Figtree / System) */}
-        <button
-          onClick={onToggleFont}
-          title={`Active Font: ${font === 'figtree' ? 'Figtree (Erik Kennedy)' : 'System Inter'}. Click to toggle.`}
-          className="px-2.5 py-1 rounded-[6px] text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] flex items-center gap-1.5 transition-colors"
-        >
-          <Type className="w-3.5 h-3.5 stroke-[1.5]" />
-          <span className="font-semibold">{font === 'figtree' ? 'Figtree' : 'Inter'}</span>
         </button>
 
         {/* Dark Mode Toggle */}

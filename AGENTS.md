@@ -83,7 +83,7 @@ The UI is built for senior accountants and tax practitioners working with compli
 ## 4. Typography & Numerical Formatting
 
 * **Typography & Fonts:**
-  * Primary Font: **Figtree** (by Erik Kennedy) / **System Inter** via the global font toggle (`data-font="figtree"` or `data-font="system"`).
+  * System Font Stack: **SF Pro Text / Inter / -apple-system** (`font-sans`). Restrained, enterprise-grade Apple HIG typography.
   * **Professional Grade Legibility (No Tiny AI Slop Text):**
     * Standard Body & Table Text: `13px` - `14px` (never tiny illegible 9px or 10px).
     * Metadata & Secondary Labels: Minimum `12px` (`text-[#6E6E73]`).

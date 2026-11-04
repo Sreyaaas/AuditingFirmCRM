@@ -65,13 +65,6 @@ export function App() {
     return 'light';
   });
 
-  // Typography Font Management (Figtree / System Inter)
-  const [font, setFont] = useState<'system' | 'figtree'>(() => {
-    const saved = localStorage.getItem('crm-font') as 'system' | 'figtree' | null;
-    if (saved === 'system' || saved === 'figtree') return saved;
-    return 'figtree'; // Default to Figtree (Erik Kennedy) per user request
-  });
-
   useEffect(() => {
     localStorage.setItem('crm-theme', theme);
     const root = document.documentElement;
@@ -82,27 +75,13 @@ export function App() {
       root.classList.remove('dark');
     }
     root.classList.remove('warm');
+    root.removeAttribute('data-font');
+    root.classList.remove('font-figtree');
+    root.classList.remove('font-system');
   }, [theme]);
-
-  useEffect(() => {
-    localStorage.setItem('crm-font', font);
-    const root = document.documentElement;
-    root.setAttribute('data-font', font);
-    if (font === 'figtree') {
-      root.classList.add('font-figtree');
-      root.classList.remove('font-system');
-    } else {
-      root.classList.add('font-system');
-      root.classList.remove('font-figtree');
-    }
-  }, [font]);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
-
-  const toggleFont = () => {
-    setFont((prev) => (prev === 'figtree' ? 'system' : 'figtree'));
   };
 
   // Global Command Palette (⌘K)
@@ -691,8 +670,6 @@ export function App() {
           onLogout={handleLogout}
           theme={theme}
           onToggleTheme={toggleTheme}
-          font={font}
-          onToggleFont={toggleFont}
           onOpenNewTask={() => setIsNewTaskOpen(true)}
           onOpenIntegrations={() => setIsIntegrationsOpen(true)}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
@@ -918,7 +895,7 @@ export function App() {
                   </div>
                   <div>
                     <span className="text-[#6E6E73] dark:text-[#8E8E93] text-[11px] block">Active Clients</span>
-                    <span className="font-tabular text-[#1D1D1F] dark:text-[#F5F5F7]">120 Accounts (50 Monthly Recurring)</span>
+                    <span className="font-tabular text-[#1D1D1F] dark:text-[#F5F5F7]">{clients.length} Master Accounts ({monthlyTasks.length} Monthly Active)</span>
                   </div>
                   <div>
                     <span className="text-[#6E6E73] dark:text-[#8E8E93] text-[11px] block">Staff Accounts</span>
