@@ -26,19 +26,22 @@ export default {
       },
       fontFamily: {
         sans: [
+          '"Google Sans Text"',
+          '"Google Sans"',
+          '"Plus Jakarta Sans"',
+          'Inter',
           '-apple-system',
           'BlinkMacSystemFont',
           '"SF Pro Text"',
-          '"SF Pro Display"',
-          'Inter',
           'system-ui',
           'sans-serif'
         ],
         mono: [
+          '"Google Sans Mono"',
+          '"JetBrains Mono"',
           '"SF Mono"',
           'ui-monospace',
           'Menlo',
-          'Monaco',
           'monospace'
         ]
       },

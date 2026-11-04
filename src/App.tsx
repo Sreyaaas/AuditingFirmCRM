@@ -715,7 +715,7 @@ export function App() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex bg-[#FAFAFA] dark:bg-[#121214] text-[#1D1D1F] dark:text-[#F5F5F7] font-sans antialiased">
+    <div className="h-screen w-screen overflow-hidden flex bg-[#FAFAFA] dark:bg-[#121214] text-[#09090B] dark:text-[#F5F5F7] font-sans font-medium">
       {/* Toast */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-50 bg-[#1D1D1F] dark:bg-[#FFFFFF] text-white dark:text-[#1D1D1F] px-3.5 py-2 rounded-[8px] shadow-2xl flex items-center gap-2 text-[13px] font-medium animate-in fade-in slide-in-from-bottom-2 duration-150">
