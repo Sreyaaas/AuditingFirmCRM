@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   const tabMeta: Record<string, { title: string; subtitle: string }> = {
     dashboard: { title: 'Firm Overview', subtitle: 'Shameer & Associates • FY 2026-27' },
     'gst-tracker': { title: 'Upcoming Deadlines & Filings', subtitle: 'GST & Statutory Compliance' },
-    monthly: { title: 'Monthly Work (GST & Audit)', subtitle: 'Monthly GST and TDS filings' },
+    monthly: { title: 'GST & Audit', subtitle: 'Monthly GST and TDS filings' },
     itr: { title: 'Annual Tax Returns (ITR)', subtitle: 'Assessment Year 2026-27' },
     clients: { title: 'Clients', subtitle: 'Registered Practice Entities' },
     debtors: { title: 'Debtors', subtitle: 'Client Fee Accounts & Collections' },

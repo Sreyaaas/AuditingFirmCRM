@@ -243,11 +243,11 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* 1. Direct Page Header (Starts directly with Monthly Work, no outer wrapper) */}
+      {/* 1. Direct Page Header (Starts directly with GST & Audit, no outer wrapper) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
         <div>
           <h1 className="text-[18px] font-semibold text-[#09090B] dark:text-[#F5F5F7] tracking-tight">
-            Monthly Work (GST &amp; Audit)
+            GST &amp; Audit
           </h1>
           <p className="text-[12.5px] text-[#4B5563] dark:text-[#8E8E93] mt-0.5">
             {tasks.length} clients • Monthly GST and TDS filings

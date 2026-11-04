@@ -53,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
     { id: 'gst-tracker', label: 'Deadlines & Filings', icon: ShieldCheck, badge: gstOverdueCount > 0 ? `${gstOverdueCount} due` : null, badgeUrgent: true },
-    { id: 'monthly', label: 'Monthly Work', icon: CalendarCheck, badge: monthlyTaskCount },
+    { id: 'monthly', label: 'GST & Audit', icon: CalendarCheck, badge: monthlyTaskCount },
     { id: 'itr', label: 'ITR', icon: FileSpreadsheet, badge: itrCount },
     { id: 'clients', label: 'Clients', icon: Users, badge: totalClientsCount },
     { id: 'debtors', label: 'Debtors', icon: Receipt, badge: debtorsCount },
