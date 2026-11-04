@@ -156,7 +156,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
       category: 'ITR Filing',
       size: '1.9 MB',
       date: '28 Oct 2026',
-      uploadedBy: 'CA Shameer',
+      uploadedBy: 'Shameer',
       url: client.oneDriveFolderUrl,
     },
     {

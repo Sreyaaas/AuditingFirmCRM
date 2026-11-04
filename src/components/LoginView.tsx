@@ -341,7 +341,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </div>
 
                 <div className="p-2.5 rounded-[6px] bg-[#F2F2F7] dark:bg-[#242426] text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">
-                  Admin rights are verified by CA Shameer or Ameen.
+                  Admin rights are verified by Shameer or Ameen.
                 </div>
 
                 <button
@@ -410,7 +410,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <span>Multi-User Role-Based Access Control Enabled</span>
             </div>
             <p>
-              Admins (CA Shameer &amp; Ameen) hold full firm authority. Employee (Susmi) handles assigned filings.
+              Admins (Shameer &amp; Ameen) hold full firm authority. Employee (Susmi) handles assigned filings.
             </p>
           </div>
         </div>

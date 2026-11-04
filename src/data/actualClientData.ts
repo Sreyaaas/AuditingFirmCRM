@@ -1,12 +1,12 @@
 import { DebtorRecord, OfficeBillingEntry, GSTComplianceItem, StaffMember, UserProfile, ActivityLog, ITRFiling } from '../types/crm';
 
 // The actual 3 team members of Shameer and Associates:
-// 2 Admins (CA Shameer & Ameen) and 1 Employee (Susmi)
+// 2 Admins (Shameer & Ameen) and 1 Employee (Susmi)
 export const ACTUAL_STAFF: StaffMember[] = [
   {
     id: 'staff-shameer',
-    name: 'CA Shameer',
-    role: 'Managing Partner & Principal Auditor',
+    name: 'Shameer',
+    role: 'Managing Partner & Senior Practitioner',
     initials: 'SH',
     email: 'shameer@shameerassociates.in',
     phone: '+91 98200 11000',
@@ -17,7 +17,7 @@ export const ACTUAL_STAFF: StaffMember[] = [
   {
     id: 'staff-ameen',
     name: 'Ameen',
-    role: 'Partner & Senior Auditor',
+    role: 'Partner & Senior Practitioner',
     initials: 'AM',
     email: 'ameen@shameerassociates.in',
     phone: '+91 98201 11001',
@@ -256,10 +256,10 @@ export const ACTUAL_GST_COMPLIANCE: GSTComplianceItem[] = [
 export const INITIAL_PROFILES: UserProfile[] = [
   {
     id: 'user-admin-shameer',
-    name: 'CA Shameer',
+    name: 'Shameer',
     email: 'shameer@shameerassociates.in',
     role: 'admin',
-    designation: 'Managing Partner & Principal Auditor',
+    designation: 'Managing Partner & Senior Practitioner',
     phone: '+91 98200 11000',
     status: 'Active',
     joinedDate: '2018-01-15',
@@ -275,7 +275,7 @@ export const INITIAL_PROFILES: UserProfile[] = [
     name: 'Ameen',
     email: 'ameen@shameerassociates.in',
     role: 'admin',
-    designation: 'Partner & Senior Auditor',
+    designation: 'Partner & Senior Practitioner',
     phone: '+91 98201 11001',
     status: 'Active',
     joinedDate: '2021-06-01',
@@ -309,7 +309,7 @@ export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
   {
     id: 'log-1',
     timestamp: '2026-11-04 02:15 PM',
-    userName: 'CA Shameer',
+    userName: 'Shameer',
     userRole: 'admin',
     action: 'Payment Credited',
     details: 'Credited ₹9,000 for Havos (P) Ltd towards October billing ledger',
@@ -339,7 +339,7 @@ export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
   {
     id: 'log-4',
     timestamp: '2026-11-03 02:10 PM',
-    userName: 'CA Shameer',
+    userName: 'Shameer',
     userRole: 'admin',
     action: 'Session Authenticated',
     details: 'Practice administrative session verified with role-based rights',
