@@ -36,6 +36,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
+  staffList = [],
   currentUser,
   monthlyTaskCount,
   itrCount,
@@ -154,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <UserCheck className={`w-4 h-4 shrink-0 stroke-[1.5] ${activeTab === 'employees' ? 'text-[#0071E3] dark:text-[#2997FF]' : 'text-[#6E6E73] dark:text-[#8E8E93]'}`} />
                   <span className="truncate">Employees</span>
                 </div>
-                <span className="font-tabular text-[11px] text-[#6E6E73] dark:text-[#8E8E93] shrink-0 ml-2">5</span>
+                <span className="font-tabular text-[11px] text-[#6E6E73] dark:text-[#8E8E93] shrink-0 ml-2">{staffList.length}</span>
               </button>
 
               <button

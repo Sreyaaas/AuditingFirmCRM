@@ -62,7 +62,7 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
             Client Accounts
           </h1>
           <p className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-            120 registered companies, firms, and individual accounts
+            {clients.length} registered companies, firms, and individual accounts
           </p>
         </div>
 
@@ -82,7 +82,7 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                 : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
             }`}
           >
-            All Accounts (120)
+            All Accounts ({clients.length})
           </button>
           <button
             onClick={() => { setTypeFilter('recurring'); setCurrentPage(1); }}
@@ -92,7 +92,7 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                 : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
             }`}
           >
-            Monthly Recurring (50)
+            Monthly Recurring ({clients.filter(c => c.isRecurringGST || c.isRecurringStatutory).length})
           </button>
           <button
             onClick={() => { setTypeFilter('itr-only'); setCurrentPage(1); }}
@@ -102,7 +102,7 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                 : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
             }`}
           >
-            Annual ITR Only (70)
+            Annual ITR Only ({clients.filter(c => !c.isRecurringGST && !c.isRecurringStatutory).length})
           </button>
         </div>
 

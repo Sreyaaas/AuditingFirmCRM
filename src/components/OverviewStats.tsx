@@ -111,7 +111,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
           </h1>
           <p className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
             {isAdmin 
-              ? 'Shameer & Associates • 120 Client Accounts • 5 Audit Executives'
+              ? `Shameer & Associates • Practice Operations (${totalClients} Accounts)`
               : `${currentUser.designation} • Showing assigned accounts and tasks`}
           </p>
         </div>

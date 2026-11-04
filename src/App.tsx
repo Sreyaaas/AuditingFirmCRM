@@ -17,6 +17,7 @@ import { IntegrationsModal } from './components/IntegrationsModal';
 import { NewTaskModal } from './components/NewTaskModal';
 import { NewTicketModal } from './components/NewTicketModal';
 import { CommandPalette } from './components/CommandPalette';
+import { LoginView } from './components/LoginView';
 
 import { 
   ACTUAL_STAFF, 
@@ -96,7 +97,12 @@ export function App() {
 
   // Authentication & Role-Based Access State
   const [profiles, setProfiles] = useState<UserProfile[]>(INITIAL_PROFILES);
-  const [currentUserId, setCurrentUserId] = useState<string>('user-admin-shameer');
+  const [currentUserId, setCurrentUserId] = useState<string>(() => {
+    return localStorage.getItem('shameer_crm_active_user_id') || 'user-admin-shameer';
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('shameer_crm_is_authenticated') === 'true';
+  });
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(INITIAL_ACTIVITY_LOGS);
 
   const currentUser = profiles.find((p) => p.id === currentUserId) || profiles[0];
@@ -111,7 +117,18 @@ export function App() {
       const saved = localStorage.getItem('shameer_crm_itr_filings_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Normalize any legacy staff IDs to current 3 members
+          return parsed.map((item: ITRFiling) => {
+            if (item.assignedStaffId === 'staff-ashik' || item.assignedStaffId === 'staff-mathew') {
+              return { ...item, assignedStaffId: 'staff-ameen' };
+            }
+            if (item.assignedStaffId === 'staff-ann') {
+              return { ...item, assignedStaffId: 'staff-susmi' };
+            }
+            return item;
+          });
+        }
       }
     } catch (e) {
       console.error(e);
@@ -178,11 +195,40 @@ export function App() {
     setActivityLogs((prev) => [newLog, ...prev]);
   };
 
+  // Authentication & Session Management
+  const handleLogin = (userId: string) => {
+    setCurrentUserId(userId);
+    setIsAuthenticated(true);
+    localStorage.setItem('shameer_crm_is_authenticated', 'true');
+    localStorage.setItem('shameer_crm_active_user_id', userId);
+    const target = profiles.find((p) => p.id === userId);
+    showToast(`Signed in as ${target ? target.name : 'User'}`);
+    addActivityLog(
+      'Session Authenticated',
+      `Signed in as ${target?.name} (${target?.role})`,
+      undefined,
+      'Security'
+    );
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('shameer_crm_is_authenticated');
+    showToast('Signed out of practice portal');
+    addActivityLog(
+      'Session Closed',
+      `Signed out from practice session`,
+      undefined,
+      'Security'
+    );
+  };
+
   // Switch User Session (For quick role testing)
   const handleSwitchUser = (userId: string) => {
     const target = profiles.find((p) => p.id === userId);
     if (!target) return;
     setCurrentUserId(userId);
+    localStorage.setItem('shameer_crm_active_user_id', userId);
     showToast(`Switched session to ${target.name} (${target.role})`);
     addActivityLog(
       'Session Switched',
@@ -569,6 +615,18 @@ export function App() {
 
   const gstOverdueCount = gstCompliance.filter((i) => i.priorityLevel === 'overdue').length;
 
+  if (!isAuthenticated) {
+    return (
+      <LoginView
+        profiles={profiles}
+        onLogin={handleLogin}
+        onRegisterEmployee={handleAddEmployee}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex bg-[#FAFAFA] dark:bg-[#121214] text-[#1D1D1F] dark:text-[#F5F5F7] font-sans antialiased">
       {/* Toast */}
@@ -606,6 +664,7 @@ export function App() {
           currentUser={currentUser}
           profiles={profiles}
           onSwitchUser={handleSwitchUser}
+          onLogout={handleLogout}
           theme={theme}
           onToggleTheme={toggleTheme}
           onOpenNewTask={() => setIsNewTaskOpen(true)}

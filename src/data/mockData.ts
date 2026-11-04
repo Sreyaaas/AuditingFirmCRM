@@ -1,476 +1,438 @@
 import { StaffMember, Client, MonthlyTask, ITRFiling, CloudIntegration, DebtorAccount, StaffTicket } from '../types/crm';
+import { ACTUAL_STAFF, ACTUAL_ITR_RECORDS } from './actualClientData';
 
-export const INITIAL_STAFF: StaffMember[] = [
-  {
-    id: 'staff-1',
-    name: 'Ananya Sharma',
-    role: 'GST & Compliance',
-    initials: 'AS',
-    email: 'ananya@shameerassociates.in',
-    phone: '+91 98201 12345',
-    assignedRecurringCount: 12,
-    assignedITRCount: 26,
-    completedThisMonth: 8,
-  },
-  {
-    id: 'staff-2',
-    name: 'Rahul Verma',
-    role: 'Statutory Audit',
-    initials: 'RV',
-    email: 'rahul@shameerassociates.in',
-    phone: '+91 98202 23456',
-    assignedRecurringCount: 11,
-    assignedITRCount: 24,
-    completedThisMonth: 7,
-  },
-  {
-    id: 'staff-3',
-    name: 'Priya Patel',
-    role: 'Tax Specialist',
-    initials: 'PP',
-    email: 'priya@shameerassociates.in',
-    phone: '+91 98203 34567',
-    assignedRecurringCount: 10,
-    assignedITRCount: 25,
-    completedThisMonth: 7,
-  },
-  {
-    id: 'staff-4',
-    name: 'Karthik Nair',
-    role: 'ITR & Corporate Tax',
-    initials: 'KN',
-    email: 'karthik@shameerassociates.in',
-    phone: '+91 98204 45678',
-    assignedRecurringCount: 9,
-    assignedITRCount: 25,
-    completedThisMonth: 6,
-  },
-  {
-    id: 'staff-5',
-    name: 'Sneha Sen',
-    role: 'Audit Associate',
-    initials: 'SS',
-    email: 'sneha@shameerassociates.in',
-    phone: '+91 98205 56789',
-    assignedRecurringCount: 8,
-    assignedITRCount: 20,
-    completedThisMonth: 6,
-  },
-];
+export const INITIAL_STAFF: StaffMember[] = ACTUAL_STAFF;
 
-// Seed sample companies for the 120 client slots
-const clientTemplates = [
-  { name: 'Zenith Tech Systems Pvt Ltd', trade: 'Zenith Labs', type: 'Private Limited' as const, fee: 18000, city: 'Mumbai', phone: '9820011111' },
-  { name: 'Aura Logistics & Freight LLP', trade: 'Aura Cargo', type: 'LLP' as const, fee: 14000, city: 'Navi Mumbai', phone: '9820022222' },
-  { name: 'Nova Health Diagnostics Ltd', trade: 'Nova Medicare', type: 'Private Limited' as const, fee: 24000, city: 'Pune', phone: '9820033333' },
-  { name: 'Kalyan Jewellers Retailers', trade: 'Kalyan Retail', type: 'Partnership' as const, fee: 12000, city: 'Ahmedabad', phone: '9820044444' },
-  { name: 'Vortex Global Software LLP', trade: 'Vortex Cloud', type: 'LLP' as const, fee: 22000, city: 'Bengaluru', phone: '9820055555' },
-  { name: 'Shree Krishna Agro Mills Pvt Ltd', trade: 'Krishna Flour Mills', type: 'Private Limited' as const, fee: 16500, city: 'Indore', phone: '9820066666' },
-  { name: 'Paramount Polymers & Chemical', trade: 'Paramount Chem', type: 'Partnership' as const, fee: 15000, city: 'Vadodara', phone: '9820077777' },
-  { name: 'BlueHorizon Hospitality Suites', trade: 'Horizon Suites', type: 'Private Limited' as const, fee: 19000, city: 'Goa', phone: '9820088888' },
-  { name: 'Matrix Electrical Solutions', trade: 'Matrix Power', type: 'Proprietorship' as const, fee: 9500, city: 'Surat', phone: '9820099999' },
-  { name: 'Starlight Media Innovations Pvt Ltd', trade: 'Starlight VFX', type: 'Private Limited' as const, fee: 21000, city: 'Hyderabad', phone: '9820100000' },
-  { name: 'Falcon Fasteners & Engineering LLP', trade: 'Falcon Tools', type: 'LLP' as const, fee: 13500, city: 'Chennai', phone: '9820111112' },
-  { name: 'Greenleaf Organic Nutrition Pvt Ltd', trade: 'GreenLeaf Naturals', type: 'Private Limited' as const, fee: 17500, city: 'Delhi', phone: '9820122223' },
-  { name: 'Apex Capital Advisors LLP', trade: 'Apex Advisory', type: 'LLP' as const, fee: 25000, city: 'Mumbai', phone: '9820133334' },
-  { name: 'Dynasty Garments Export House', trade: 'Dynasty Apparel', type: 'Partnership' as const, fee: 16000, city: 'Tirupur', phone: '9820144445' },
-  { name: 'Titanium Motors & Spares LLP', trade: 'Titanium Auto', type: 'LLP' as const, fee: 14500, city: 'Gurugram', phone: '9820155556' },
-  { name: 'Cosmic Cloud Networks Pvt Ltd', trade: 'Cosmic Networks', type: 'Private Limited' as const, fee: 28000, city: 'Bengaluru', phone: '9820166667' },
-  { name: 'Trident Marine Shipping Agency', trade: 'Trident Freight', type: 'Partnership' as const, fee: 19500, city: 'Kochi', phone: '9820177778' },
-  { name: 'Mahalaxmi Steel Fabricators', trade: 'Mahalaxmi Iron', type: 'Proprietorship' as const, fee: 8500, city: 'Jaipur', phone: '9820188889' },
-  { name: 'Elevate Digital Marketing LLP', trade: 'Elevate Media', type: 'LLP' as const, fee: 13000, city: 'Mumbai', phone: '9820199990' },
-  { name: 'Symphony Acoustics & Audio Ltd', trade: 'Symphony Pro', type: 'Private Limited' as const, fee: 22500, city: 'Noida', phone: '9820200001' },
-];
-
-// Generate 120 clients
-export const INITIAL_CLIENTS: Client[] = Array.from({ length: 120 }, (_, index) => {
-  const tpl = clientTemplates[index % clientTemplates.length];
-  const suffix = index >= 20 ? ` (${Math.floor(index / 20) + 1})` : '';
-  const isRecurring = index < 50; // The 50 monthly recurring clients specified by user
-  const assignedStaff = INITIAL_STAFF[index % INITIAL_STAFF.length];
-  const clientNum = String(index + 1).padStart(3, '0');
-  const stateCode = '27';
-  const panLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K'];
-  const pan = `${panLetters[index % 10]}ABC${panLetters[(index + 3) % 10]}${String(1000 + index).slice(-4)}Z`;
-  const gstin = `${stateCode}${pan}1Z${index % 9}`;
-
-  return {
-    id: `client-${index + 1}`,
-    clientCode: `C-${clientNum}`,
-    name: `${tpl.name}${suffix}`,
-    tradeName: `${tpl.trade}${suffix}`,
-    entityType: tpl.type,
-    gstin,
-    pan,
-    contactPerson: `Director ${String.fromCharCode(65 + (index % 26))}. Kumar`,
-    phone: `+91 ${tpl.phone.slice(0, 5)} ${String(10000 + index).slice(-5)}`,
-    email: `accounts@${tpl.trade.toLowerCase().replace(/[^a-z]/g, '')}.in`,
-    isRecurringGST: isRecurring,
-    isRecurringStatutory: isRecurring,
-    assignedStaffId: assignedStaff.id,
-    monthlyAuditFee: tpl.fee,
-    city: tpl.city,
-    oneDriveFolderUrl: `https://[PLACEHOLDER: onedrive-domain]/clients/C-${clientNum}`,
+// The 6 Real Client Accounts from the Firm's Excel Workbook (No clutter, 100% authentic)
+export const INITIAL_CLIENTS: Client[] = [
+  {
+    id: 'client-havos',
+    clientCode: 'C-001',
+    name: 'Havos (P) Ltd',
+    tradeName: 'Havos',
+    entityType: 'Private Limited',
+    gstin: '32AABCH4910K1Z5',
+    pan: 'AABCH4910K',
+    contactPerson: 'Managing Director',
+    phone: '+91 98470 12345',
+    email: 'accounts@havos.in',
+    isRecurringGST: true,
+    isRecurringStatutory: true,
+    assignedStaffId: 'staff-ameen',
+    monthlyAuditFee: 9000,
+    city: 'Calicut',
+    oneDriveFolderUrl: 'https://shameerassociates.sharepoint.com/clients/C-001-Havos',
     status: 'Active',
-  };
-});
+  },
+  {
+    id: 'client-km-traders',
+    clientCode: 'C-002',
+    name: 'KM Traders',
+    tradeName: 'KM Traders',
+    entityType: 'Partnership',
+    gstin: '32AACKM8821L1Z2',
+    pan: 'AACKM8821L',
+    contactPerson: 'K. M. Partner',
+    phone: '+91 94471 23456',
+    email: 'info@kmtraders.in',
+    isRecurringGST: true,
+    isRecurringStatutory: true,
+    assignedStaffId: 'staff-susmi',
+    monthlyAuditFee: 5760,
+    city: 'Kochi',
+    oneDriveFolderUrl: 'https://shameerassociates.sharepoint.com/clients/C-002-KMTraders',
+    status: 'Active',
+  },
+  {
+    id: 'client-semicolon',
+    clientCode: 'C-003',
+    name: 'Semicolon Innovations',
+    tradeName: 'Semicolon Labs',
+    entityType: 'LLP',
+    gstin: '32AAJCS9102P1Z8',
+    pan: 'AAJCS9102P',
+    contactPerson: 'Managing Partner',
+    phone: '+91 98952 34567',
+    email: 'contact@semicolon.io',
+    isRecurringGST: true,
+    isRecurringStatutory: true,
+    assignedStaffId: 'staff-ameen',
+    monthlyAuditFee: 4000,
+    city: 'Kozhikode',
+    oneDriveFolderUrl: 'https://shameerassociates.sharepoint.com/clients/C-003-Semicolon',
+    status: 'Active',
+  },
+  {
+    id: 'client-rafeek',
+    clientCode: 'C-004',
+    name: 'Rafeek',
+    tradeName: 'Rafeek Commercials',
+    entityType: 'Proprietorship',
+    gstin: '32ANPPR5412M1Z3',
+    pan: 'ANPPR5412M',
+    contactPerson: 'M. Rafeek',
+    phone: '+91 97443 45678',
+    email: 'rafeek@gmail.com',
+    isRecurringGST: true,
+    isRecurringStatutory: false,
+    assignedStaffId: 'staff-susmi',
+    monthlyAuditFee: 4000,
+    city: 'Malappuram',
+    oneDriveFolderUrl: 'https://shameerassociates.sharepoint.com/clients/C-004-Rafeek',
+    status: 'Active',
+  },
+  {
+    id: 'client-jinu',
+    clientCode: 'C-005',
+    name: 'Jinu & Family',
+    tradeName: 'Jinu Enterprises',
+    entityType: 'Individual',
+    gstin: '32AAQPB6723J1Z6',
+    pan: 'AAQPB6723J',
+    contactPerson: 'Jinu George',
+    phone: '+91 96334 56789',
+    email: 'jinu.family@yahoo.com',
+    isRecurringGST: true,
+    isRecurringStatutory: false,
+    assignedStaffId: 'staff-ameen',
+    monthlyAuditFee: 8000,
+    city: 'Kochi',
+    oneDriveFolderUrl: 'https://shameerassociates.sharepoint.com/clients/C-005-Jinu',
+    status: 'Active',
+  },
+  {
+    id: 'client-spanish',
+    clientCode: 'C-006',
+    name: 'Spanish Absolute Parlour',
+    tradeName: 'Spanish Absolute',
+    entityType: 'Proprietorship',
+    gstin: '32BNMPA3491E1Z9',
+    pan: 'BNMPA3491E',
+    contactPerson: 'Proprietor',
+    phone: '+91 94955 67890',
+    email: 'spanishabsolute@gmail.com',
+    isRecurringGST: true,
+    isRecurringStatutory: false,
+    assignedStaffId: 'staff-susmi',
+    monthlyAuditFee: 8200,
+    city: 'Kozhikode',
+    oneDriveFolderUrl: 'https://shameerassociates.sharepoint.com/clients/C-006-Spanish',
+    status: 'Active',
+  },
+];
 
-// The 50 Monthly Recurring Compliance Tasks
-const filingTypesPool: MonthlyTask['filingType'][] = ['GSTR-1', 'GSTR-3B', 'Statutory Audit', 'TDS Payment', 'PF/ESI'];
-
-export const INITIAL_MONTHLY_TASKS: MonthlyTask[] = INITIAL_CLIENTS.slice(0, 50).map((client, i) => {
-  const staff = INITIAL_STAFF[i % INITIAL_STAFF.length];
-  const filingType = filingTypesPool[i % filingTypesPool.length];
-  
-  let status: MonthlyTask['status'] = 'In Progress';
-  let daysRemaining = 5;
-  let dueDate = '2026-11-11';
-  let arnNumber: string | undefined = undefined;
-
-  if (filingType === 'GSTR-1') {
-    dueDate = '2026-11-11';
-    daysRemaining = 3;
-  } else if (filingType === 'GSTR-3B') {
-    dueDate = '2026-11-20';
-    daysRemaining = 12;
-  } else if (filingType === 'TDS Payment') {
-    dueDate = '2026-11-07';
-    daysRemaining = 1;
-  } else if (filingType === 'PF/ESI') {
-    dueDate = '2026-11-15';
-    daysRemaining = 7;
-  } else {
-    dueDate = '2026-11-30';
-    daysRemaining = 22;
-  }
-
-  // Realistic operational distribution
-  if (i < 30) {
-    status = 'Filed';
-    arnNumber = `AA271126${String(100000 + i)}`;
-  } else if (i < 38) {
-    status = 'Draft Ready';
-  } else if (i < 45) {
-    status = 'In Progress';
-  } else if (i < 48) {
-    status = 'Docs Pending';
-  } else {
-    status = 'Overdue';
-    daysRemaining = -2;
-  }
-
-  return {
-    id: `task-m-${i + 1}`,
-    clientId: client.id,
-    clientName: client.name,
-    tradeName: client.tradeName,
-    gstin: client.gstin,
-    filingType,
+// Active Monthly Compliance Tasks for the 6 Real Clients
+export const INITIAL_MONTHLY_TASKS: MonthlyTask[] = [
+  {
+    id: 'task-m-1',
+    clientId: 'client-km-traders',
+    clientName: 'KM Traders',
+    tradeName: 'KM Traders',
+    gstin: '32AACKM8821L1Z2',
+    filingType: 'GSTR-3B',
     period: 'October 2026',
-    assignedStaffId: staff.id,
-    status,
-    dueDate,
-    daysRemaining,
-    arnNumber,
-    taxPayable: (i + 1) * 14250,
-    turnoverReported: (i + 1) * 380000,
-    lastUpdated: `${(i % 5) + 1}h ago`,
-    phone: client.phone,
-    docsReceived: status !== 'Docs Pending',
-    notes: status === 'Docs Pending' ? 'Pending sales invoices from client accountant' : undefined,
-  };
-});
+    assignedStaffId: 'staff-susmi',
+    status: 'Docs Pending',
+    dueDate: '2026-11-20',
+    daysRemaining: 16,
+    taxPayable: 5760,
+    turnoverReported: 480000,
+    lastUpdated: '1h ago',
+    phone: '+91 94471 23456',
+    docsReceived: false,
+    notes: 'Pending sales invoices and purchase bills from client accountant',
+  },
+  {
+    id: 'task-m-2',
+    clientId: 'client-semicolon',
+    clientName: 'Semicolon Innovations',
+    tradeName: 'Semicolon Labs',
+    gstin: '32AAJCS9102P1Z8',
+    filingType: 'GSTR-1',
+    period: 'October 2026',
+    assignedStaffId: 'staff-ameen',
+    status: 'In Progress',
+    dueDate: '2026-11-11',
+    daysRemaining: 7,
+    taxPayable: 4000,
+    turnoverReported: 350000,
+    lastUpdated: '3h ago',
+    phone: '+91 98952 34567',
+    docsReceived: true,
+    notes: 'B2B invoices entered, verifying GSTR-2B ITC reconciliation',
+  },
+  {
+    id: 'task-m-3',
+    clientId: 'client-havos',
+    clientName: 'Havos (P) Ltd',
+    tradeName: 'Havos',
+    gstin: '32AABCH4910K1Z5',
+    filingType: 'GSTR-3B',
+    period: 'October 2026',
+    assignedStaffId: 'staff-ameen',
+    status: 'Draft Ready',
+    dueDate: '2026-11-20',
+    daysRemaining: 16,
+    taxPayable: 11500,
+    turnoverReported: 890000,
+    lastUpdated: '2h ago',
+    phone: '+91 98470 12345',
+    docsReceived: true,
+    notes: 'Draft computation verified; awaiting director approval for challan creation',
+  },
+  {
+    id: 'task-m-4',
+    clientId: 'client-rafeek',
+    clientName: 'Rafeek',
+    tradeName: 'Rafeek Commercials',
+    gstin: '32ANPPR5412M1Z3',
+    filingType: 'GSTR-1',
+    period: 'October 2026',
+    assignedStaffId: 'staff-susmi',
+    status: 'Filed',
+    dueDate: '2026-11-11',
+    daysRemaining: 7,
+    arnNumber: 'AA321126048123Z',
+    taxPayable: 3200,
+    turnoverReported: 290000,
+    lastUpdated: 'Yesterday',
+    phone: '+91 97443 45678',
+    docsReceived: true,
+  },
+  {
+    id: 'task-m-5',
+    clientId: 'client-jinu',
+    clientName: 'Jinu & Family',
+    tradeName: 'Jinu Enterprises',
+    gstin: '32AAQPB6723J1Z6',
+    filingType: 'TDS Payment',
+    period: 'October 2026',
+    assignedStaffId: 'staff-ameen',
+    status: 'In Progress',
+    dueDate: '2026-11-07',
+    daysRemaining: 3,
+    taxPayable: 8000,
+    turnoverReported: 420000,
+    lastUpdated: '4h ago',
+    phone: '+91 96334 56789',
+    docsReceived: true,
+    notes: 'Form 26Q salary and vendor deduction draft ready for payment',
+  },
+  {
+    id: 'task-m-6',
+    clientId: 'client-spanish',
+    clientName: 'Spanish Absolute Parlour',
+    tradeName: 'Spanish Absolute',
+    gstin: '32BNMPA3491E1Z9',
+    filingType: 'GSTR-3B',
+    period: 'October 2026',
+    assignedStaffId: 'staff-susmi',
+    status: 'Filed',
+    dueDate: '2026-11-20',
+    daysRemaining: 16,
+    arnNumber: 'AA321126091124X',
+    taxPayable: 2500,
+    turnoverReported: 240000,
+    lastUpdated: '1d ago',
+    phone: '+91 94955 67890',
+    docsReceived: true,
+  },
+];
 
-// Annual ITR Filings for the 120 Clients
-export const INITIAL_ITR_FILINGS: ITRFiling[] = INITIAL_CLIENTS.map((client, i) => {
-  const staff = INITIAL_STAFF[i % INITIAL_STAFF.length];
-  const itrForm = client.entityType === 'Private Limited' 
-    ? 'ITR-6' 
-    : client.entityType === 'LLP' || client.entityType === 'Partnership' 
-      ? 'ITR-5' 
-      : (i % 2 === 0 ? 'ITR-3' : 'ITR-2');
+// Annual ITR Filings for the 6 Clients
+export const INITIAL_ITR_FILINGS: ITRFiling[] = ACTUAL_ITR_RECORDS;
 
-  const status = i < 68 
-    ? 'Filed & e-Verified' 
-    : i < 88 
-      ? 'Client Confirmed' 
-      : i < 104 
-        ? 'Draft Computation' 
-        : i < 114 
-          ? '26AS Reconciled' 
-          : 'Docs Pending';
+// Debtors Accounts for the 6 Clients
+export const INITIAL_DEBTORS: DebtorAccount[] = [
+  {
+    id: 'debtor-1',
+    clientId: 'client-havos',
+    clientName: 'Havos (P) Ltd',
+    tradeName: 'Havos',
+    phone: '+91 98470 12345',
+    serviceCategory: 'Statutory Audit',
+    invoiceNumber: 'INV-2026-041',
+    invoiceDate: '2026-10-05',
+    dueDate: '2026-10-31',
+    billedAmount: 10500,
+    paidAmount: 0,
+    outstandingBalance: 10500,
+    agingDays: 35,
+    agingBucket: '31-60 Days',
+    status: 'Overdue',
+    assignedStaffId: 'staff-ameen',
+  },
+  {
+    id: 'debtor-2',
+    clientId: 'client-km-traders',
+    clientName: 'KM Traders',
+    tradeName: 'KM Traders',
+    phone: '+91 94471 23456',
+    serviceCategory: 'GST Retainer',
+    invoiceNumber: 'INV-2026-033',
+    invoiceDate: '2026-08-05',
+    dueDate: '2026-08-25',
+    billedAmount: 5760,
+    paidAmount: 0,
+    outstandingBalance: 5760,
+    agingDays: 95,
+    agingBucket: '90+ Days',
+    status: 'Overdue',
+    assignedStaffId: 'staff-susmi',
+  },
+  {
+    id: 'debtor-3',
+    clientId: 'client-semicolon',
+    clientName: 'Semicolon Innovations',
+    tradeName: 'Semicolon Labs',
+    phone: '+91 98952 34567',
+    serviceCategory: 'ITR Filing',
+    invoiceNumber: 'INV-2026-038',
+    invoiceDate: '2026-09-10',
+    dueDate: '2026-09-30',
+    billedAmount: 4000,
+    paidAmount: 0,
+    outstandingBalance: 4000,
+    agingDays: 65,
+    agingBucket: '61-90 Days',
+    status: 'Overdue',
+    assignedStaffId: 'staff-ameen',
+  },
+  {
+    id: 'debtor-4',
+    clientId: 'client-rafeek',
+    clientName: 'Rafeek',
+    tradeName: 'Rafeek Commercials',
+    phone: '+91 97443 45678',
+    serviceCategory: 'ITR Filing',
+    invoiceNumber: 'INV-2026-029',
+    invoiceDate: '2026-08-20',
+    dueDate: '2026-09-10',
+    billedAmount: 4000,
+    paidAmount: 4000,
+    outstandingBalance: 0,
+    agingDays: 0,
+    agingBucket: '0-30 Days',
+    status: 'Cleared',
+    assignedStaffId: 'staff-susmi',
+  },
+  {
+    id: 'debtor-5',
+    clientId: 'client-jinu',
+    clientName: 'Jinu & Family',
+    tradeName: 'Jinu Enterprises',
+    phone: '+91 96334 56789',
+    serviceCategory: 'ITR Filing',
+    invoiceNumber: 'INV-2026-027',
+    invoiceDate: '2026-08-15',
+    dueDate: '2026-09-05',
+    billedAmount: 8000,
+    paidAmount: 8000,
+    outstandingBalance: 0,
+    agingDays: 0,
+    agingBucket: '0-30 Days',
+    status: 'Cleared',
+    assignedStaffId: 'staff-ameen',
+  },
+  {
+    id: 'debtor-6',
+    clientId: 'client-spanish',
+    clientName: 'Spanish Absolute Parlour',
+    tradeName: 'Spanish Absolute',
+    phone: '+91 94955 67890',
+    serviceCategory: 'GST Retainer',
+    invoiceNumber: 'INV-2026-031',
+    invoiceDate: '2026-10-15',
+    dueDate: '2026-10-30',
+    billedAmount: 2000,
+    paidAmount: 2000,
+    outstandingBalance: 0,
+    agingDays: 0,
+    agingBucket: '0-30 Days',
+    status: 'Cleared',
+    assignedStaffId: 'staff-susmi',
+  },
+];
 
-  const isAudit = client.entityType === 'Private Limited' || client.monthlyAuditFee > 15000;
-  const dueDate = isAudit ? '2026-10-31' : '2026-07-31';
-
-  return {
-    id: `itr-${i + 1}`,
-    clientId: client.id,
-    clientName: client.name,
-    pan: client.pan,
-    entityType: client.entityType,
-    itrForm,
-    assessmentYear: 'AY 2026-27',
-    financialYear: 'FY 2025-26',
-    assignedStaffId: staff.id,
-    status,
-    dueDate,
-    regime: i % 3 === 0 ? 'Old Regime' : 'New Regime (115BAC)',
-    taxLiabilityOrRefund: (i % 2 === 0 ? 1 : -1) * ((i + 1) * 9800),
-    acknowledgmentNo: status === 'Filed & e-Verified' ? `ACK${982000000000 + i}` : undefined,
-    lastActivity: `${(i % 12) + 1} Nov 2026`,
-    phone: client.phone,
-  };
-});
-
-export const INITIAL_DEBTORS: DebtorAccount[] = INITIAL_CLIENTS.slice(0, 48).map((client, i) => {
-  const staff = INITIAL_STAFF[i % INITIAL_STAFF.length];
-  const serviceCategories: DebtorAccount['serviceCategory'][] = [
-    'GST Retainer',
-    'Statutory Audit',
-    'ITR Filing',
-    'ROC Compliance',
-    'TDS Filing',
-  ];
-  const category = serviceCategories[i % serviceCategories.length];
-  const baseFee = client.monthlyAuditFee || 15000;
-  
-  // Create varied debt profiles across aging buckets
-  let billedAmount = baseFee;
-  let paidAmount = 0;
-  let agingDays = 14;
-  let agingBucket: DebtorAccount['agingBucket'] = '0-30 Days';
-  let status: DebtorAccount['status'] = 'Pending';
-  let invoiceDate = '2026-10-15';
-  let dueDate = '2026-11-05';
-  let lastReminder: string | undefined = undefined;
-
-  if (category === 'Statutory Audit') {
-    billedAmount = baseFee * 2.5;
-  } else if (category === 'ITR Filing') {
-    billedAmount = client.entityType === 'Individual' ? 6500 : 18500;
-  }
-
-  if (i < 12) {
-    // 0-30 days current
-    agingDays = (i % 25) + 3;
-    agingBucket = '0-30 Days';
-    status = 'Pending';
-    invoiceDate = '2026-10-20';
-    dueDate = '2026-11-10';
-  } else if (i < 24) {
-    // 31-60 days
-    agingDays = 35 + (i % 20);
-    agingBucket = '31-60 Days';
-    status = i % 2 === 0 ? 'Partially Paid' : 'Overdue';
-    paidAmount = status === 'Partially Paid' ? Math.round(billedAmount * 0.4) : 0;
-    invoiceDate = '2026-09-15';
-    dueDate = '2026-10-05';
-    lastReminder = '28 Oct 2026';
-  } else if (i < 36) {
-    // 61-90 days
-    agingDays = 65 + (i % 20);
-    agingBucket = '61-90 Days';
-    status = 'Overdue';
-    invoiceDate = '2026-08-10';
-    dueDate = '2026-08-31';
-    lastReminder = '24 Oct 2026';
-  } else if (i < 42) {
-    // 90+ days severe
-    agingDays = 95 + (i % 40);
-    agingBucket = '90+ Days';
-    status = 'Overdue';
-    invoiceDate = '2026-06-15';
-    dueDate = '2026-07-05';
-    lastReminder = '01 Nov 2026';
-  } else {
-    // Recently cleared
-    agingDays = 10;
-    agingBucket = '0-30 Days';
-    status = 'Cleared';
-    paidAmount = billedAmount;
-    invoiceDate = '2026-10-05';
-    dueDate = '2026-10-25';
-  }
-
-  const outstandingBalance = billedAmount - paidAmount;
-
-  return {
-    id: `debt-${i + 1}`,
-    clientId: client.id,
-    clientName: client.name,
-    tradeName: client.tradeName,
-    entityType: client.entityType,
-    invoiceNo: `INV-2627-${String(100 + i + 1)}`,
-    invoiceDate,
-    dueDate,
-    serviceCategory: category,
-    billedAmount,
-    paidAmount,
-    outstandingBalance,
-    agingDays,
-    agingBucket,
-    status,
-    lastReminderSent: lastReminder,
-    assignedStaffId: staff.id,
-    phone: client.phone,
-  };
-});
-
+// Client Inquiry and Call Desk Tickets
 export const INITIAL_TICKETS: StaffTicket[] = [
   {
     id: 'ticket-1',
     ticketNo: 'TK-1081',
-    clientId: 'client-1',
-    clientName: 'Zenith Tech Systems Pvt Ltd',
-    tradeName: 'Zenith Labs',
-    callerName: 'Rajeev Kapoor (MD)',
-    callerPhone: '+91 98200 11111',
+    clientId: 'client-km-traders',
+    clientName: 'KM Traders',
+    tradeName: 'KM Traders',
+    callerName: 'K. M. Partner',
+    callerPhone: '+91 94471 23456',
     callType: 'Inbound Phone Call',
-    subject: 'Bank Sanction: Provisional Computation & CA Net Worth Certificate required',
-    description: 'Director called asking for provisional computation for FY 25-26 and CA net worth certificate needed for HDFC CC limit renewal by tomorrow 2 PM.',
-    category: 'Bank Loan / Computation',
-    priority: 'Urgent',
+    subject: 'GSTR-2B ITC Mismatch for October purchase bills',
+    description: 'Accountant called stating supplier invoice for ₹14,000 is not reflecting in 2B. Needs reconciliation before GSTR-3B cutoff.',
+    category: 'GST & Return Query',
+    priority: 'High',
     status: 'In Progress',
-    loggedByStaffId: 'staff-5', // Sneha Sen took the call
-    loggedAt: 'Today, 10:45 AM',
-    assignedStaffId: 'staff-1', // Ananya Sharma took ownership
-    assignedAt: 'Today, 11:15 AM',
-    resolutionNotes: 'Drafting computation based on Q1-Q2 provisional P&L. Waiting for stock statement.',
+    loggedByStaffId: 'staff-susmi',
+    loggedAt: 'Today, 09:30 AM',
+    assignedStaffId: 'staff-susmi',
+    assignedAt: 'Today, 09:50 AM',
   },
   {
     id: 'ticket-2',
     ticketNo: 'TK-1082',
-    clientId: 'client-2',
-    clientName: 'Aura Logistics & Freight LLP',
-    tradeName: 'Aura Cargo',
-    callerName: 'Sunil Rao (Chief Accountant)',
-    callerPhone: '+91 98200 22222',
+    clientId: 'client-havos',
+    clientName: 'Havos (P) Ltd',
+    tradeName: 'Havos',
+    callerName: 'Managing Director',
+    callerPhone: '+91 98470 12345',
     callType: 'Inbound Phone Call',
-    subject: 'GSTR-2B ITC Mismatch for October purchase invoices',
-    description: 'Accountant called stating supplier invoice for ₹1,40,000 is not reflecting in 2B. Needs reconciliation before GSTR-3B cutoff.',
-    category: 'GST & Return Query',
-    priority: 'High',
+    subject: 'Advance tax calculation and challan generation for Q3',
+    description: 'Director requested estimated tax liability draft and net payable after TDS credits before 15th December installment.',
+    category: 'Bank Loan / Computation',
+    priority: 'Normal',
     status: 'In Progress',
-    loggedByStaffId: 'staff-2', // Rahul Verma logged it
-    loggedAt: 'Today, 09:30 AM',
-    assignedStaffId: 'staff-3', // Priya Patel assigned to herself
-    assignedAt: 'Today, 09:50 AM',
+    loggedByStaffId: 'staff-ameen',
+    loggedAt: 'Yesterday, 02:15 PM',
+    assignedStaffId: 'staff-ameen',
+    assignedAt: 'Yesterday, 02:40 PM',
   },
   {
     id: 'ticket-3',
     ticketNo: 'TK-1083',
-    clientId: 'client-3',
-    clientName: 'Nova Health Diagnostics Ltd',
-    tradeName: 'Nova Medicare',
-    callerName: 'Dr. Arvinder Singh (Director)',
-    callerPhone: '+91 98200 33333',
-    callType: 'Inbound Phone Call',
-    subject: 'Income Tax Intimation u/s 143(1) with Demand Notice for AY 2025-26',
-    description: 'Client received email intimation from CPC Bengaluru with demand notice of ₹14,800. Wants us to review TDS mismatch and file rectification.',
+    clientId: 'client-semicolon',
+    clientName: 'Semicolon Innovations',
+    tradeName: 'Semicolon Labs',
+    callerName: 'Managing Partner',
+    callerPhone: '+91 98952 34567',
+    callType: 'WhatsApp Query',
+    subject: 'ITR-5 Partner approval draft review',
+    description: 'Partner reviewed draft computation on WhatsApp. Requested Form 3CEB verification query resolution before e-verification.',
     category: 'Income Tax Notice',
-    priority: 'High',
-    status: 'In Progress',
-    loggedByStaffId: 'staff-1', // Ananya logged it
-    loggedAt: 'Yesterday, 04:15 PM',
-    assignedStaffId: 'staff-4', // Karthik Nair handling
-    assignedAt: 'Yesterday, 05:00 PM',
+    priority: 'Urgent',
+    status: 'Waiting on Client',
+    loggedByStaffId: 'staff-ameen',
+    loggedAt: 'Today, 11:20 AM',
+    assignedStaffId: 'staff-ameen',
+    assignedAt: 'Today, 11:30 AM',
   },
   {
     id: 'ticket-4',
     ticketNo: 'TK-1084',
-    clientId: 'client-4',
-    clientName: 'Kalyan Jewellers Retailers',
-    tradeName: 'Kalyan Retail',
-    callerName: 'Nitin Shah (Partner)',
-    callerPhone: '+91 98200 44444',
+    clientId: 'client-spanish',
+    clientName: 'Spanish Absolute Parlour',
+    tradeName: 'Spanish Absolute',
+    callerName: 'Proprietor',
+    callerPhone: '+91 94955 67890',
     callType: 'Inbound Phone Call',
-    subject: 'Director DSC Token Expired - Renewal Needed for ROC MCA Filing',
-    description: 'Partner called saying e-Pass 2003 token expired. Needs Class-3 DSC renewal urgently for signing MCA form MGT-7 before Saturday.',
-    category: 'DSC & Portal Access',
-    priority: 'Normal',
-    status: 'Unassigned', // In open pool!
-    loggedByStaffId: 'staff-5', // Sneha Sen logged it
-    loggedAt: 'Today, 11:30 AM',
-    assignedStaffId: null,
-  },
-  {
-    id: 'ticket-5',
-    ticketNo: 'TK-1085',
-    clientId: 'client-5',
-    clientName: 'Vortex Global Software LLP',
-    tradeName: 'Vortex Cloud',
-    callerName: 'Aditya Nair (Finance Head)',
-    callerPhone: '+91 98200 55555',
-    callType: 'WhatsApp Query',
-    subject: 'Foreign Inward Remittance (FIRC) & GST LUT Renewal Verification',
-    description: 'Received export payment in USD from US client. Needs FIRC verification and query regarding Letter of Undertaking (LUT) submission.',
-    category: 'GST & Return Query',
+    subject: 'ITR-4 Acknowledgment Copy & Verification Confirmation',
+    description: 'Client called requesting email copy of filed ITR-4 acknowledgment receipt (ACK982104819203) for bank overdraft renewal.',
+    category: 'General Inquiry',
     priority: 'Normal',
     status: 'Resolved',
-    loggedByStaffId: 'staff-4',
-    loggedAt: '02 Nov 2026, 02:20 PM',
-    assignedStaffId: 'staff-1',
-    assignedAt: '02 Nov 2026, 02:45 PM',
-    resolvedAt: '02 Nov 2026, 05:10 PM',
-    resolutionNotes: 'LUT acknowledgment verified on GST portal. FIRC documentation copy saved in OneDrive client folder.',
-  },
-  {
-    id: 'ticket-6',
-    ticketNo: 'TK-1086',
-    clientId: 'client-7',
-    clientName: 'Paramount Polymers & Chemical',
-    tradeName: 'Paramount Chem',
-    callerName: 'Hitesh Patel (Accounts)',
-    callerPhone: '+91 98200 77777',
-    callType: 'Inbound Phone Call',
-    subject: 'TDS Certificate Form 16A generation for Q2 vendor deductions',
-    description: 'Vendor accounts team requested signed Form 16A for September quarter TDS deductions under section 194C and 194J.',
-    category: 'Accounting & Books',
-    priority: 'Normal',
-    status: 'Unassigned', // In open pool!
-    loggedByStaffId: 'staff-3',
-    loggedAt: 'Today, 12:15 PM',
-    assignedStaffId: null,
-  },
-  {
-    id: 'ticket-7',
-    ticketNo: 'TK-1087',
-    clientId: 'client-10',
-    clientName: 'Starlight Media Innovations Pvt Ltd',
-    tradeName: 'Starlight VFX',
-    callerName: 'Devika Menon (Finance)',
-    callerPhone: '+91 98201 00000',
-    callType: 'Inbound Phone Call',
-    subject: 'GST Portal Login OTP authorization for GSTR-1 submission',
-    description: 'Staff tried logging into GST portal to upload JSON. Called director for OTP, phone was busy. Need to retry at 3 PM.',
-    category: 'DSC & Portal Access',
-    priority: 'Urgent',
-    status: 'Waiting on Client',
-    loggedByStaffId: 'staff-2',
-    loggedAt: 'Today, 01:05 PM',
-    assignedStaffId: 'staff-2',
-    assignedAt: 'Today, 01:10 PM',
-    resolutionNotes: 'Sent WhatsApp reminder to director for OTP coordination at 3:00 PM.',
-  },
-  {
-    id: 'ticket-8',
-    ticketNo: 'TK-1088',
-    clientId: 'client-15',
-    clientName: 'Titanium Motors & Spares LLP',
-    tradeName: 'Titanium Auto',
-    callerName: 'Vikram Joshi (Partner)',
-    callerPhone: '+91 98201 55556',
-    callType: 'Office Visit',
-    subject: 'Draft Balance Sheet & Depreciation Schedule for partner review',
-    description: 'Audit balance sheet draft required for internal partner meeting scheduled on Friday. Partner visited office with physical voucher file.',
-    category: 'Accounting & Books',
-    priority: 'Normal',
-    status: 'In Progress',
-    loggedByStaffId: 'staff-1',
-    loggedAt: 'Yesterday, 03:30 PM',
-    assignedStaffId: 'staff-2',
-    assignedAt: 'Yesterday, 04:00 PM',
+    loggedByStaffId: 'staff-susmi',
+    loggedAt: '03 Nov 2026, 04:10 PM',
+    assignedStaffId: 'staff-susmi',
+    assignedAt: '03 Nov 2026, 04:15 PM',
+    resolvedAt: '03 Nov 2026, 04:30 PM',
+    resolutionNotes: 'Sent official acknowledgment receipt copy via WhatsApp and email.',
   },
 ];
 
@@ -480,17 +442,17 @@ export const INITIAL_CLOUD_INTEGRATIONS: CloudIntegration = {
     url: 'https://[PLACEHOLDER: supabase-ref].supabase.co',
     lastSynced: 'Synced',
     tables: [
-      { name: 'clients', count: 120 },
-      { name: 'monthly_tasks', count: 50 },
-      { name: 'itr_filings', count: 120 },
-      { name: 'staff', count: 5 },
+      { name: 'clients', count: 6 },
+      { name: 'monthly_tasks', count: 6 },
+      { name: 'itr_filings', count: 6 },
+      { name: 'staff', count: 3 },
     ],
   },
   oneDrive: {
     status: 'connected',
-    tenant: '[PLACEHOLDER: tenant-id].sharepoint.com',
-    foldersMapped: 120,
-    lastSynced: '10m ago',
-    storageUsedGb: 48.6,
+    tenant: 'shameerassociates.sharepoint.com',
+    foldersMapped: 6,
+    lastSynced: 'Just now',
+    storageUsedGb: 4.2,
   },
 };

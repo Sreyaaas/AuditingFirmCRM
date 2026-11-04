@@ -8,7 +8,8 @@ import {
   ChevronDown,
   Shield,
   Command,
-  Menu
+  Menu,
+  LogOut
 } from 'lucide-react';
 import { UserProfile } from '../types/crm';
 
@@ -18,6 +19,7 @@ interface HeaderProps {
   currentUser: UserProfile;
   profiles: UserProfile[];
   onSwitchUser: (userId: string) => void;
+  onLogout?: () => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onOpenNewTask: () => void;
@@ -31,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   profiles,
   onSwitchUser,
+  onLogout,
   theme,
   onToggleTheme,
   onOpenNewTask,
@@ -42,9 +45,9 @@ export const Header: React.FC<HeaderProps> = ({
   const tabMeta: Record<string, { title: string; subtitle: string }> = {
     dashboard: { title: 'Firm Overview', subtitle: 'Shameer & Associates • FY 2026-27' },
     'gst-tracker': { title: 'Upcoming Deadlines & Filings', subtitle: 'GST & Statutory Compliance' },
-    monthly: { title: 'Monthly Work (GST & Audit)', subtitle: '50 Recurring Client Accounts' },
+    monthly: { title: 'Monthly Work (GST & Audit)', subtitle: 'Recurring Practice Filings' },
     itr: { title: 'Annual Tax Returns (ITR)', subtitle: 'Assessment Year 2026-27' },
-    clients: { title: 'Client Accounts', subtitle: '120 Active Registered Entities' },
+    clients: { title: 'Client Accounts', subtitle: 'Registered Practice Entities' },
     debtors: { title: 'Money Owed to Us', subtitle: 'Client Fee Accounts & Collections' },
     staff: { title: 'Client Calls & Follow-ups', subtitle: 'Inbound Inquiries & Workload Queue' },
     employees: { title: 'Employee Management', subtitle: 'Staff Accounts & Access Controls' },
@@ -183,6 +186,19 @@ export const Header: React.FC<HeaderProps> = ({
                       </button>
                     );
                   })}
+                </div>
+
+                <div className="pt-1 mt-1 border-t border-[#E5E5EA] dark:border-[#2C2C2E]">
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      if (onLogout) onLogout();
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-[5px] text-[12px] text-[#FF3B30] dark:text-[#FF453A] hover:bg-[#FF3B30]/10 transition-colors text-left"
+                  >
+                    <LogOut className="w-3.5 h-3.5 stroke-[1.5]" />
+                    <span>Sign Out</span>
+                  </button>
                 </div>
               </div>
             </>

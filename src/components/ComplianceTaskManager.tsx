@@ -144,7 +144,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
             Monthly Work (GST &amp; Audit)
           </h1>
           <p className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-            50 recurring client accounts • October 2026 filings
+            {tasks.length} client accounts • October 2026 filings
           </p>
         </div>
 

@@ -251,7 +251,7 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
                 >
                   Test Microsoft Graph API
                 </button>
-                <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">120 folders mapped</span>
+                <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">Client folders mapped</span>
               </div>
             </div>
           )}

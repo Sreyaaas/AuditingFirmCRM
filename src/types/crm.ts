@@ -131,7 +131,7 @@ export interface DebtorRecord {
   clientName: string;
   phone: string;
   entityType: EntityType;
-  assignedStaff: string; // Ameen, Susmi, Ashik, Ann, Mathew
+  assignedStaff: string; // Ameen, Susmi
   august: MonthDebtorLedger;
   september: MonthDebtorLedger;
   october: MonthDebtorLedger;
@@ -153,7 +153,7 @@ export interface OfficeBillingEntry {
   taxAmount?: number;
   oopExpenses?: number;
   billingStatus?: 'Billed' | 'Pending' | 'Received';
-  user: string; // Ameen, Susmi, Ashik, Ann, Mathew
+  user: string; // Ameen, Susmi
   invoiceNumber?: string;
 }
 
@@ -170,7 +170,7 @@ export interface GSTComplianceItem {
   daysRemaining: number;
   priorityLevel: GSTPriorityLevel;
   filingStatus: 'Overdue' | 'Due Soon' | 'In Progress' | 'Docs Pending' | 'Filed';
-  assignedStaff: string; // Ameen, Susmi, Ashik, Ann, Mathew
+  assignedStaff: string; // Ameen, Susmi
   arnNumber?: string;
   filedDate?: string;
   phone: string;
