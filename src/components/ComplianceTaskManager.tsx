@@ -217,21 +217,21 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
       {/* Main Table */}
       <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[8px] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-[13px] border-collapse">
+          <table className="w-full text-left text-[14px] border-collapse">
             <thead>
-              <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[12px] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-                <th className="py-2.5 px-3 font-semibold min-w-[200px]">Client / GSTIN</th>
-                <th className="py-2.5 px-3 font-semibold">Filing &amp; Period</th>
-                <th className="py-2.5 px-3 font-semibold">Staff</th>
-                <th className="py-2.5 px-3 font-semibold">Due Date</th>
-                <th className="py-2.5 px-3 font-semibold">Status</th>
-                <th className="py-2.5 px-3 font-semibold text-right">Actions</th>
+              <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[13px] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
+                <th className="py-3 px-3.5 font-semibold min-w-[200px]">Client / GSTIN</th>
+                <th className="py-3 px-3.5 font-semibold">Filing &amp; Period</th>
+                <th className="py-3 px-3.5 font-semibold">Staff</th>
+                <th className="py-3 px-3.5 font-semibold">Due Date</th>
+                <th className="py-3 px-3.5 font-semibold">Status</th>
+                <th className="py-3 px-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">
               {paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[#6E6E73] dark:text-[#8E8E93] text-[13px]">
+                  <td colSpan={6} className="py-8 text-center text-[#6E6E73] dark:text-[#8E8E93] text-[14px]">
                     No monthly tasks match the current filter.
                   </td>
                 </tr>
@@ -243,28 +243,28 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                       key={task.id} 
                       className="hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors group"
                     >
-                      <td className="py-2.5 px-3">
+                      <td className="py-3 px-3.5">
                         <button
                           onClick={() => onSelectClient(task.clientId)}
-                          className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-xs"
+                          className="font-semibold text-[14px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-xs"
                         >
                           {task.tradeName}
                         </button>
-                        <div className="font-tabular text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">
+                        <div className="font-tabular text-[12px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
                           {task.gstin}
                         </div>
                       </td>
 
-                      <td className="py-2.5 px-3">
-                        <span className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
+                      <td className="py-3 px-3.5">
+                        <span className="font-semibold text-[13px] text-[#1D1D1F] dark:text-[#F5F5F7] block">
                           {task.filingType}
                         </span>
-                        <span className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">
+                        <span className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] block mt-0.5">
                           {task.period}
                         </span>
                       </td>
 
-                      <td className="py-2.5 px-3 text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">
+                      <td className="py-3 px-3.5 text-[13px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">
                         {staff?.name || 'Unassigned'}
                       </td>
 

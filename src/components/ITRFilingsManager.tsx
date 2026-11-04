@@ -411,15 +411,15 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[13px] border-collapse">
             <thead>
-              <tr className="bg-[#F9FAFB] dark:bg-[#18191B] text-[#4B5563] dark:text-[#9CA3AF] text-[11px] font-semibold uppercase tracking-wider border-b border-[#E5E7EB] dark:border-[#2C2C2E]">
-                <th className="py-2.5 px-3.5 font-semibold min-w-[210px]">Client Account &amp; PAN</th>
-                <th className="py-2.5 px-3.5 font-semibold w-28">Entity &amp; Form</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">Target Cutoff &amp; Urgency</th>
-                <th className="py-2.5 px-3.5 font-semibold w-36">Tax Position</th>
-                <th className="py-2.5 px-3.5 font-semibold w-32">Assigned Staff</th>
-                <th className="py-2.5 px-3.5 font-semibold w-40">Filing Status</th>
-                <th className="py-2.5 px-3.5 font-semibold text-right w-36">Actions</th>
-              </tr>
+          <tr className="bg-[#F9FAFB] dark:bg-[#18191B] text-[#4B5563] dark:text-[#9CA3AF] text-[12px] font-semibold uppercase tracking-wider border-b border-[#E5E7EB] dark:border-[#2C2C2E]">
+            <th className="py-3 px-3.5 font-semibold min-w-[210px]">Client Account &amp; PAN</th>
+            <th className="py-3 px-3.5 font-semibold w-28">Entity &amp; Form</th>
+            <th className="py-3 px-3.5 font-semibold w-36">Target Cutoff &amp; Urgency</th>
+            <th className="py-3 px-3.5 font-semibold w-36">Tax Position</th>
+            <th className="py-3 px-3.5 font-semibold w-32">Assigned Staff</th>
+            <th className="py-3 px-3.5 font-semibold w-40">Filing Status</th>
+            <th className="py-3 px-3.5 font-semibold text-right w-36">Actions</th>
+          </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E7EB] dark:divide-[#242528]">
               {paginatedList.length === 0 ? (
@@ -439,60 +439,60 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                       className="bg-white dark:bg-[#1C1C1E] hover:bg-[#F9FAFB] dark:hover:bg-[#232428] transition-colors"
                     >
                       {/* Client Account & PAN (Clean Vertical Alignment) */}
-                      <td className="py-3 px-3.5 align-middle">
+                      <td className="py-3.5 px-3.5 align-middle">
                         <button
                           onClick={() => onSelectClient(itr.clientId)}
-                          className="font-medium text-[#111827] dark:text-[#F3F4F6] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-[220px]"
+                          className="font-semibold text-[14px] text-[#111827] dark:text-[#F3F4F6] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-[220px]"
                         >
                           {itr.clientName}
                         </button>
-                        <div className="font-mono text-[11px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5 tracking-tight">
+                        <div className="font-mono text-[12px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5 tracking-tight">
                           {itr.pan} <span className="text-[#D1D5DB] dark:text-[#4B5563]">•</span> {itr.assessmentYear}
                         </div>
                       </td>
 
                       {/* Entity & Form */}
-                      <td className="py-3 px-3.5 align-middle">
-                        <div className="font-medium text-[#111827] dark:text-[#F3F4F6]">
+                      <td className="py-3.5 px-3.5 align-middle">
+                        <div className="font-semibold text-[13px] text-[#111827] dark:text-[#F3F4F6]">
                           {itr.itrForm}
                         </div>
-                        <div className="text-[11px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
+                        <div className="text-[12px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
                           {itr.entityType}
                         </div>
                       </td>
 
                       {/* Target Cutoff & Urgency (Clean Typographic Hierarchy) */}
-                      <td className="py-3 px-3.5 align-middle font-tabular">
-                        <div className="font-medium text-[#111827] dark:text-[#F3F4F6]">
+                      <td className="py-3.5 px-3.5 align-middle font-tabular">
+                        <div className="font-medium text-[13px] text-[#111827] dark:text-[#F3F4F6]">
                           {formatReadableDate(itr.dueDate)}
                         </div>
-                        <div className={`text-[11px] font-medium mt-0.5 ${itr.meta.color}`}>
+                        <div className={`text-[12px] font-medium mt-0.5 ${itr.meta.color}`}>
                           {itr.meta.label}
                         </div>
                       </td>
 
                       {/* Tax Position */}
-                      <td className="py-3 px-3.5 align-middle font-tabular">
+                      <td className="py-3.5 px-3.5 align-middle font-tabular">
                         {isRefund ? (
-                          <div className="font-medium text-[#059669] dark:text-[#10B981]">
+                          <div className="font-semibold text-[13px] text-[#059669] dark:text-[#10B981]">
                             ₹{Math.abs(itr.taxLiabilityOrRefund).toLocaleString('en-IN')} <span className="text-[11px] font-normal text-[#059669]/80">refund</span>
                           </div>
                         ) : (
-                          <div className="font-medium text-[#111827] dark:text-[#F3F4F6]">
+                          <div className="font-semibold text-[13px] text-[#111827] dark:text-[#F3F4F6]">
                             ₹{itr.taxLiabilityOrRefund.toLocaleString('en-IN')} <span className="text-[11px] font-normal text-[#6B7280]">tax</span>
                           </div>
                         )}
-                        <div className="text-[11px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
+                        <div className="text-[12px] text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
                           {itr.regime.includes('New') ? '115BAC (New)' : 'Old Regime'}
                         </div>
                       </td>
 
                       {/* Assigned Staff */}
-                      <td className="py-3 px-3.5 align-middle">
-                        <div className="font-medium text-[#111827] dark:text-[#F3F4F6]">
+                      <td className="py-3.5 px-3.5 align-middle">
+                        <div className="font-medium text-[13px] text-[#111827] dark:text-[#F3F4F6]">
                           {staff?.name || 'Unassigned'}
                         </div>
-                        <div className="text-[11px] font-mono text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
+                        <div className="text-[12px] font-mono text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
                           {itr.phone}
                         </div>
                       </td>

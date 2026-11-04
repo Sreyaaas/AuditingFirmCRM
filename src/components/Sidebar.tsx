@@ -101,7 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation Items */}
         <nav className="space-y-0.5">
-          <div className="text-[11px] font-semibold text-[#86868B] dark:text-[#6E6E73] px-2.5 py-1 tracking-wider uppercase">
+          <div className="text-[12px] font-semibold text-[#86868B] dark:text-[#6E6E73] px-3 py-1.5 tracking-wider uppercase">
             Workflows
           </div>
 
@@ -112,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => handleSelectTab(item.id)}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] transition-colors ${isActive
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-[6px] text-[14px] transition-colors ${isActive
                     ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
                     : 'text-[#1D1D1F] dark:text-[#E5E5EA] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
                   }`}
@@ -123,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 {item.badge !== null && item.badge !== undefined && (
                   <span
-                    className={`font-tabular text-[11px] px-1.5 py-0.5 rounded shrink-0 ml-2 ${item.badgeUrgent
+                    className={`font-tabular text-[12px] px-2 py-0.5 rounded font-medium shrink-0 ml-2 ${item.badgeUrgent
                         ? 'bg-[#FF3B30]/10 text-[#FF3B30] font-semibold dark:bg-[#FF453A]/20 dark:text-[#FF453A]'
                         : isActive
                           ? 'text-[#0071E3] font-semibold dark:text-[#2997FF]'
@@ -140,13 +140,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Admin Tools */}
           {isAdmin && (
             <div className="pt-2 mt-2 border-t border-[#E5E5EA] dark:border-[#2C2C2E] space-y-0.5">
-              <div className="text-[11px] font-semibold text-[#86868B] dark:text-[#6E6E73] px-2.5 py-1 tracking-wider uppercase">
+              <div className="text-[12px] font-semibold text-[#86868B] dark:text-[#6E6E73] px-3 py-1.5 tracking-wider uppercase">
                 Administration
               </div>
 
               <button
                 onClick={() => handleSelectTab('employees')}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] transition-colors ${activeTab === 'employees'
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-[6px] text-[14px] transition-colors ${activeTab === 'employees'
                     ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
                     : 'text-[#1D1D1F] dark:text-[#E5E5EA] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
                   }`}
@@ -155,12 +155,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <UserCheck className={`w-4 h-4 shrink-0 stroke-[1.5] ${activeTab === 'employees' ? 'text-[#0071E3] dark:text-[#2997FF]' : 'text-[#6E6E73] dark:text-[#8E8E93]'}`} />
                   <span className="truncate">Employees</span>
                 </div>
-                <span className="font-tabular text-[11px] text-[#6E6E73] dark:text-[#8E8E93] shrink-0 ml-2">{staffList.length}</span>
+                <span className="font-tabular text-[12px] text-[#6E6E73] dark:text-[#8E8E93] shrink-0 ml-2">{staffList.length}</span>
               </button>
 
               <button
                 onClick={() => handleSelectTab('activity')}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] transition-colors ${activeTab === 'activity'
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-[6px] text-[14px] transition-colors ${activeTab === 'activity'
                     ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
                     : 'text-[#1D1D1F] dark:text-[#E5E5EA] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
                   }`}

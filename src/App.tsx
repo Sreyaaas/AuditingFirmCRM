@@ -58,27 +58,63 @@ export function App() {
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Apple Theme Management (Light / Dark)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('crm-theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // Theme Management (Light Minimal / Warm Ledger / Dark)
+  const [theme, setTheme] = useState<'light' | 'warm' | 'dark'>(() => {
+    const saved = localStorage.getItem('crm-theme') as 'light' | 'warm' | 'dark' | null;
+    if (saved === 'dark' || saved === 'light' || saved === 'warm') return saved;
+    return 'light';
+  });
+
+  // Typography Font Management (Figtree / System Inter)
+  const [font, setFont] = useState<'system' | 'figtree'>(() => {
+    const saved = localStorage.getItem('crm-font') as 'system' | 'figtree' | null;
+    if (saved === 'system' || saved === 'figtree') return saved;
+    return 'figtree'; // Default to Figtree (Erik Kennedy) per user request
   });
 
   useEffect(() => {
     localStorage.setItem('crm-theme', theme);
     const root = document.documentElement;
+    root.setAttribute('data-theme', theme);
     if (theme === 'dark') {
       root.classList.add('dark');
-      root.setAttribute('data-theme', 'dark');
+      root.classList.remove('warm');
+    } else if (theme === 'warm') {
+      root.classList.add('warm');
+      root.classList.remove('dark');
     } else {
       root.classList.remove('dark');
-      root.setAttribute('data-theme', 'light');
+      root.classList.remove('warm');
     }
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  useEffect(() => {
+    localStorage.setItem('crm-font', font);
+    const root = document.documentElement;
+    root.setAttribute('data-font', font);
+    if (font === 'figtree') {
+      root.classList.add('font-figtree');
+      root.classList.remove('font-system');
+    } else {
+      root.classList.add('font-system');
+      root.classList.remove('font-figtree');
+    }
+  }, [font]);
+
+  const toggleTheme = (newTheme?: 'light' | 'warm' | 'dark') => {
+    if (newTheme) {
+      setTheme(newTheme);
+      return;
+    }
+    setTheme((prev) => {
+      if (prev === 'light') return 'warm';
+      if (prev === 'warm') return 'dark';
+      return 'light';
+    });
+  };
+
+  const toggleFont = () => {
+    setFont((prev) => (prev === 'figtree' ? 'system' : 'figtree'));
   };
 
   // Global Command Palette (⌘K)
@@ -667,6 +703,8 @@ export function App() {
           onLogout={handleLogout}
           theme={theme}
           onToggleTheme={toggleTheme}
+          font={font}
+          onToggleFont={toggleFont}
           onOpenNewTask={() => setIsNewTaskOpen(true)}
           onOpenIntegrations={() => setIsIntegrationsOpen(true)}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}

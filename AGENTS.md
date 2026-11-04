@@ -82,7 +82,13 @@ The UI is built for senior accountants and tax practitioners working with compli
 
 ## 4. Typography & Numerical Formatting
 
-* **Sans-serif Font:** Apple System font stack (`-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif`).
+* **Typography & Fonts:**
+  * Primary Font: **Figtree** (by Erik Kennedy) / **System Inter** via the global font toggle (`data-font="figtree"` or `data-font="system"`).
+  * **Professional Grade Legibility (No Tiny AI Slop Text):**
+    * Standard Body & Table Text: `13px` - `14px` (never tiny illegible 9px or 10px).
+    * Metadata & Secondary Labels: Minimum `12px` (`text-[#6E6E73]`).
+    * Headers & Titles: `16px` - `24px` with clear typographic hierarchy.
+    * Micro-Labels: `11px` - `12px` font-semibold uppercase tracking-wider.
 * **Tabular Numerals (`font-mono` or `font-tabular`):**
   * ALWAYS use monospace/tabular numerals for:
     * Currency values (e.g. `₹10,500`)
@@ -90,7 +96,21 @@ The UI is built for senior accountants and tax practitioners working with compli
     * Filing Acknowledgments & ARNs (`AA321026048123Z`)
     * Due dates and countdowns (`16 Nov 2026`, `Due in 10d`)
     * Phone numbers (`+91 98470 12345`)
-* **Micro-Headers:** `text-[11px] font-semibold uppercase tracking-wider text-[#86868B]`
+
+---
+
+## 5. Themes & Warm Ledger Palette
+
+The CRM supports 3 themes via `data-theme`:
+1. **Light Minimal** (`light`): Clean Apple / Vercel monochromatic canvas.
+2. **Warm Ledger** (`warm`): Archival stationery palette with deep espresso text:
+   * `--tea-green`: `#CCD5AE` (success badges, subtle borders)
+   * `--beige`: `#E9EDC9` (insets, filter bars, headers)
+   * `--cornsilk`: `#FEFAE0` (global canvas background)
+   * `--papaya-whip`: `#FAEDCD` (cards & modal surfaces)
+   * `--light-bronze`: `#D4A373` (primary CTA / focus accent)
+   * Contrast text: `#28231D` (deep charcoal espresso for crisp readability)
+3. **Dark Mode** (`dark`): Midnight OLED charcoal (`#121214` / `#1C1C1E`).
 
 ---
 
@@ -138,3 +158,4 @@ The UI is built for senior accountants and tax practitioners working with compli
 - [ ] No 3D gradient spheres or shiny orbs; all status dots are flat and subtle.
 - [ ] Modals are centered (not side drawers).
 - [ ] TypeScript compiles cleanly with zero errors (`npm run build`).
+

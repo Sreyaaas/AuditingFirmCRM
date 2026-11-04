@@ -141,15 +141,15 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
       {/* Directory Table */}
       <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[8px] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-[13px] border-collapse">
+          <table className="w-full text-left text-[14px] border-collapse">
             <thead>
-              <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[12px] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-                <th className="py-2.5 px-3 font-semibold min-w-[200px]">Client Code &amp; Legal Name</th>
-                <th className="py-2.5 px-3 font-semibold">Entity Type</th>
-                <th className="py-2.5 px-3 font-semibold">GSTIN / PAN</th>
-                <th className="py-2.5 px-3 font-semibold">Staff</th>
-                <th className="py-2.5 px-3 font-semibold">Filing Plan</th>
-                <th className="py-2.5 px-3 font-semibold text-right">Actions</th>
+              <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[13px] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
+                <th className="py-3 px-3.5 font-semibold min-w-[200px]">Client Code &amp; Legal Name</th>
+                <th className="py-3 px-3.5 font-semibold">Entity Type</th>
+                <th className="py-3 px-3.5 font-semibold">GSTIN / PAN</th>
+                <th className="py-3 px-3.5 font-semibold">Staff</th>
+                <th className="py-3 px-3.5 font-semibold">Filing Plan</th>
+                <th className="py-3 px-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">
@@ -157,14 +157,14 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                 const staff = getStaff(client.assignedStaffId);
                 return (
                   <tr key={client.id} className="hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors group">
-                    <td className="py-2.5 px-3">
+                    <td className="py-3 px-3.5">
                       <button
                         onClick={() => onSelectClient(client.id)}
-                        className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-xs"
+                        className="font-semibold text-[14px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-xs"
                       >
                         {client.tradeName}
                       </button>
-                      <div className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] flex items-center gap-1.5 mt-0.5">
+                      <div className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] flex items-center gap-1.5 mt-0.5">
                         <span className="font-tabular font-medium">{client.clientCode}</span>
                         <span>•</span>
                         <span className="truncate">{client.name}</span>

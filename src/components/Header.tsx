@@ -7,9 +7,10 @@ import {
   Check, 
   ChevronDown,
   Shield,
-  Command,
   Menu,
-  LogOut
+  LogOut,
+  Sparkles,
+  Type
 } from 'lucide-react';
 import { UserProfile } from '../types/crm';
 
@@ -20,8 +21,10 @@ interface HeaderProps {
   profiles: UserProfile[];
   onSwitchUser: (userId: string) => void;
   onLogout?: () => void;
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
+  theme: 'light' | 'warm' | 'dark';
+  onToggleTheme: (newTheme?: 'light' | 'warm' | 'dark') => void;
+  font: 'system' | 'figtree';
+  onToggleFont: () => void;
   onOpenNewTask: () => void;
   onOpenIntegrations: () => void;
   onToggleMobileSidebar?: () => void;
@@ -36,6 +39,8 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   theme,
   onToggleTheme,
+  font,
+  onToggleFont,
   onOpenNewTask,
   onToggleMobileSidebar,
 }) => {
@@ -71,54 +76,85 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
         <div className="min-w-0">
-          <h1 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight truncate">
+          <h1 className="text-[17px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight truncate">
             {currentTabInfo.title}
           </h1>
-          <p className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] truncate hidden sm:block">
+          <p className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] truncate hidden sm:block">
             {currentTabInfo.subtitle}
           </p>
         </div>
       </div>
 
-      {/* Center: Apple Spotlight Search Bar */}
+      {/* Center: Clean Search Bar (Spotlight logo removed) */}
       <div className="flex-1 max-w-md mx-4 lg:mx-8 hidden md:block">
         <button
           onClick={onOpenCommandPalette}
           className="w-full h-9 px-3 rounded-[6px] bg-[#F2F2F7] dark:bg-[#242426] border border-transparent hover:border-[#D1D1D6] dark:hover:border-[#3A3A3C] flex items-center justify-between text-[13px] text-[#86868B] transition-colors group"
         >
-          <div className="flex items-center gap-2 truncate">
-            <Search className="w-3.5 h-3.5 text-[#86868B] group-hover:text-[#1D1D1F] dark:group-hover:text-[#F5F5F7] shrink-0" strokeWidth={1.5} />
+          <div className="flex items-center gap-2.5 truncate">
+            <Search className="w-4 h-4 text-[#86868B] group-hover:text-[#1D1D1F] dark:group-hover:text-[#F5F5F7] shrink-0" strokeWidth={1.5} />
             <span className="truncate">Search clients, tasks, or jump to...</span>
           </div>
-          <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-[#86868B] bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded shrink-0">
-            <Command className="w-2.5 h-2.5" /> K
-          </kbd>
         </button>
       </div>
 
-      {/* Right Controls: Dark Mode, User Session, Primary Action */}
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Right Controls: Font Switcher, Theme Switcher, User Session, Primary Action */}
+      <div className="flex items-center gap-2.5 shrink-0">
         {/* Mobile Search Button */}
         <button
           onClick={onOpenCommandPalette}
           className="md:hidden p-1.5 text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] rounded-[6px]"
-          title="Search (⌘K)"
+          title="Search"
         >
           <Search className="w-4 h-4 stroke-[1.5]" />
         </button>
 
-        {/* Dark Mode Toggle */}
+        {/* Font Switcher (Figtree / System) */}
         <button
-          onClick={onToggleTheme}
-          title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
-          className="w-8 h-8 rounded-[6px] text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] flex items-center justify-center transition-colors"
+          onClick={onToggleFont}
+          title={`Active Font: ${font === 'figtree' ? 'Figtree (Erik Kennedy)' : 'System Inter'}. Click to toggle.`}
+          className="px-2.5 py-1 rounded-[6px] text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] flex items-center gap-1.5 transition-colors"
         >
-          {theme === 'light' ? (
-            <Moon className="w-4 h-4 stroke-[1.5]" />
-          ) : (
-            <Sun className="w-4 h-4 stroke-[1.5]" />
-          )}
+          <Type className="w-3.5 h-3.5 stroke-[1.5]" />
+          <span className="font-semibold">{font === 'figtree' ? 'Figtree' : 'Inter'}</span>
         </button>
+
+        {/* 3-Way Theme Switcher (Clean Light / Warm Ledger / Dark) */}
+        <div className="flex items-center bg-[#F2F2F7] dark:bg-[#242426] p-0.5 rounded-[6px] border border-[#E5E5EA] dark:border-[#2C2C2E]">
+          <button
+            onClick={() => onToggleTheme('light')}
+            title="Clean Minimal Theme"
+            className={`p-1.5 rounded-[5px] transition-colors ${
+              theme === 'light' 
+                ? 'bg-white dark:bg-[#1C1C1E] text-[#0071E3] shadow-sm' 
+                : 'text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
+            }`}
+          >
+            <Sun className="w-3.5 h-3.5 stroke-[1.5]" />
+          </button>
+          <button
+            onClick={() => onToggleTheme('warm')}
+            title="Warm Ledger Theme (Tea Green & Bronze)"
+            className={`p-1.5 rounded-[5px] transition-colors ${
+              theme === 'warm' 
+                ? 'bg-[#d4a373] text-[#28231d] shadow-sm font-semibold' 
+                : 'text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 stroke-[1.5]" />
+          </button>
+          <button
+            onClick={() => onToggleTheme('dark')}
+            title="Dark Mode"
+            className={`p-1.5 rounded-[5px] transition-colors ${
+              theme === 'dark' 
+                ? 'bg-white dark:bg-[#1C1C1E] text-[#2997FF] shadow-sm' 
+                : 'text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
+            }`}
+          >
+            <Moon className="w-3.5 h-3.5 stroke-[1.5]" />
+          </button>
+        </div>
 
         {/* User Session Switcher */}
         <div className="relative">
@@ -126,13 +162,13 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
             className="flex items-center gap-2 px-2.5 py-1 rounded-[6px] text-[13px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] transition-colors"
           >
-            <span className="w-5 h-5 rounded-full bg-[#0071E3] text-white text-[10px] font-semibold flex items-center justify-center">
+            <span className="w-6 h-6 rounded-full bg-[#0071E3] text-white text-[11px] font-semibold flex items-center justify-center">
               {currentUser.initials || currentUser.name.slice(0, 1)}
             </span>
-            <span className="font-medium hidden sm:inline max-w-[110px] truncate">
+            <span className="font-medium hidden sm:inline max-w-[120px] truncate">
               {currentUser.name}
             </span>
-            <span className="text-[10px] font-mono px-1 py-0.5 rounded bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93] hidden xl:inline">
+            <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93] hidden xl:inline">
               {isAdmin ? 'Admin' : 'Staff'}
             </span>
             <ChevronDown className="w-3 h-3 text-[#86868B] stroke-[1.5]" />
@@ -154,11 +190,11 @@ export const Header: React.FC<HeaderProps> = ({
                     <span>{currentUser.name}</span>
                     {isAdmin && <Shield className="w-3 h-3 text-[#0071E3] stroke-[1.5]" />}
                   </div>
-                  <div className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] truncate">{currentUser.email}</div>
-                  <div className="text-[11px] text-[#86868B] mt-0.5">{currentUser.designation}</div>
+                  <div className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] truncate">{currentUser.email}</div>
+                  <div className="text-[12px] text-[#86868B] mt-0.5">{currentUser.designation}</div>
                 </div>
 
-                <div className="px-3 py-1 text-[10px] font-semibold text-[#86868B] dark:text-[#6E6E73] uppercase tracking-wider">
+                <div className="px-3 py-1 text-[11px] font-semibold text-[#86868B] dark:text-[#6E6E73] uppercase tracking-wider">
                   Switch Active User
                 </div>
 
@@ -180,7 +216,7 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         <div className="truncate pr-2">
                           <div className="truncate font-medium">{p.name}</div>
-                          <div className="text-[11px] text-[#86868B] capitalize">{p.role} • {p.designation}</div>
+                          <div className="text-[12px] text-[#86868B] capitalize">{p.role} • {p.designation}</div>
                         </div>
                         {isSelected && <Check className="w-3.5 h-3.5 text-[#0071E3] shrink-0 stroke-[1.5]" />}
                       </button>
@@ -194,7 +230,7 @@ export const Header: React.FC<HeaderProps> = ({
                       setIsUserMenuOpen(false);
                       if (onLogout) onLogout();
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-[5px] text-[12px] text-[#FF3B30] dark:text-[#FF453A] hover:bg-[#FF3B30]/10 transition-colors text-left"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-[5px] text-[12px] text-[#FF3B30] dark:text-[#FF453A] hover:bg-[#FF3B30]/10 transition-colors text-left font-medium"
                   >
                     <LogOut className="w-3.5 h-3.5 stroke-[1.5]" />
                     <span>Sign Out</span>
@@ -208,7 +244,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Primary Action Button */}
         <button
           onClick={onOpenNewTask}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[6px] transition-colors shadow-sm"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[6px] transition-colors shadow-sm"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2]" />
           <span>Add Task</span>
