@@ -794,29 +794,15 @@ export function App() {
                 onFilterStaff={(staffId) => setSelectedStaffId(staffId)}
               />
 
-              <div className="mt-6 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
-                    Monthly Filing Queue
-                  </h3>
-                  <button
-                    onClick={() => setActiveTab('monthly')}
-                    className="text-[12px] text-[#0071E3] dark:text-[#2997FF] hover:underline"
-                  >
-                    View All Filings &rarr;
-                  </button>
-                </div>
-
-                <ComplianceTaskManager
-                  tasks={monthlyTasks}
-                  staffList={staffList}
-                  selectedStaffId={selectedStaffId}
-                  filingTypes={practiceConfigs.filing_types}
-                  onUpdateStatus={handleUpdateMonthlyStatus}
-                  onOpenWhatsApp={handleOpenWhatsAppForMonthly}
-                  onSelectClient={handleSelectClient}
-                />
-              </div>
+              <ComplianceTaskManager
+                tasks={monthlyTasks}
+                staffList={staffList}
+                selectedStaffId={selectedStaffId}
+                filingTypes={practiceConfigs.filing_types}
+                onUpdateStatus={handleUpdateMonthlyStatus}
+                onOpenWhatsApp={handleOpenWhatsAppForMonthly}
+                onSelectClient={handleSelectClient}
+              />
             </div>
           )}
 

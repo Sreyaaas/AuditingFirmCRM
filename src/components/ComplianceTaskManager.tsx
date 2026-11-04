@@ -3,11 +3,11 @@ import {
   MessageSquare, 
   ChevronLeft, 
   ChevronRight, 
-  ArrowUpRight,
-  Search,
-  Copy,
-  Check,
-  ChevronDown
+  ArrowUpRight, 
+  Search, 
+  Copy, 
+  Check, 
+  ChevronDown 
 } from 'lucide-react';
 import { MonthlyTask, StaffMember, FilingStatus } from '../types/crm';
 
@@ -140,6 +140,23 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
     setTimeout(() => setCopiedArn(null), 1800);
   };
 
+  const formatHumanReadableDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    if (dateStr.includes('-')) {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const d = new Date(year, month, day);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+      }
+    }
+    return dateStr;
+  };
+
   const getStatusBadge = (status: FilingStatus) => {
     switch (status) {
       case 'Filed':
@@ -176,10 +193,12 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   };
 
   const renderDueDateCell = (task: MonthlyTask) => {
+    const formatted = formatHumanReadableDate(task.dueDate);
+
     if (task.status === 'Filed') {
       return (
-        <span className="font-mono tabular-nums text-[12px] text-[#8E8E93] dark:text-[#6E6E73]">
-          {task.dueDate}
+        <span className="text-[13px] font-medium text-[#8E8E93] dark:text-[#6E6E73]">
+          {formatted}
         </span>
       );
     }
@@ -187,8 +206,8 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
     if (task.daysRemaining < 0) {
       return (
         <div className="flex items-center gap-1.5">
-          <span className="font-mono tabular-nums text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">
-            {task.dueDate}
+          <span className="text-[13px] font-medium text-[#18181B] dark:text-[#F5F5F7]">
+            {formatted}
           </span>
           <span className="font-mono tabular-nums text-[11px] font-medium px-1.5 py-0.2 rounded-[4px] bg-[#DC2626]/10 text-[#DC2626]">
             {Math.abs(task.daysRemaining)}d late
@@ -200,8 +219,8 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
     if (task.daysRemaining <= 5) {
       return (
         <div className="flex items-center gap-1.5">
-          <span className="font-mono tabular-nums text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">
-            {task.dueDate}
+          <span className="text-[13px] font-medium text-[#18181B] dark:text-[#F5F5F7]">
+            {formatted}
           </span>
           <span className="font-mono tabular-nums text-[11px] font-medium px-1.5 py-0.2 rounded-[4px] bg-[#D97706]/10 text-[#D97706] dark:text-[#FF9F0A]">
             Due in {task.daysRemaining}d
@@ -212,8 +231,8 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
 
     return (
       <div className="flex items-center gap-1.5">
-        <span className="font-mono tabular-nums text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">
-          {task.dueDate}
+        <span className="text-[13px] font-medium text-[#18181B] dark:text-[#F5F5F7]">
+          {formatted}
         </span>
         <span className="font-mono tabular-nums text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">
           In {task.daysRemaining}d
@@ -223,19 +242,19 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      {/* 1. Header with Period Picker & Staff Filter (No redundant count subtitle) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E] pb-3">
+    <div className="space-y-3">
+      {/* 1. Direct Page Header (Starts directly with Monthly Work, no outer wrapper) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
         <div>
-          <h1 className="text-[20px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
+          <h1 className="text-[18px] font-semibold text-[#09090B] dark:text-[#F5F5F7] tracking-tight">
             Monthly Work (GST &amp; Audit)
           </h1>
-          <p className="text-[12.5px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
+          <p className="text-[12.5px] text-[#4B5563] dark:text-[#8E8E93] mt-0.5">
             {tasks.length} client accounts • Recurring compliance and portal filings
           </p>
         </div>
 
-        {/* Top-Right: Compact Period Switcher & Staff Dropdown */}
+        {/* Top-Right: Compact Period Switcher & Clean Staff Dropdown */}
         <div className="flex items-center gap-2">
           {/* Period Switcher */}
           <div className="flex items-center border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] bg-white dark:bg-[#1C1C1E] h-8 px-1 text-[12px]">
@@ -247,7 +266,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
             >
               <ChevronLeft className="w-3.5 h-3.5 stroke-[1.5]" />
             </button>
-            <span className="font-mono tabular-nums px-2 font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">
+            <span className="font-mono tabular-nums px-2 font-medium text-[#09090B] dark:text-[#F5F5F7]">
               {selectedPeriod}
             </span>
             <button
@@ -260,7 +279,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
             </button>
           </div>
 
-          {/* Staff Filter Dropdown */}
+          {/* Clean Staff Dropdown: "All Staff", "Susmi", "Ameen" */}
           {!selectedStaffId && (
             <select
               value={staffFilterState}
@@ -268,12 +287,12 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                 setStaffFilterState(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-8 px-2.5 bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] text-[12px] font-medium focus:outline-none"
+              className="h-8 px-2.5 bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] text-[#09090B] dark:text-[#F5F5F7] text-[12px] font-medium focus:outline-none"
             >
-              <option value="all">Staff: All (Susmi / Ameen)</option>
+              <option value="all">All Staff</option>
               {staffList.map((s) => (
                 <option key={s.id} value={s.id}>
-                  Staff: {s.name}
+                  {s.name}
                 </option>
               ))}
             </select>
@@ -281,70 +300,10 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
         </div>
       </div>
 
-      {/* 2. Filter Bar & Underline Tabs */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-        {/* Underline Tabs */}
-        <div className="flex items-center gap-5 text-[13px] overflow-x-auto -mb-[1px]">
-          {tabs.map((tab) => {
-            const isActive = statusFilter === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setStatusFilter(tab.id);
-                  setCurrentPage(1);
-                }}
-                className={`pb-2.5 font-medium transition-colors border-b-2 flex items-center gap-1.5 whitespace-nowrap ${
-                  isActive
-                    ? 'border-[#1D1D1F] dark:border-[#F5F5F7] text-[#1D1D1F] dark:text-[#F5F5F7]'
-                    : 'border-transparent text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span className="font-mono tabular-nums text-[11px] px-1.5 py-0.2 rounded-[4px] bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93]">
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Search & Filing Type Filter */}
-        <div className="flex items-center gap-2 pb-2.5 lg:pb-0">
-          <select
-            value={filingTypeFilter}
-            onChange={(e) => {
-              setFilingTypeFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="h-7 px-2 bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[5px] text-[#1D1D1F] dark:text-[#F5F5F7] text-[11.5px] focus:outline-none"
-          >
-            <option value="all">All Filing Types</option>
-            {filingTypes.map((type) => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-
-          <div className="relative flex items-center">
-            <Search className="w-3.5 h-3.5 absolute left-2 text-[#86868B] stroke-[1.5]" />
-            <input
-              type="text"
-              placeholder="Search in queue..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="h-7 pl-7 pr-2.5 text-[11.5px] bg-[#F2F2F7] dark:bg-[#242426] border border-transparent focus:border-[#0071E3] rounded-[5px] text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-[#86868B] focus:outline-none w-36 sm:w-44"
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Bulk Action Strip (Appears when checkboxes are selected) */}
       {selectedTaskIds.length > 0 && (
         <div className="px-3.5 py-2 rounded-[6px] bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] flex items-center justify-between text-[12px] animate-in fade-in duration-100">
-          <span className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">
+          <span className="font-medium text-[#09090B] dark:text-[#F5F5F7]">
             {selectedTaskIds.length} {selectedTaskIds.length === 1 ? 'task' : 'tasks'} selected
           </span>
           <div className="flex items-center gap-2">
@@ -363,7 +322,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
             </button>
             <button
               onClick={() => setSelectedTaskIds([])}
-              className="px-2 py-1 text-[11px] text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]"
+              className="px-2 py-1 text-[11px] text-[#6E6E73] hover:text-[#09090B] dark:hover:text-[#F5F5F7]"
             >
               Deselect
             </button>
@@ -371,8 +330,69 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
         </div>
       )}
 
-      {/* 3. Main Enterprise Table */}
-      <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] overflow-hidden">
+      {/* 2 & 6. Flush Toolbar & Table Container */}
+      <div className="bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[8px] overflow-hidden shadow-sm">
+        {/* Flush Toolbar inside Card Header */}
+        <div className="px-3.5 pt-2 flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
+          {/* Underline Tabs */}
+          <div className="flex items-center gap-5 text-[13px] overflow-x-auto -mb-[1px]">
+            {tabs.map((tab) => {
+              const isActive = statusFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setStatusFilter(tab.id);
+                    setCurrentPage(1);
+                  }}
+                  className={`pb-2.5 font-medium transition-colors border-b-2 flex items-center gap-1.5 whitespace-nowrap ${
+                    isActive
+                      ? 'border-[#09090B] dark:border-[#F5F5F7] text-[#09090B] dark:text-[#F5F5F7]'
+                      : 'border-transparent text-[#6E6E73] hover:text-[#09090B] dark:hover:text-[#F5F5F7]'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className="font-mono tabular-nums text-[11px] px-1.5 py-0.2 rounded-[4px] bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93]">
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search & Filing Type Filter */}
+          <div className="flex items-center gap-2 pb-2 lg:pb-0">
+            <select
+              value={filingTypeFilter}
+              onChange={(e) => {
+                setFilingTypeFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-7 px-2 bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[5px] text-[#18181B] dark:text-[#F5F5F7] text-[11.5px] font-medium focus:outline-none"
+            >
+              <option value="all">All Returns</option>
+              {filingTypes.map((type) => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+
+            <div className="relative flex items-center">
+              <Search className="w-3.5 h-3.5 absolute left-2 text-[#86868B] stroke-[1.5]" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="h-7 pl-7 pr-2.5 text-[11.5px] bg-[#F2F2F7] dark:bg-[#242426] border border-transparent focus:border-[#0071E3] rounded-[5px] text-[#09090B] dark:text-[#F5F5F7] placeholder-[#86868B] focus:outline-none w-32 sm:w-40 font-medium"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Table View */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[13px] border-collapse">
             <thead>
@@ -382,11 +402,11 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                     type="checkbox"
                     checked={allCurrentSelected}
                     onChange={toggleSelectAll}
-                    className="rounded border-[#D1D1D6] dark:border-[#3A3A3C] text-[#0071E3] focus:ring-0 cursor-pointer"
+                    className="h-4 w-4 rounded-[4px] border border-[#D1D1D6] bg-white accent-[#0071E3] cursor-pointer focus:ring-0"
                   />
                 </th>
                 <th className="py-2 px-3.5 font-semibold min-w-[200px]">Client / GSTIN</th>
-                <th className="py-2 px-3.5 font-semibold">Filing &amp; Period</th>
+                <th className="py-2 px-3.5 font-semibold">Return Type</th>
                 <th className="py-2 px-3.5 font-semibold">Staff</th>
                 <th className="py-2 px-3.5 font-semibold">Due Date</th>
                 <th className="py-2 px-3.5 font-semibold">Status &amp; Portal ARN</th>
@@ -413,51 +433,48 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                         isSelected ? 'bg-[#0071E3]/5 dark:bg-[#0071E3]/10' : ''
                       }`}
                     >
-                      {/* Checkbox */}
-                      <td className="py-2.5 pl-3.5 pr-2 text-center">
+                      {/* 3. Explicit Checkbox styling (clean white with grey border, accent blue) */}
+                      <td className="py-2 pl-3.5 pr-2 text-center align-middle">
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelectRow(task.id)}
-                          className="rounded border-[#D1D1D6] dark:border-[#3A3A3C] text-[#0071E3] focus:ring-0 cursor-pointer"
+                          className="h-4 w-4 rounded-[4px] border border-[#D1D1D6] bg-white accent-[#0071E3] cursor-pointer focus:ring-0"
                         />
                       </td>
 
-                      {/* Client / GSTIN */}
-                      <td className="py-2.5 px-3.5">
+                      {/* 5. Calibrated Client Name & GSTIN Typography */}
+                      <td className="py-2 px-3.5 align-middle">
                         <button
                           onClick={() => onSelectClient(task.clientId)}
-                          className="font-semibold text-[13.5px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-xs"
+                          className="font-semibold text-[13.5px] text-[#09090B] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-xs"
                         >
                           {task.tradeName}
                         </button>
-                        <div className="font-mono tabular-nums text-[12px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
+                        <div className="font-mono text-[11.5px] text-[#6E6E73] dark:text-[#8E8E93] tracking-tight mt-0.5">
                           {task.gstin}
                         </div>
                       </td>
 
-                      {/* Filing & Period */}
-                      <td className="py-2.5 px-3.5">
-                        <span className="font-medium text-[13px] text-[#1D1D1F] dark:text-[#F5F5F7] block">
+                      {/* 4. Return Type Only (No duplicate "October 2026") */}
+                      <td className="py-2 px-3.5 align-middle">
+                        <span className="text-[13px] font-medium text-[#18181B] dark:text-[#F5F5F7]">
                           {task.filingType}
-                        </span>
-                        <span className="text-[11.5px] text-[#6E6E73] dark:text-[#8E8E93] block mt-0.5">
-                          {task.period}
                         </span>
                       </td>
 
                       {/* Staff */}
-                      <td className="py-2.5 px-3.5 text-[12.5px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">
+                      <td className="py-2 px-3.5 align-middle text-[12.5px] font-medium text-[#18181B] dark:text-[#F5F5F7]">
                         {staff?.name || 'Unassigned'}
                       </td>
 
-                      {/* Due Date (Muted if filed, subtle badge if due soon, zero green ARN) */}
-                      <td className="py-2.5 px-3.5">
+                      {/* 5. Human-readable Due Date (e.g. 20 Nov 2026, muted if filed) */}
+                      <td className="py-2 px-3.5 align-middle">
                         {renderDueDateCell(task)}
                       </td>
 
-                      {/* Status & Portal ARN (Clickable inline status popover + hover-copy ARN badge) */}
-                      <td className="py-2.5 px-3.5">
+                      {/* Status & Portal ARN */}
+                      <td className="py-2 px-3.5 align-middle">
                         <div className="flex flex-wrap items-center gap-1.5 relative">
                           {/* Inline Clickable Status Badge */}
                           <div className="relative">
@@ -488,8 +505,8 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                                       }}
                                       className={`w-full text-left px-2 py-1 rounded-[4px] transition-colors flex items-center justify-between ${
                                         task.status === st 
-                                          ? 'bg-[#F2F2F7] dark:bg-[#2C2C2E] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]' 
-                                          : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
+                                          ? 'bg-[#F2F2F7] dark:bg-[#2C2C2E] font-semibold text-[#09090B] dark:text-[#F5F5F7]' 
+                                          : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#09090B] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
                                       }`}
                                     >
                                       <span>{st}</span>
@@ -501,11 +518,11 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                             )}
                           </div>
 
-                          {/* Portal ARN Badge (Strictly monochrome with hover-copy) */}
+                          {/* Portal ARN Badge */}
                           {task.arnNumber && (
                             <div 
                               onClick={(e) => handleCopyArn(task.arnNumber!, e)}
-                              className="group/arn inline-flex items-center gap-1 font-mono tabular-nums text-[11px] text-[#6E6E73] dark:text-[#8E8E93] bg-[#F2F2F7] dark:bg-[#2C2C2E] px-1.5 py-0.5 rounded-[4px] cursor-pointer hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] transition-colors"
+                              className="group/arn inline-flex items-center gap-1 font-mono tabular-nums text-[11px] text-[#6E6E73] dark:text-[#8E8E93] bg-[#F2F2F7] dark:bg-[#2C2C2E] px-1.5 py-0.5 rounded-[4px] cursor-pointer hover:text-[#09090B] dark:hover:text-[#F5F5F7] transition-colors"
                               title={`Click to copy: ${task.arnNumber}`}
                             >
                               <span>ARN: {task.arnNumber.slice(-8)}</span>
@@ -520,13 +537,12 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                       </td>
 
                       {/* Contextual Row Actions */}
-                      <td className="py-2.5 px-3.5 text-right">
+                      <td className="py-2 px-3.5 align-middle text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* If Filed: Contextual "Share Ack", else "Notice" reminder */}
                           <button
                             type="button"
                             onClick={() => onOpenWhatsApp(task)}
-                            className="h-7 px-2 border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-[5px] flex items-center gap-1 transition-colors text-[11px] font-medium"
+                            className="h-7 px-2 border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] text-[#18181B] dark:text-[#F5F5F7] rounded-[5px] flex items-center gap-1 transition-colors text-[11px] font-medium"
                             title={isFiled ? 'Share filing acknowledgment via WhatsApp' : 'Send WhatsApp reminder'}
                           >
                             <MessageSquare className="w-3 h-3 text-[#16A34A] dark:text-[#34C759]" strokeWidth={1.5} />
@@ -552,12 +568,12 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
         </div>
 
         {/* Pagination Bar */}
-        <div className="px-3 py-2 border-t border-[#E5E5EA] dark:border-[#2C2C2E] bg-[#FBFBFD] dark:bg-[#161618] flex items-center justify-between text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">
-          <span className="font-tabular">
+        <div className="px-3.5 py-2 border-t border-[#E5E5EA] dark:border-[#2C2C2E] bg-[#FBFBFD] dark:bg-[#161618] flex items-center justify-between text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">
+          <span className="font-mono tabular-nums">
             Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredTasks.length)} of {filteredTasks.length}
           </span>
 
-          <div className="flex items-center gap-1 font-tabular">
+          <div className="flex items-center gap-1 font-mono tabular-nums">
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
