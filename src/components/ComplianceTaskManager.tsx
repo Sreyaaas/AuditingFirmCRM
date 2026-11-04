@@ -4,7 +4,10 @@ import {
   ChevronLeft, 
   ChevronRight, 
   ArrowUpRight,
-  Search
+  Search,
+  Copy,
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import { MonthlyTask, StaffMember, FilingStatus } from '../types/crm';
 
@@ -18,6 +21,14 @@ interface ComplianceTaskManagerProps {
   onSelectClient: (clientId: string) => void;
 }
 
+const ALL_STATUSES: FilingStatus[] = [
+  'Docs Pending',
+  'In Progress',
+  'Draft Ready',
+  'Filed',
+  'Overdue',
+];
+
 export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   tasks,
   staffList,
@@ -30,12 +41,31 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [filingTypeFilter, setFilingTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('Oct 2026');
+  const [staffFilterState, setStaffFilterState] = useState<string>(selectedStaffId || 'all');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [openStatusMenuId, setOpenStatusMenuId] = useState<string | null>(null);
+  const [copiedArn, setCopiedArn] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 12;
 
+  const periods = ['Aug 2026', 'Sep 2026', 'Oct 2026', 'Nov 2026'];
+
+  const handlePeriodPrev = () => {
+    const idx = periods.indexOf(selectedPeriod);
+    if (idx > 0) setSelectedPeriod(periods[idx - 1]);
+  };
+
+  const handlePeriodNext = () => {
+    const idx = periods.indexOf(selectedPeriod);
+    if (idx < periods.length - 1) setSelectedPeriod(periods[idx + 1]);
+  };
+
   // Filter tasks
+  const effectiveStaffFilter = selectedStaffId || (staffFilterState !== 'all' ? staffFilterState : null);
+
   const filteredTasks = tasks.filter((task) => {
-    if (selectedStaffId && task.assignedStaffId !== selectedStaffId) return false;
+    if (effectiveStaffFilter && task.assignedStaffId !== effectiveStaffFilter) return false;
     if (statusFilter !== 'all' && task.status !== statusFilter) return false;
     if (filingTypeFilter !== 'all') {
       const fNorm = filingTypeFilter.toLowerCase();
@@ -62,69 +92,118 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
 
   const getStaff = (id: string) => staffList.find((s) => s.id === id);
 
+  // Tab counts
+  const countForStatus = (status: string) => {
+    return tasks.filter((t) => {
+      if (effectiveStaffFilter && t.assignedStaffId !== effectiveStaffFilter) return false;
+      if (status === 'all') return true;
+      return t.status === status;
+    }).length;
+  };
+
+  const tabs = [
+    { id: 'all', label: 'All', count: countForStatus('all') },
+    { id: 'Docs Pending', label: 'Docs Pending', count: countForStatus('Docs Pending') },
+    { id: 'In Progress', label: 'In Progress', count: countForStatus('In Progress') },
+    { id: 'Draft Ready', label: 'Draft Ready', count: countForStatus('Draft Ready') },
+    { id: 'Filed', label: 'Filed', count: countForStatus('Filed') },
+    { id: 'Overdue', label: 'Overdue', count: countForStatus('Overdue') },
+  ];
+
+  // Bulk Selection
+  const allCurrentSelected = paginatedTasks.length > 0 && paginatedTasks.every((t) => selectedTaskIds.includes(t.id));
+
+  const toggleSelectAll = () => {
+    if (allCurrentSelected) {
+      setSelectedTaskIds((prev) => prev.filter((id) => !paginatedTasks.some((t) => t.id === id)));
+    } else {
+      const pageIds = paginatedTasks.map((t) => t.id);
+      setSelectedTaskIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const toggleSelectRow = (taskId: string) => {
+    setSelectedTaskIds((prev) =>
+      prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
+    );
+  };
+
+  const handleBulkStatusUpdate = (status: FilingStatus) => {
+    selectedTaskIds.forEach((id) => onUpdateStatus(id, status));
+    setSelectedTaskIds([]);
+  };
+
+  const handleCopyArn = (arn: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(arn);
+    setCopiedArn(arn);
+    setTimeout(() => setCopiedArn(null), 1800);
+  };
+
   const getStatusBadge = (status: FilingStatus) => {
     switch (status) {
       case 'Filed':
         return (
-          <span className="inline-block px-2 py-0.5 text-[11px] font-medium text-[#34C759] bg-[#34C759]/10 rounded-[4px]">
+          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium text-[#16A34A] dark:text-[#34C759] bg-[#16A34A]/10 rounded-[4px]">
             Filed
           </span>
         );
       case 'Draft Ready':
         return (
-          <span className="inline-block px-2 py-0.5 text-[11px] font-medium text-[#0071E3] dark:text-[#2997FF] bg-[#0071E3]/10 rounded-[4px]">
+          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium text-[#0071E3] dark:text-[#2997FF] bg-[#0071E3]/10 rounded-[4px]">
             Draft Ready
           </span>
         );
       case 'In Progress':
         return (
-          <span className="inline-block px-2 py-0.5 text-[11px] font-medium text-[#6E6E73] dark:text-[#8E8E93] bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-[4px]">
+          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium text-[#6E6E73] dark:text-[#8E8E93] bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-[4px]">
             In Progress
           </span>
         );
       case 'Docs Pending':
         return (
-          <span className="inline-block px-2 py-0.5 text-[11px] font-medium text-[#FF9500] bg-[#FF9500]/10 rounded-[4px]">
+          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium text-[#D97706] dark:text-[#FF9F0A] bg-[#D97706]/10 rounded-[4px]">
             Docs Pending
           </span>
         );
       case 'Overdue':
         return (
-          <span className="inline-block px-2 py-0.5 text-[11px] font-medium text-[#FF3B30] bg-[#FF3B30]/10 rounded-[4px]">
+          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium text-[#DC2626] bg-[#DC2626]/10 rounded-[4px]">
             Overdue
           </span>
         );
     }
   };
 
-  const getDueDateCell = (task: MonthlyTask) => {
+  const renderDueDateCell = (task: MonthlyTask) => {
     if (task.status === 'Filed') {
       return (
-        <div>
-          <span className="font-tabular text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">{task.dueDate}</span>
-          <span className="font-tabular text-[11px] text-[#34C759] block">
-            {task.arnNumber ? `ARN: ${task.arnNumber.slice(-8)}` : 'Completed'}
-          </span>
-        </div>
+        <span className="font-mono tabular-nums text-[12px] text-[#8E8E93] dark:text-[#6E6E73]">
+          {task.dueDate}
+        </span>
       );
     }
 
     if (task.daysRemaining < 0) {
       return (
-        <div>
-          <span className="font-tabular text-[12px] font-semibold text-[#FF3B30]">{task.dueDate}</span>
-          <span className="font-tabular text-[11px] text-[#FF3B30] block">
-            {Math.abs(task.daysRemaining)}d overdue
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono tabular-nums text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">
+            {task.dueDate}
+          </span>
+          <span className="font-mono tabular-nums text-[11px] font-medium px-1.5 py-0.2 rounded-[4px] bg-[#DC2626]/10 text-[#DC2626]">
+            {Math.abs(task.daysRemaining)}d late
           </span>
         </div>
       );
     }
 
-    if (task.daysRemaining <= 3) {
+    if (task.daysRemaining <= 5) {
       return (
-        <div>
-          <span className="font-tabular text-[12px] font-semibold text-[#FF9500]">{task.dueDate}</span>
-          <span className="font-tabular text-[11px] text-[#FF9500] block">
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono tabular-nums text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">
+            {task.dueDate}
+          </span>
+          <span className="font-mono tabular-nums text-[11px] font-medium px-1.5 py-0.2 rounded-[4px] bg-[#D97706]/10 text-[#D97706] dark:text-[#FF9F0A]">
             Due in {task.daysRemaining}d
           </span>
         </div>
@@ -132,9 +211,11 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
     }
 
     return (
-      <div>
-        <span className="font-tabular text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">{task.dueDate}</span>
-        <span className="font-tabular text-[11px] text-[#6E6E73] dark:text-[#8E8E93] block">
+      <div className="flex items-center gap-1.5">
+        <span className="font-mono tabular-nums text-[12px] text-[#1D1D1F] dark:text-[#F5F5F7]">
+          {task.dueDate}
+        </span>
+        <span className="font-mono tabular-nums text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">
           In {task.daysRemaining}d
         </span>
       </div>
@@ -142,59 +223,101 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   };
 
   return (
-    <div className="space-y-5">
-      {/* Top Header */}
+    <div className="space-y-4">
+      {/* 1. Header with Period Picker & Staff Filter (No redundant count subtitle) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E] pb-3">
         <div>
-          <h1 className="text-[22px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
+          <h1 className="text-[20px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
             Monthly Work (GST &amp; Audit)
           </h1>
-          <p className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-            {tasks.length} client accounts • October 2026 filings
+          <p className="text-[12.5px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
+            {tasks.length} client accounts • Recurring compliance and portal filings
           </p>
         </div>
 
-        <div className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-tabular">
-          {filteredTasks.length} accounts in queue
+        {/* Top-Right: Compact Period Switcher & Staff Dropdown */}
+        <div className="flex items-center gap-2">
+          {/* Period Switcher */}
+          <div className="flex items-center border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] bg-white dark:bg-[#1C1C1E] h-8 px-1 text-[12px]">
+            <button
+              onClick={handlePeriodPrev}
+              disabled={periods.indexOf(selectedPeriod) === 0}
+              className="p-1 text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Previous period"
+            >
+              <ChevronLeft className="w-3.5 h-3.5 stroke-[1.5]" />
+            </button>
+            <span className="font-mono tabular-nums px-2 font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">
+              {selectedPeriod}
+            </span>
+            <button
+              onClick={handlePeriodNext}
+              disabled={periods.indexOf(selectedPeriod) === periods.length - 1}
+              className="p-1 text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Next period"
+            >
+              <ChevronRight className="w-3.5 h-3.5 stroke-[1.5]" />
+            </button>
+          </div>
+
+          {/* Staff Filter Dropdown */}
+          {!selectedStaffId && (
+            <select
+              value={staffFilterState}
+              onChange={(e) => {
+                setStaffFilterState(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-8 px-2.5 bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] text-[12px] font-medium focus:outline-none"
+            >
+              <option value="all">Staff: All (Susmi / Ameen)</option>
+              {staffList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  Staff: {s.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
-      {/* Segmented Filter Control */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#F2F2F7] dark:bg-[#1C1C1E] p-1 rounded-[8px]">
-        <div className="flex flex-wrap items-center gap-1">
-          {[
-            { id: 'all', label: 'All Accounts' },
-            { id: 'Filed', label: 'Filed' },
-            { id: 'Draft Ready', label: 'Draft Ready' },
-            { id: 'In Progress', label: 'In Progress' },
-            { id: 'Docs Pending', label: 'Docs Pending' },
-            { id: 'Overdue', label: 'Overdue' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setStatusFilter(tab.id);
-                setCurrentPage(1);
-              }}
-              className={`px-3 py-1 text-[13px] rounded-[6px] transition-all ${
-                statusFilter === tab.id
-                  ? 'bg-[#FFFFFF] dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold shadow-sm'
-                  : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      {/* 2. Filter Bar & Underline Tabs */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
+        {/* Underline Tabs */}
+        <div className="flex items-center gap-5 text-[13px] overflow-x-auto -mb-[1px]">
+          {tabs.map((tab) => {
+            const isActive = statusFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setStatusFilter(tab.id);
+                  setCurrentPage(1);
+                }}
+                className={`pb-2.5 font-medium transition-colors border-b-2 flex items-center gap-1.5 whitespace-nowrap ${
+                  isActive
+                    ? 'border-[#1D1D1F] dark:border-[#F5F5F7] text-[#1D1D1F] dark:text-[#F5F5F7]'
+                    : 'border-transparent text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className="font-mono tabular-nums text-[11px] px-1.5 py-0.2 rounded-[4px] bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93]">
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Search & Filing Type Filter */}
+        <div className="flex items-center gap-2 pb-2.5 lg:pb-0">
           <select
             value={filingTypeFilter}
             onChange={(e) => {
               setFilingTypeFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-2.5 py-1 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] text-[12px] focus:outline-none"
+            className="h-7 px-2 bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[5px] text-[#1D1D1F] dark:text-[#F5F5F7] text-[11.5px] focus:outline-none"
           >
             <option value="all">All Filing Types</option>
             {filingTypes.map((type) => (
@@ -202,51 +325,105 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
             ))}
           </select>
 
-          <div className="flex items-center gap-1.5 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-[#E5E5EA] dark:border-[#3A3A3C] px-2 py-1 rounded-[6px]">
-            <Search className="w-3.5 h-3.5 text-[#6E6E73] dark:text-[#8E8E93] stroke-[1.5]" />
+          <div className="relative flex items-center">
+            <Search className="w-3.5 h-3.5 absolute left-2 text-[#86868B] stroke-[1.5]" />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search in queue..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="text-[12px] bg-transparent focus:outline-none placeholder:text-[#86868B] text-[#1D1D1F] dark:text-[#F5F5F7] w-28 sm:w-36"
+              className="h-7 pl-7 pr-2.5 text-[11.5px] bg-[#F2F2F7] dark:bg-[#242426] border border-transparent focus:border-[#0071E3] rounded-[5px] text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-[#86868B] focus:outline-none w-36 sm:w-44"
             />
           </div>
         </div>
       </div>
 
-      {/* Main Table */}
-      <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[8px] overflow-hidden">
+      {/* Bulk Action Strip (Appears when checkboxes are selected) */}
+      {selectedTaskIds.length > 0 && (
+        <div className="px-3.5 py-2 rounded-[6px] bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] flex items-center justify-between text-[12px] animate-in fade-in duration-100">
+          <span className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">
+            {selectedTaskIds.length} {selectedTaskIds.length === 1 ? 'task' : 'tasks'} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[#6E6E73] dark:text-[#8E8E93]">Mark selected as:</span>
+            <button
+              onClick={() => handleBulkStatusUpdate('Draft Ready')}
+              className="px-2 py-1 text-[11px] font-medium bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[4px] hover:bg-[#E5E5EA] dark:hover:bg-[#3A3A3C] transition-colors"
+            >
+              Draft Ready
+            </button>
+            <button
+              onClick={() => handleBulkStatusUpdate('Filed')}
+              className="px-2 py-1 text-[11px] font-medium bg-[#0071E3] hover:bg-[#0077ED] text-white rounded-[4px] transition-colors"
+            >
+              Filed
+            </button>
+            <button
+              onClick={() => setSelectedTaskIds([])}
+              className="px-2 py-1 text-[11px] text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]"
+            >
+              Deselect
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Main Enterprise Table */}
+      <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-[14px] border-collapse">
+          <table className="w-full text-left text-[13px] border-collapse">
             <thead>
               <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[11px] uppercase tracking-[0.04em] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
+                <th className="py-2 pl-3.5 pr-2 w-8 text-center">
+                  <input
+                    type="checkbox"
+                    checked={allCurrentSelected}
+                    onChange={toggleSelectAll}
+                    className="rounded border-[#D1D1D6] dark:border-[#3A3A3C] text-[#0071E3] focus:ring-0 cursor-pointer"
+                  />
+                </th>
                 <th className="py-2 px-3.5 font-semibold min-w-[200px]">Client / GSTIN</th>
                 <th className="py-2 px-3.5 font-semibold">Filing &amp; Period</th>
                 <th className="py-2 px-3.5 font-semibold">Staff</th>
                 <th className="py-2 px-3.5 font-semibold">Due Date</th>
-                <th className="py-2 px-3.5 font-semibold">Status</th>
+                <th className="py-2 px-3.5 font-semibold">Status &amp; Portal ARN</th>
                 <th className="py-2 px-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">
               {paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[#6E6E73] dark:text-[#8E8E93] text-[13px]">
+                  <td colSpan={7} className="py-8 text-center text-[#6E6E73] dark:text-[#8E8E93] text-[13px]">
                     No monthly tasks match the current filter.
                   </td>
                 </tr>
               ) : (
                 paginatedTasks.map((task) => {
                   const staff = getStaff(task.assignedStaffId);
+                  const isSelected = selectedTaskIds.includes(task.id);
+                  const isFiled = task.status === 'Filed';
+
                   return (
                     <tr 
                       key={task.id} 
-                      className="hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors group"
+                      className={`hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors group ${
+                        isSelected ? 'bg-[#0071E3]/5 dark:bg-[#0071E3]/10' : ''
+                      }`}
                     >
+                      {/* Checkbox */}
+                      <td className="py-2.5 pl-3.5 pr-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectRow(task.id)}
+                          className="rounded border-[#D1D1D6] dark:border-[#3A3A3C] text-[#0071E3] focus:ring-0 cursor-pointer"
+                        />
+                      </td>
+
+                      {/* Client / GSTIN */}
                       <td className="py-2.5 px-3.5">
                         <button
                           onClick={() => onSelectClient(task.clientId)}
@@ -259,6 +436,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                         </div>
                       </td>
 
+                      {/* Filing & Period */}
                       <td className="py-2.5 px-3.5">
                         <span className="font-medium text-[13px] text-[#1D1D1F] dark:text-[#F5F5F7] block">
                           {task.filingType}
@@ -268,49 +446,98 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                         </span>
                       </td>
 
+                      {/* Staff */}
                       <td className="py-2.5 px-3.5 text-[12.5px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">
                         {staff?.name || 'Unassigned'}
                       </td>
 
+                      {/* Due Date (Muted if filed, subtle badge if due soon, zero green ARN) */}
                       <td className="py-2.5 px-3.5">
-                        {getDueDateCell(task)}
+                        {renderDueDateCell(task)}
                       </td>
 
+                      {/* Status & Portal ARN (Clickable inline status popover + hover-copy ARN badge) */}
                       <td className="py-2.5 px-3.5">
-                        <div className="flex items-center gap-1.5">
-                          {getStatusBadge(task.status)}
-                          <select
-                            value={task.status}
-                            onChange={(e) => onUpdateStatus(task.id, e.target.value as FilingStatus)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[11px] bg-white dark:bg-[#2C2C2E] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded px-1 py-0.5 text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none"
-                            title="Update status"
-                          >
-                            <option value="Docs Pending">Docs Pending</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Draft Ready">Draft Ready</option>
-                            <option value="Filed">Filed</option>
-                            <option value="Overdue">Overdue</option>
-                          </select>
+                        <div className="flex flex-wrap items-center gap-1.5 relative">
+                          {/* Inline Clickable Status Badge */}
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setOpenStatusMenuId(openStatusMenuId === task.id ? null : task.id)}
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                              title="Click to update status"
+                            >
+                              {getStatusBadge(task.status)}
+                              <ChevronDown className="w-2.5 h-2.5 text-[#86868B] opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+
+                            {/* Compact Popover */}
+                            {openStatusMenuId === task.id && (
+                              <>
+                                <div 
+                                  className="fixed inset-0 z-30" 
+                                  onClick={() => setOpenStatusMenuId(null)}
+                                />
+                                <div className="absolute left-0 mt-1 w-32 bg-white dark:bg-[#1C1C1E] rounded-[6px] border border-[#E5E5EA] dark:border-[#2C2C2E] shadow-xl z-40 p-1 text-[11.5px] animate-in fade-in duration-75">
+                                  {ALL_STATUSES.map((st) => (
+                                    <button
+                                      key={st}
+                                      onClick={() => {
+                                        onUpdateStatus(task.id, st);
+                                        setOpenStatusMenuId(null);
+                                      }}
+                                      className={`w-full text-left px-2 py-1 rounded-[4px] transition-colors flex items-center justify-between ${
+                                        task.status === st 
+                                          ? 'bg-[#F2F2F7] dark:bg-[#2C2C2E] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]' 
+                                          : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
+                                      }`}
+                                    >
+                                      <span>{st}</span>
+                                      {task.status === st && <Check className="w-3 h-3 text-[#0071E3]" />}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Portal ARN Badge (Strictly monochrome with hover-copy) */}
+                          {task.arnNumber && (
+                            <div 
+                              onClick={(e) => handleCopyArn(task.arnNumber!, e)}
+                              className="group/arn inline-flex items-center gap-1 font-mono tabular-nums text-[11px] text-[#6E6E73] dark:text-[#8E8E93] bg-[#F2F2F7] dark:bg-[#2C2C2E] px-1.5 py-0.5 rounded-[4px] cursor-pointer hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] transition-colors"
+                              title={`Click to copy: ${task.arnNumber}`}
+                            >
+                              <span>ARN: {task.arnNumber.slice(-8)}</span>
+                              {copiedArn === task.arnNumber ? (
+                                <Check className="w-3 h-3 text-[#16A34A]" />
+                              ) : (
+                                <Copy className="w-3 h-3 opacity-0 group-hover/arn:opacity-100 transition-opacity" />
+                              )}
+                            </div>
+                          )}
                         </div>
                       </td>
 
+                      {/* Contextual Row Actions */}
                       <td className="py-2.5 px-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* If Filed: Contextual "Share Ack", else "Notice" reminder */}
                           <button
                             type="button"
                             onClick={() => onOpenWhatsApp(task)}
                             className="h-7 px-2 border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-[5px] flex items-center gap-1 transition-colors text-[11px] font-medium"
-                            title="Send WhatsApp update"
+                            title={isFiled ? 'Share filing acknowledgment via WhatsApp' : 'Send WhatsApp reminder'}
                           >
                             <MessageSquare className="w-3 h-3 text-[#16A34A] dark:text-[#34C759]" strokeWidth={1.5} />
-                            <span className="hidden sm:inline">Notice</span>
+                            <span>{isFiled ? 'Share Ack' : 'Notice'}</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => onSelectClient(task.clientId)}
                             className="p-1 text-[#6E6E73] hover:text-[#0071E3] dark:hover:text-[#2997FF] rounded transition-colors"
-                            title="View account"
+                            title="View client account"
                           >
                             <ArrowUpRight className="w-3.5 h-3.5 stroke-[1.5]" />
                           </button>
