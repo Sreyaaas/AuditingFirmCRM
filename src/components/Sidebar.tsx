@@ -1,9 +1,9 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  CalendarCheck, 
-  FileSpreadsheet, 
-  Users, 
+import {
+  LayoutDashboard,
+  CalendarCheck,
+  FileSpreadsheet,
+  Users,
   Receipt,
   PhoneCall,
   ShieldCheck,
@@ -53,9 +53,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
     { id: 'gst-tracker', label: 'Deadlines & Filings', icon: ShieldCheck, badge: gstOverdueCount > 0 ? `${gstOverdueCount} due` : null, badgeUrgent: true },
     { id: 'monthly', label: 'Monthly Work', icon: CalendarCheck, badge: monthlyTaskCount },
-    { id: 'itr', label: 'Annual Returns', icon: FileSpreadsheet, badge: itrCount },
+    { id: 'itr', label: 'ITR', icon: FileSpreadsheet, badge: itrCount },
     { id: 'clients', label: 'Client Accounts', icon: Users, badge: totalClientsCount },
-    { id: 'debtors', label: 'Money Owed', icon: Receipt, badge: debtorsCount },
+    { id: 'debtors', label: 'Debtors', icon: Receipt, badge: debtorsCount },
     { id: 'staff', label: 'Calls & Tickets', icon: PhoneCall, badge: unassignedTicketsCount > 0 ? `${unassignedTicketsCount} pool` : null },
   ];
 
@@ -74,15 +74,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               {/* Light mode crisp letterhead */}
-              <img 
-                src="/logo-light.png" 
-                alt="Shameer and Associates - Accountants and Practitioners" 
+              <img
+                src="/logo-light.png"
+                alt="Shameer and Associates - Accountants and Practitioners"
                 className="h-10 w-auto object-contain block dark:hidden max-w-[200px]"
               />
               {/* Dark mode crisp silver-white letterhead */}
-              <img 
-                src="/logo-dark.png" 
-                alt="Shameer and Associates - Accountants and Practitioners" 
+              <img
+                src="/logo-dark.png"
+                alt="Shameer and Associates - Accountants and Practitioners"
                 className="h-10 w-auto object-contain hidden dark:block max-w-[200px]"
               />
             </div>
@@ -111,11 +111,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => handleSelectTab(item.id)}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] transition-colors ${
-                  isActive
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] transition-colors ${isActive
                     ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
                     : 'text-[#1D1D1F] dark:text-[#E5E5EA] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Icon className={`w-4 h-4 shrink-0 stroke-[1.5] ${isActive ? 'text-[#0071E3] dark:text-[#2997FF]' : 'text-[#6E6E73] dark:text-[#8E8E93]'}`} />
@@ -123,13 +122,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 {item.badge !== null && item.badge !== undefined && (
                   <span
-                    className={`font-tabular text-[11px] px-1.5 py-0.5 rounded shrink-0 ml-2 ${
-                      item.badgeUrgent
+                    className={`font-tabular text-[11px] px-1.5 py-0.5 rounded shrink-0 ml-2 ${item.badgeUrgent
                         ? 'bg-[#FF3B30]/10 text-[#FF3B30] font-semibold dark:bg-[#FF453A]/20 dark:text-[#FF453A]'
                         : isActive
-                        ? 'text-[#0071E3] font-semibold dark:text-[#2997FF]'
-                        : 'text-[#6E6E73] dark:text-[#8E8E93]'
-                    }`}
+                          ? 'text-[#0071E3] font-semibold dark:text-[#2997FF]'
+                          : 'text-[#6E6E73] dark:text-[#8E8E93]'
+                      }`}
                   >
                     {item.badge}
                   </span>
@@ -147,11 +145,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <button
                 onClick={() => handleSelectTab('employees')}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] transition-colors ${
-                  activeTab === 'employees'
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] transition-colors ${activeTab === 'employees'
                     ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
                     : 'text-[#1D1D1F] dark:text-[#E5E5EA] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <UserCheck className={`w-4 h-4 shrink-0 stroke-[1.5] ${activeTab === 'employees' ? 'text-[#0071E3] dark:text-[#2997FF]' : 'text-[#6E6E73] dark:text-[#8E8E93]'}`} />
@@ -162,11 +159,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <button
                 onClick={() => handleSelectTab('activity')}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] transition-colors ${
-                  activeTab === 'activity'
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-[13px] transition-colors ${activeTab === 'activity'
                     ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
                     : 'text-[#1D1D1F] dark:text-[#E5E5EA] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <History className={`w-4 h-4 shrink-0 stroke-[1.5] ${activeTab === 'activity' ? 'text-[#0071E3] dark:text-[#2997FF]' : 'text-[#6E6E73] dark:text-[#8E8E93]'}`} />
@@ -194,11 +190,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {isAdmin && (
           <button
             onClick={() => handleSelectTab('settings')}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] rounded-[6px] transition-colors ${
-              activeTab === 'settings'
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] rounded-[6px] transition-colors ${activeTab === 'settings'
                 ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
                 : 'text-[#6E6E73] dark:text-[#8E8E93] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
-            }`}
+              }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5 stroke-[1.5]" />
             <span>Settings</span>
@@ -218,7 +213,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Drawer Overlay & Sliding Sidebar */}
       {isMobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
-          <div 
+          <div
             className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
             onClick={onCloseMobile}
           />
