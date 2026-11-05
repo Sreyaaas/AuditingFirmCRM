@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { SlidersHorizontal, Plus, X, Check, RefreshCw, AlertCircle, MessageSquare, Building2, Download, RotateCcw, Settings2, ShieldCheck } from 'lucide-react';
+import { SlidersHorizontal, Plus, X, Check, RefreshCw, AlertCircle, MessageSquare, Building2, Download, RotateCcw, Settings2, ShieldCheck, Palette } from 'lucide-react';
 import {
   AppPreferences,
   DEFAULT_WHATSAPP_TEMPLATES,
@@ -39,7 +39,7 @@ interface PracticeConfigManagerProps {
   activityLogs?: ActivityLog[];
 }
 
-type Section = 'general' | 'security' | 'lists' | 'templates' | 'firm' | 'backup';
+type Section = 'general' | 'security' | 'lists' | 'templates' | 'firm' | 'backup' | 'appearance';
 
 const Saved: React.FC<{ children: React.ReactNode; error?: boolean }> = ({ children, error }) => (
   <span className={cn('inline-flex items-center gap-1.5 text-xs animate-fade-in', error ? 'text-danger' : 'text-fg-muted')}>
@@ -264,6 +264,7 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
     { key: 'templates', label: 'Message templates', icon: MessageSquare },
     { key: 'lists', label: 'Lists', icon: SlidersHorizontal },
     { key: 'backup', label: 'Backup', icon: Download },
+    { key: 'appearance', label: 'Appearance', icon: Palette },
   ];
 
   return (
@@ -291,120 +292,6 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
       <div className="min-w-0">
         {section === 'general' && (
           <div className="space-y-6">
-            <Card>
-              <CardHeader
-                title="Appearance & Theme"
-                description="Select from 5 light enterprise palettes or 5 rich dark palettes."
-              />
-              <div className="p-4 space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Light Themes (5) */}
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-wider text-fg-subtle mb-3 flex items-center gap-1.5">
-                      <span>Light Themes</span>
-                      <span className="text-fg-faint">· 5 styles</span>
-                    </div>
-                    <div className="space-y-2">
-                      {LIGHT_THEMES.map((t) => {
-                        const isSelected = activeTheme === t.id;
-                        return (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => (onSelectTheme || onSelectPalette)?.(t.id)}
-                            className={cn(
-                              'w-full text-left p-3 rounded-lg border transition-all flex items-center justify-between gap-3',
-                              isSelected
-                                ? 'border-accent bg-accent/5 ring-1 ring-accent'
-                                : 'border-line bg-surface hover:border-line-strong hover:bg-hover'
-                            )}
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div
-                                className="w-7 h-7 rounded-md border border-black/10 flex items-center justify-center shrink-0 shadow-xs"
-                                style={{ backgroundColor: t.canvas }}
-                                title={`Canvas: ${t.canvas}`}
-                              >
-                                <span
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: t.accent }}
-                                />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-sm font-medium text-fg truncate">{t.name}</div>
-                                <div className="text-xs text-fg-subtle truncate mt-0.5">{t.description}</div>
-                              </div>
-                            </div>
-
-                            {isSelected ? (
-                              <span className="inline-flex items-center gap-1 text-2xs font-semibold text-accent uppercase tracking-wider shrink-0 bg-accent/10 px-2 py-0.5 rounded-[4px]">
-                                <Check className="w-3 h-3" strokeWidth={2.5} />
-                                Active
-                              </span>
-                            ) : (
-                              <span className="text-xs text-fg-faint hover:text-fg-muted shrink-0">Select</span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Dark Themes (5) */}
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-wider text-fg-subtle mb-3 flex items-center gap-1.5">
-                      <span>Dark Themes</span>
-                      <span className="text-fg-faint">· 5 styles</span>
-                    </div>
-                    <div className="space-y-2">
-                      {DARK_THEMES.map((t) => {
-                        const isSelected = activeTheme === t.id;
-                        return (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => (onSelectTheme || onSelectPalette)?.(t.id)}
-                            className={cn(
-                              'w-full text-left p-3 rounded-lg border transition-all flex items-center justify-between gap-3',
-                              isSelected
-                                ? 'border-accent bg-accent/5 ring-1 ring-accent'
-                                : 'border-line bg-surface hover:border-line-strong hover:bg-hover'
-                            )}
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div
-                                className="w-7 h-7 rounded-md border border-white/10 flex items-center justify-center shrink-0 shadow-xs"
-                                style={{ backgroundColor: t.canvas }}
-                                title={`Canvas: ${t.canvas}`}
-                              >
-                                <span
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: t.accent }}
-                                />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-sm font-medium text-fg truncate">{t.name}</div>
-                                <div className="text-xs text-fg-subtle truncate mt-0.5">{t.description}</div>
-                              </div>
-                            </div>
-
-                            {isSelected ? (
-                              <span className="inline-flex items-center gap-1 text-2xs font-semibold text-accent uppercase tracking-wider shrink-0 bg-accent/10 px-2 py-0.5 rounded-[4px]">
-                                <Check className="w-3 h-3" strokeWidth={2.5} />
-                                Active
-                              </span>
-                            ) : (
-                              <span className="text-xs text-fg-faint hover:text-fg-muted shrink-0">Select</span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
             <Card>
               <CardHeader title="General" description="Applies to everyone" />
               <div className="divide-y divide-line">
@@ -660,6 +547,96 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
               </div>
             </div>
           </Card>
+        )}
+
+        {section === 'appearance' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader
+                title="Appearance"
+                description="Select a workspace theme palette. Theme preference is saved locally on this device."
+              />
+              <div className="p-4 space-y-5">
+                {/* Light Themes */}
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-fg-subtle mb-2.5 flex items-center justify-between">
+                    <span>Light palettes</span>
+                    <span className="text-2xs font-normal text-fg-faint">5 styles</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                    {LIGHT_THEMES.map((t) => {
+                      const isSelected = activeTheme === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          title={t.description}
+                          onClick={() => (onSelectTheme || onSelectPalette)?.(t.id)}
+                          className={cn(
+                            'p-2 rounded-[6px] border text-left transition-colors flex flex-col gap-1.5 focus:outline-none focus:ring-1 focus:ring-accent',
+                            isSelected
+                              ? 'border-accent bg-accent/5 ring-1 ring-accent'
+                              : 'border-line bg-surface hover:border-line-strong hover:bg-hover'
+                          )}
+                        >
+                          <div
+                            className="w-full h-7 rounded-[4px] border border-line-strong/30 flex items-center justify-between px-2"
+                            style={{ backgroundColor: t.canvas }}
+                          >
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: t.accent }}
+                            />
+                            {isSelected && <Check className="w-3.5 h-3.5 text-accent shrink-0" strokeWidth={2.5} />}
+                          </div>
+                          <span className="text-xs font-medium text-fg truncate w-full">{t.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Dark Themes */}
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-fg-subtle mb-2.5 flex items-center justify-between">
+                    <span>Dark palettes</span>
+                    <span className="text-2xs font-normal text-fg-faint">5 styles</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                    {DARK_THEMES.map((t) => {
+                      const isSelected = activeTheme === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          title={t.description}
+                          onClick={() => (onSelectTheme || onSelectPalette)?.(t.id)}
+                          className={cn(
+                            'p-2 rounded-[6px] border text-left transition-colors flex flex-col gap-1.5 focus:outline-none focus:ring-1 focus:ring-accent',
+                            isSelected
+                              ? 'border-accent bg-accent/5 ring-1 ring-accent'
+                              : 'border-line bg-surface hover:border-line-strong hover:bg-hover'
+                          )}
+                        >
+                          <div
+                            className="w-full h-7 rounded-[4px] border border-line-strong/30 flex items-center justify-between px-2"
+                            style={{ backgroundColor: t.canvas }}
+                          >
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: t.accent }}
+                            />
+                            {isSelected && <Check className="w-3.5 h-3.5 text-accent shrink-0" strokeWidth={2.5} />}
+                          </div>
+                          <span className="text-xs font-medium text-fg truncate w-full">{t.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
         )}
       </div>
     </div>
