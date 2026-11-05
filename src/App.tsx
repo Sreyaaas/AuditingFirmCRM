@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Check, ShieldAlert, AlertCircle } from 'lucide-react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -1021,6 +1022,7 @@ export function App() {
       />
 
       <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} email={currentUser.email} onChanged={() => showToast('Password changed')} />
+      <SpeedInsights />
     </div>
   );
 }
