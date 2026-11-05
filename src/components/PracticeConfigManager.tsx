@@ -8,6 +8,7 @@ import {
   renderTemplate,
 } from '../services/firmConfigService';
 import { ActivityLog, Client, DebtorRecord, GSTComplianceItem, ITRFiling, MonthlyTask, OfficeBillingEntry, StaffTicket, UserProfile } from '../types/crm';
+import { LIGHT_THEMES, DARK_THEMES } from '../types/themes';
 import { Button, Card, CardHeader, Field, IconButton, Input, Label, Metric, MetricGrid, Segmented, Select, Textarea, cn } from './ui';
 import { Toggle } from './EmployeeManagement';
 
@@ -23,6 +24,8 @@ interface PracticeConfigManagerProps {
   onSaveFirmProfile: (profile: FirmProfileSettings) => Promise<SaveResult>;
   whatsappTemplates: WhatsAppTemplateSettings;
   onSaveWhatsAppTemplates: (templates: WhatsAppTemplateSettings) => Promise<SaveResult>;
+  activeTheme?: string;
+  onSelectTheme?: (theme: string) => void;
   palette?: string;
   onSelectPalette?: (palette: string) => void;
   clients?: Client[];
@@ -67,20 +70,6 @@ const useFeedback = () => {
   return [msg, show] as const;
 };
 
-interface PaletteOption {
-  id: string;
-  name: string;
-  dotColor: string;
-}
-
-const PALETTES: PaletteOption[] = [
-  { id: 'classic', name: 'Classic White', dotColor: '#0066D6' },
-  { id: 'navy', name: 'Firm Navy (Official Logo)', dotColor: '#1E40AF' },
-  { id: 'paper', name: 'Warm Paper', dotColor: '#B45309' },
-  { id: 'slate', name: 'Cool Slate', dotColor: '#0E7490' },
-  { id: 'mint', name: 'Fresh Mint', dotColor: '#15803D' },
-];
-
 export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
   configs,
   onAddOption,
@@ -91,7 +80,9 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
   onSaveFirmProfile,
   whatsappTemplates,
   onSaveWhatsAppTemplates,
-  palette = 'classic',
+  activeTheme = 'navy-light',
+  onSelectTheme,
+  palette,
   onSelectPalette,
   clients = [],
   monthlyTasks = [],
@@ -302,34 +293,114 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
           <div className="space-y-6">
             <Card>
               <CardHeader
-                title="Theme Color"
-                description="Choose an enterprise theme palette for your workspace."
+                title="Appearance & Theme"
+                description="Select from 5 light enterprise palettes or 5 rich dark palettes."
               />
-              <div className="p-4">
-                <div className="flex flex-wrap gap-2.5">
-                  {PALETTES.map((p) => {
-                    const isSelected = (palette || 'classic') === p.id;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => onSelectPalette?.(p.id)}
-                        className={cn(
-                          'h-9 px-3.5 rounded-[6px] border text-sm font-medium transition-colors flex items-center gap-2.5',
-                          isSelected
-                            ? 'border-accent bg-accent/10 text-fg ring-1 ring-accent'
-                            : 'border-line bg-surface hover:bg-hover text-fg-muted hover:text-fg'
-                        )}
-                      >
-                        <span
-                          className="w-2.5 h-2.5 rounded-full shrink-0"
-                          style={{ backgroundColor: p.dotColor }}
-                        />
-                        <span>{p.name}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-accent ml-0.5" strokeWidth={2.5} />}
-                      </button>
-                    );
-                  })}
+              <div className="p-4 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Light Themes (5) */}
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wider text-fg-subtle mb-3 flex items-center gap-1.5">
+                      <span>Light Themes</span>
+                      <span className="text-fg-faint">· 5 styles</span>
+                    </div>
+                    <div className="space-y-2">
+                      {LIGHT_THEMES.map((t) => {
+                        const isSelected = activeTheme === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => (onSelectTheme || onSelectPalette)?.(t.id)}
+                            className={cn(
+                              'w-full text-left p-3 rounded-lg border transition-all flex items-center justify-between gap-3',
+                              isSelected
+                                ? 'border-accent bg-accent/5 ring-1 ring-accent'
+                                : 'border-line bg-surface hover:border-line-strong hover:bg-hover'
+                            )}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className="w-7 h-7 rounded-md border border-black/10 flex items-center justify-center shrink-0 shadow-xs"
+                                style={{ backgroundColor: t.canvas }}
+                                title={`Canvas: ${t.canvas}`}
+                              >
+                                <span
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: t.accent }}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium text-fg truncate">{t.name}</div>
+                                <div className="text-xs text-fg-subtle truncate mt-0.5">{t.description}</div>
+                              </div>
+                            </div>
+
+                            {isSelected ? (
+                              <span className="inline-flex items-center gap-1 text-2xs font-semibold text-accent uppercase tracking-wider shrink-0 bg-accent/10 px-2 py-0.5 rounded-[4px]">
+                                <Check className="w-3 h-3" strokeWidth={2.5} />
+                                Active
+                              </span>
+                            ) : (
+                              <span className="text-xs text-fg-faint hover:text-fg-muted shrink-0">Select</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Dark Themes (5) */}
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wider text-fg-subtle mb-3 flex items-center gap-1.5">
+                      <span>Dark Themes</span>
+                      <span className="text-fg-faint">· 5 styles</span>
+                    </div>
+                    <div className="space-y-2">
+                      {DARK_THEMES.map((t) => {
+                        const isSelected = activeTheme === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => (onSelectTheme || onSelectPalette)?.(t.id)}
+                            className={cn(
+                              'w-full text-left p-3 rounded-lg border transition-all flex items-center justify-between gap-3',
+                              isSelected
+                                ? 'border-accent bg-accent/5 ring-1 ring-accent'
+                                : 'border-line bg-surface hover:border-line-strong hover:bg-hover'
+                            )}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className="w-7 h-7 rounded-md border border-white/10 flex items-center justify-center shrink-0 shadow-xs"
+                                style={{ backgroundColor: t.canvas }}
+                                title={`Canvas: ${t.canvas}`}
+                              >
+                                <span
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: t.accent }}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium text-fg truncate">{t.name}</div>
+                                <div className="text-xs text-fg-subtle truncate mt-0.5">{t.description}</div>
+                              </div>
+                            </div>
+
+                            {isSelected ? (
+                              <span className="inline-flex items-center gap-1 text-2xs font-semibold text-accent uppercase tracking-wider shrink-0 bg-accent/10 px-2 py-0.5 rounded-[4px]">
+                                <Check className="w-3 h-3" strokeWidth={2.5} />
+                                Active
+                              </span>
+                            ) : (
+                              <span className="text-xs text-fg-faint hover:text-fg-muted shrink-0">Select</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             </Card>

@@ -121,21 +121,23 @@ export function App() {
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
 
   // ---------------------------------------------------------------- theme
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('crm-theme') === 'dark' ? 'dark' : 'light'));
-  useEffect(() => {
-    localStorage.setItem('crm-theme', theme);
-    const root = document.documentElement;
-    root.setAttribute('data-theme', theme);
-    root.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
-  const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  const [activeTheme, setActiveTheme] = useState<string>(() => localStorage.getItem('crm-active-theme') || 'navy-light');
+  const isDark = activeTheme.endsWith('-dark');
+  const theme: 'light' | 'dark' = isDark ? 'dark' : 'light';
 
-  // -------------------------------------------------------------- palette
-  const [palette, setPalette] = useState(() => localStorage.getItem('crm-palette') || 'classic');
   useEffect(() => {
-    document.documentElement.setAttribute('data-palette', palette);
-    localStorage.setItem('crm-palette', palette);
-  }, [palette]);
+    const root = document.documentElement;
+    root.setAttribute('data-theme', activeTheme);
+    // Sync dark class for logo swapping (dark vs light logo)
+    root.classList.toggle('dark', isDark);
+    localStorage.setItem('crm-active-theme', activeTheme);
+  }, [activeTheme, isDark]);
+
+  const toggleTheme = () => {
+    const base = activeTheme.replace(/-(light|dark)$/, '');
+    const target = isDark ? `${base}-light` : `${base}-dark`;
+    setActiveTheme(target);
+  };
 
   // ------------------------------------------------------- command palette
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -754,6 +756,8 @@ export function App() {
           canChangePassword={!LOCAL_MODE}
           theme={theme}
           onToggleTheme={toggleTheme}
+          activeTheme={activeTheme}
+          onSelectTheme={setActiveTheme}
           onOpenNewTask={() => setIsNewTaskOpen(true)}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
         />
@@ -953,8 +957,8 @@ export function App() {
                     onSaveFirmProfile={handleSaveFirmProfile}
                     whatsappTemplates={templates}
                     onSaveWhatsAppTemplates={handleSaveTemplates}
-                    palette={palette}
-                    onSelectPalette={setPalette}
+                    activeTheme={activeTheme}
+                    onSelectTheme={setActiveTheme}
                     clients={clients}
                     monthlyTasks={monthlyTasks}
                     itrFilings={itrFilings}

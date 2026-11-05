@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Plus, Sun, Moon, ChevronDown, Menu, LogOut, KeyRound } from 'lucide-react';
+import { Search, Plus, Palette, Check, ChevronDown, Menu, LogOut, KeyRound } from 'lucide-react';
 import { UserProfile } from '../types/crm';
+import { LIGHT_THEMES, DARK_THEMES } from '../types/themes';
 import { Avatar, Button, IconButton, Kbd, cn } from './ui';
 
 interface HeaderProps {
@@ -10,8 +11,10 @@ interface HeaderProps {
   onLogout?: () => void;
   onChangePassword?: () => void;
   canChangePassword?: boolean;
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
+  activeTheme?: string;
+  onSelectTheme?: (theme: string) => void;
   onOpenNewTask: () => void;
   onToggleMobileSidebar?: () => void;
 }
@@ -46,18 +49,26 @@ export const Header: React.FC<HeaderProps> = ({
   canChangePassword = true,
   theme,
   onToggleTheme,
+  activeTheme = 'navy-light',
+  onSelectTheme,
   onOpenNewTask,
   onToggleMobileSidebar,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const title = TAB_TITLES[activeTab] || 'Overview';
 
   useEffect(() => {
-    if (!isUserMenuOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setIsUserMenuOpen(false);
+    if (!isUserMenuOpen && !isThemeMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsUserMenuOpen(false);
+        setIsThemeMenuOpen(false);
+      }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isUserMenuOpen]);
+  }, [isUserMenuOpen, isThemeMenuOpen]);
 
   return (
     <header className="h-14 px-4 sm:px-6 flex items-center gap-4 border-b border-line bg-canvas shrink-0 z-20">
@@ -87,11 +98,97 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
         <IconButton icon={Search} label="Search" onClick={onOpenCommandPalette} className="md:hidden" />
 
-        <IconButton
-          icon={theme === 'light' ? Moon : Sun}
-          label={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
-          onClick={onToggleTheme}
-        />
+        {/* Theme Picker Dropdown */}
+        <div className="relative">
+          <IconButton
+            icon={Palette}
+            label="Select workspace theme"
+            onClick={() => setIsThemeMenuOpen((v) => !v)}
+            className={cn(isThemeMenuOpen && 'bg-hover text-fg')}
+          />
+
+          {isThemeMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setIsThemeMenuOpen(false)} />
+              <div
+                className="absolute right-0 mt-1.5 w-64 max-h-[460px] overflow-y-auto bg-surface rounded-lg shadow-pop z-50 p-1.5 border border-line animate-pop-in divide-y divide-line"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="pb-1.5">
+                  <div className="px-2 py-1 text-2xs font-semibold text-fg-subtle uppercase tracking-wider">
+                    Light Themes (5)
+                  </div>
+                  <div className="space-y-0.5 mt-0.5">
+                    {LIGHT_THEMES.map((t) => {
+                      const isSelected = activeTheme === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            onSelectTheme?.(t.id);
+                            setIsThemeMenuOpen(false);
+                          }}
+                          className={cn(
+                            'w-full h-8 flex items-center justify-between px-2.5 rounded-md text-xs transition-colors',
+                            isSelected
+                              ? 'bg-subtle text-fg font-medium'
+                              : 'text-fg-muted hover:text-fg hover:bg-hover'
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
+                              style={{ backgroundColor: t.accent }}
+                            />
+                            <span className="truncate">{t.name}</span>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-accent shrink-0 ml-1.5" strokeWidth={2.5} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-1.5">
+                  <div className="px-2 py-1 text-2xs font-semibold text-fg-subtle uppercase tracking-wider">
+                    Dark Themes (5)
+                  </div>
+                  <div className="space-y-0.5 mt-0.5">
+                    {DARK_THEMES.map((t) => {
+                      const isSelected = activeTheme === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            onSelectTheme?.(t.id);
+                            setIsThemeMenuOpen(false);
+                          }}
+                          className={cn(
+                            'w-full h-8 flex items-center justify-between px-2.5 rounded-md text-xs transition-colors',
+                            isSelected
+                              ? 'bg-subtle text-fg font-medium'
+                              : 'text-fg-muted hover:text-fg hover:bg-hover'
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0"
+                              style={{ backgroundColor: t.accent }}
+                            />
+                            <span className="truncate">{t.name}</span>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-accent shrink-0 ml-1.5" strokeWidth={2.5} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="relative">
           <button

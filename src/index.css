@@ -11,122 +11,231 @@
    ========================================================================== */
 
 :root {
-  /* Surfaces */
-  --c-canvas: 248 248 249;      /* #F8F8F9  app background            */
-  --c-surface: 255 255 255;     /* #FFFFFF  cards, tables, dialogs    */
-  --c-subtle: 244 244 246;      /* #F4F4F6  insets, table heads, fills */
-  --c-hover: 239 239 242;       /* #EFEFF2  row / item hover          */
-  --c-muted: 228 228 232;       /* #E4E4E8  tracks, avatars, kbd      */
+  /* Common Light Defaults (Navy Light baseline) */
+  --c-canvas: 224 233 244;
+  --c-surface: 255 255 255;
+  --c-subtle: 236 243 251;
+  --c-hover: 222 233 246;
+  --c-muted: 228 228 232;
+  --c-line: 202 216 234;
+  --c-line-strong: 175 196 222;
 
-  /* Lines */
-  --c-line: 230 230 234;        /* #E6E6EA  hairlines                 */
-  --c-line-strong: 212 212 218; /* #D4D4DA  input borders, hover      */
+  --c-fg: 15 23 42;
+  --c-fg-muted: 51 65 85;
+  --c-fg-subtle: 100 116 139;
+  --c-fg-faint: 161 161 170;
 
-  /* Text */
-  --c-fg: 24 24 27;             /* #18181B  primary                   */
-  --c-fg-muted: 82 82 91;       /* #52525B  secondary                 */
-  --c-fg-subtle: 113 113 122;   /* #71717A  metadata, column heads    */
-  --c-fg-faint: 161 161 170;    /* #A1A1AA  placeholders, disabled    */
-
-  /* Actions */
-  --c-ink: 24 24 27;            /* primary button                     */
-  --c-ink-hover: 39 39 42;
+  --c-ink: 27 54 93;
+  --c-ink-hover: 30 64 175;
   --c-on-ink: 255 255 255;
-  --c-accent: 0 102 214;        /* #0066D6  focus, links, selection   */
-  --c-accent-hover: 0 88 186;
+
+  --c-accent: 29 78 216;
+  --c-accent-hover: 30 64 175;
   --c-on-accent: 255 255 255;
 
-  /* Status — flat, restrained */
-  --c-success: 21 128 61;       /* #15803D */
-  --c-warning: 180 83 9;        /* #B45309 */
-  --c-danger: 200 30 30;        /* #C81E1E */
+  --c-success: 21 128 61;
+  --c-warning: 180 83 9;
+  --c-danger: 200 30 30;
 
   --scrollbar: 0 0 0;
   color-scheme: light;
 }
 
-/* 1. Classic White (Default - already in :root) */
-[data-palette='classic'] {
-  --c-canvas: 248 248 249;     /* #F8F8F9 */
-  --c-surface: 255 255 255;    /* pure white */
-  --c-subtle: 244 244 246;
-  --c-hover: 239 239 242;
-  --c-line: 230 230 234;
-  --c-accent: 0 102 214;       /* classic blue */
+/* ==========================================================================
+   10 ENTERPRISE THEMES (5 LIGHT, 5 DARK)
+   ========================================================================== */
+
+/* 1. Classic Zinc (Light) */
+[data-theme='zinc-light'] {
+  --c-canvas: 235 235 239;
+  --c-surface: 255 255 255;
+  --c-subtle: 242 242 246;
+  --c-hover: 228 228 234;
+  --c-line: 218 218 226;
+  --c-line-strong: 198 198 208;
+  --c-fg: 24 24 27;
+  --c-fg-muted: 82 82 91;
+  --c-fg-subtle: 113 113 122;
+  --c-ink: 24 24 27;
+  --c-on-ink: 255 255 255;
+  --c-accent: 0 102 214;
   --c-accent-hover: 0 88 186;
+  color-scheme: light;
 }
 
-/* 2. Firm Navy (Official Logo) */
-[data-palette='navy'] {
-  --c-canvas: 246 248 252;     /* soft slate tint */
-  --c-surface: 255 255 255;    /* pure white */
-  --c-subtle: 238 242 248;
-  --c-hover: 230 236 245;
-  --c-line: 224 231 240;
-  --c-accent: 30 64 175;       /* Firm logo navy */
-  --c-accent-hover: 29 78 216;
+/* 2. Firm Signature (Light - Shameer & Associates Navy Logo) */
+[data-theme='navy-light'],
+[data-theme='light'] {
+  --c-canvas: 224 233 244;     /* Distinct cool slate-blue desk */
+  --c-surface: 255 255 255;
+  --c-subtle: 236 243 251;
+  --c-hover: 222 233 246;
+  --c-line: 202 216 234;
+  --c-line-strong: 175 196 222;
+  --c-fg: 15 23 42;
+  --c-fg-muted: 51 65 85;
+  --c-fg-subtle: 100 116 139;
+  --c-ink: 27 54 93;          /* Official Firm Navy */
+  --c-on-ink: 255 255 255;
+  --c-accent: 29 78 216;
+  --c-accent-hover: 30 64 175;
+  color-scheme: light;
 }
 
-/* 3. Warm Paper */
-[data-palette='paper'] {
-  --c-canvas: 252 250 246;     /* soft warm ivory */
-  --c-surface: 255 255 255;    /* pure white */
-  --c-subtle: 245 242 235;
-  --c-hover: 238 234 225;
-  --c-line: 232 227 217;
-  --c-accent: 180 83 9;        /* warm bronze */
+/* 3. Warm Parchment (Light) */
+[data-theme='paper-light'] {
+  --c-canvas: 236 230 219;     /* Distinct warm book-paper desk */
+  --c-surface: 254 252 248;
+  --c-subtle: 245 240 231;
+  --c-hover: 233 226 213;
+  --c-line: 216 207 192;
+  --c-line-strong: 194 182 163;
+  --c-fg: 41 33 24;
+  --c-fg-muted: 92 78 63;
+  --c-fg-subtle: 130 114 96;
+  --c-ink: 68 50 28;
+  --c-on-ink: 255 255 255;
+  --c-accent: 180 83 9;
   --c-accent-hover: 146 64 14;
+  color-scheme: light;
 }
 
-/* 4. Cool Slate */
-[data-palette='slate'] {
-  --c-canvas: 244 246 248;     /* cool grey */
-  --c-surface: 255 255 255;    /* pure white */
-  --c-subtle: 235 238 242;
-  --c-hover: 228 232 237;
-  --c-line: 220 225 232;
-  --c-accent: 14 116 144;      /* steel blue */
-  --c-accent-hover: 8 145 178;
+/* 4. Nordic Sage (Light) */
+[data-theme='sage-light'] {
+  --c-canvas: 223 234 227;     /* Distinct pale sage desk */
+  --c-surface: 255 255 255;
+  --c-subtle: 235 244 238;
+  --c-hover: 221 234 226;
+  --c-line: 198 216 205;
+  --c-line-strong: 168 194 178;
+  --c-fg: 19 36 27;
+  --c-fg-muted: 53 79 66;
+  --c-fg-subtle: 88 117 103;
+  --c-ink: 20 64 46;
+  --c-on-ink: 255 255 255;
+  --c-accent: 15 118 110;
+  --c-accent-hover: 17 94 89;
+  color-scheme: light;
 }
 
-/* 5. Fresh Mint */
-[data-palette='mint'] {
-  --c-canvas: 245 248 246;     /* faint sage tint */
-  --c-surface: 255 255 255;    /* pure white */
-  --c-subtle: 236 242 238;
-  --c-hover: 227 235 230;
-  --c-line: 220 229 224;
-  --c-accent: 21 128 61;       /* calm forest green */
-  --c-accent-hover: 22 101 52;
+/* 5. Architectural Stone (Light) */
+[data-theme='stone-light'] {
+  --c-canvas: 224 224 226;     /* Concrete gray desk */
+  --c-surface: 255 255 255;
+  --c-subtle: 236 236 238;
+  --c-hover: 220 220 223;
+  --c-line: 204 204 208;
+  --c-line-strong: 176 176 182;
+  --c-fg: 18 18 18;
+  --c-fg-muted: 75 75 80;
+  --c-fg-subtle: 110 110 115;
+  --c-ink: 0 0 0;
+  --c-on-ink: 255 255 255;
+  --c-accent: 18 18 20;
+  --c-accent-hover: 38 38 42;
+  color-scheme: light;
 }
 
-[data-theme='dark'],
-html.dark {
-  --c-canvas: 12 12 14;         /* #0C0C0E */
-  --c-surface: 22 22 25;        /* #161619 */
-  --c-subtle: 29 29 33;         /* #1D1D21 */
-  --c-hover: 36 36 41;          /* #242429 */
-  --c-muted: 46 46 52;          /* #2E2E34 */
-
-  --c-line: 39 39 44;           /* #27272C */
-  --c-line-strong: 58 58 66;    /* #3A3A42 */
-
-  --c-fg: 244 244 245;          /* #F4F4F5 */
-  --c-fg-muted: 172 172 180;    /* #ACACB4 */
-  --c-fg-subtle: 134 134 143;   /* #86868F */
-  --c-fg-faint: 92 92 101;      /* #5C5C65 */
-
+/* 6. Midnight Zinc (Dark) */
+[data-theme='zinc-dark'] {
+  --c-canvas: 12 12 14;
+  --c-surface: 22 22 25;
+  --c-subtle: 29 29 33;
+  --c-hover: 36 36 41;
+  --c-line: 39 39 44;
+  --c-line-strong: 58 58 66;
+  --c-fg: 244 244 245;
+  --c-fg-muted: 172 172 180;
+  --c-fg-subtle: 134 134 143;
   --c-ink: 244 244 245;
-  --c-ink-hover: 222 222 226;
   --c-on-ink: 18 18 20;
-  --c-accent: 77 154 255;       /* #4D9AFF */
+  --c-accent: 77 154 255;
   --c-accent-hover: 110 172 255;
+  color-scheme: dark;
+}
+
+/* 7. Firm Midnight (Dark - Official Navy Night) */
+[data-theme='navy-dark'],
+[data-theme='dark'] {
+  --c-canvas: 10 16 28;        /* Rich dark navy */
+  --c-surface: 16 24 42;
+  --c-subtle: 23 34 58;
+  --c-hover: 30 45 76;
+  --c-line: 30 45 74;
+  --c-line-strong: 48 70 110;
+  --c-fg: 240 246 255;
+  --c-fg-muted: 165 185 215;
+  --c-fg-subtle: 120 145 180;
+  --c-ink: 240 246 255;
+  --c-on-ink: 10 16 28;
+  --c-accent: 96 165 250;
+  --c-accent-hover: 147 197 253;
+  color-scheme: dark;
+}
+
+/* 8. Espresso Roast (Dark) */
+[data-theme='espresso-dark'] {
+  --c-canvas: 18 15 13;        /* Dark espresso bean */
+  --c-surface: 28 23 20;
+  --c-subtle: 38 32 28;
+  --c-hover: 48 40 35;
+  --c-line: 52 44 38;
+  --c-line-strong: 75 63 55;
+  --c-fg: 250 245 240;
+  --c-fg-muted: 190 175 162;
+  --c-fg-subtle: 145 130 118;
+  --c-ink: 250 245 240;
+  --c-on-ink: 18 15 13;
+  --c-accent: 245 158 11;
+  --c-accent-hover: 251 191 36;
+  color-scheme: dark;
+}
+
+/* 9. Forest Night (Dark) */
+[data-theme='forest-dark'] {
+  --c-canvas: 8 18 14;         /* Deep pine forest */
+  --c-surface: 14 28 22;
+  --c-subtle: 21 39 31;
+  --c-hover: 28 51 41;
+  --c-line: 28 50 40;
+  --c-line-strong: 44 76 61;
+  --c-fg: 236 253 245;
+  --c-fg-muted: 155 198 178;
+  --c-fg-subtle: 110 156 135;
+  --c-ink: 236 253 245;
+  --c-on-ink: 8 18 14;
+  --c-accent: 52 211 153;
+  --c-accent-hover: 110 231 183;
+  color-scheme: dark;
+}
+
+/* 10. Pitch OLED (Dark) */
+[data-theme='oled-dark'] {
+  --c-canvas: 0 0 0;           /* Absolute Pure Black */
+  --c-surface: 17 17 19;
+  --c-subtle: 26 26 30;
+  --c-hover: 36 36 42;
+  --c-line: 36 36 42;
+  --c-line-strong: 55 55 64;
+  --c-fg: 255 255 255;
+  --c-fg-muted: 170 170 175;
+  --c-fg-subtle: 125 125 130;
+  --c-ink: 255 255 255;
+  --c-on-ink: 0 0 0;
+  --c-accent: 56 189 248;
+  --c-accent-hover: 125 211 252;
+  color-scheme: dark;
+}
+
+/* Shared status and dark-mode fallbacks */
+[data-theme$='-dark'],
+html.dark {
+  --c-muted: 46 46 52;
+  --c-fg-faint: 92 92 101;
   --c-on-accent: 10 10 12;
-
-  --c-success: 74 201 120;      /* #4AC978 */
-  --c-warning: 240 168 60;      /* #F0A83C */
-  --c-danger: 248 100 96;       /* #F86460 */
-
+  --c-success: 74 201 120;
+  --c-warning: 240 168 60;
+  --c-danger: 248 100 96;
   --scrollbar: 255 255 255;
   color-scheme: dark;
 }
