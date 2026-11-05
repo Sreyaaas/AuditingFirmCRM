@@ -187,3 +187,4 @@ Dropdown lists remain in `practice_configs`.
 * Added `vercel.json` SPA rewrite rule to ensure client-side routing resolves properly on Vercel deployments.
 * Refined WhatsApp messaging workflow: table rows trigger centered preview modal directly; modal footer includes dual-action "Send to Group" and "Send to Owner" along with direct text copy.
 * Replaced old light/dark boolean toggle with a 10-theme enterprise system (5 light themes: Classic Zinc, Firm Signature, Warm Parchment, Nordic Sage, Architectural Stone; 5 dark themes: Midnight Zinc, Firm Midnight, Espresso Roast, Forest Night, Pitch OLED). Added a quick-select Palette dropdown in Header toolbar and a 2-column grouped selector in Settings > Preferences.
+* Softened the 5 light theme palettes in `src/index.css` by replacing harsh 255 255 255 white card surfaces with harmonized porcelain, iceberg, alabaster, tea-white, and limestone tones.
