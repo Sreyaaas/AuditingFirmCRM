@@ -392,11 +392,12 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           size="sm"
+                          variant="secondary"
                           icon={MessageSquare}
                           onClick={() => onOpenWhatsApp(task)}
-                          title={isFiled ? 'Share filing acknowledgment via WhatsApp' : 'Send WhatsApp reminder'}
+                          className="h-7 text-xs font-medium"
                         >
-                          {isFiled ? 'Send Receipt' : 'Remind'}
+                          {isFiled ? 'Receipt' : 'WhatsApp'}
                         </Button>
                         <IconButton icon={ArrowUpRight} label="View client account" size="sm" onClick={() => onSelectClient(task.clientId)} />
                         {onDelete && <IconButton icon={Trash2} label="Delete task" size="sm" className="hover:text-danger" onClick={() => setConfirmDelete(task)} />}

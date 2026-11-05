@@ -119,7 +119,15 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
         <td className="num text-right font-medium text-fg whitespace-nowrap">{formatINR(item.taxPayable)}</td>
         <td className="text-right">
           <div className="flex items-center justify-end gap-1">
-            <IconButton icon={MessageSquare} label="Message on WhatsApp" size="sm" onClick={() => onOpenWhatsApp(item)} />
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={MessageSquare}
+              onClick={() => onOpenWhatsApp(item)}
+              className="h-7 text-xs font-medium"
+            >
+              WhatsApp
+            </Button>
             {item.priorityLevel !== 'filed' ? (
               <Button size="sm" variant="primary" onClick={() => handleOpenFilingModal(item)}>
                 Mark Filed

@@ -449,8 +449,14 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                     </td>
                     <td className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button size="sm" icon={MessageSquare} onClick={() => onOpenWhatsApp(itr)} title="Message on WhatsApp">
-                          Remind
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          icon={MessageSquare}
+                          onClick={() => onOpenWhatsApp(itr)}
+                          className="h-7 text-xs font-medium"
+                        >
+                          {itr.status === 'Filed & e-Verified' ? 'Ack' : 'WhatsApp'}
                         </Button>
                         <IconButton icon={ArrowUpRight} label="View client account" size="sm" onClick={() => onSelectClient(itr.clientId)} />
                         {onDelete && <IconButton icon={Trash2} label="Delete return" size="sm" className="hover:text-danger" onClick={() => setConfirmDelete(itr)} />}

@@ -282,6 +282,15 @@ export function App() {
     toastTimer.current = window.setTimeout(() => setToast(null), error ? 6000 : 3000);
   };
 
+  useEffect(() => {
+    const handleToast = (e: Event) => {
+      const detail = (e as CustomEvent<{ message: string; error?: boolean }>).detail;
+      if (detail?.message) showToast(detail.message, detail.error);
+    };
+    window.addEventListener('app-toast', handleToast);
+    return () => window.removeEventListener('app-toast', handleToast);
+  }, []);
+
   /** Shows a save error to the user instead of silently keeping an unsaved change. */
   const reportSave = (result: { error?: string; success?: boolean } | undefined, what: string) => {
     if (result?.error) showToast(`${what} was not saved: ${result.error}`, true);

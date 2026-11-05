@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Copy, Check, MessageSquare } from 'lucide-react';
+import { Send, Copy, Check, MessageSquare, Users } from 'lucide-react';
 import { Button, Field, Input, Label, Modal, Segmented, Textarea, formatINR } from './ui';
+import { sendToGroup } from '../utils/whatsapp';
 import { MonthlyTask, ITRFiling, StaffTicket, DebtorRecord, GSTComplianceItem } from '../types/crm';
 import { 
   getStoredWhatsAppTemplates, 
@@ -245,8 +246,25 @@ Shameer & Associates`,
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" icon={Send} onClick={handleOpenWhatsApp} disabled={!phone || !message.trim()}>
-            Open in WhatsApp
+          <Button
+            variant="secondary"
+            icon={Users}
+            onClick={() => {
+              sendToGroup(message);
+              onClose();
+            }}
+            disabled={!message.trim()}
+          >
+            Send to Group
+          </Button>
+          <Button
+            variant="primary"
+            icon={Send}
+            onClick={handleOpenWhatsApp}
+            disabled={!phone || !message.trim()}
+            title={!phone ? 'No phone number available' : 'Send direct message'}
+          >
+            Send to Owner
           </Button>
         </>
       }

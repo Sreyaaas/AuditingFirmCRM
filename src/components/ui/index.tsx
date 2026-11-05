@@ -611,6 +611,7 @@ export interface MenuItem {
   value: string;
   selected?: boolean;
   danger?: boolean;
+  disabled?: boolean;
   icon?: LucideIcon;
 }
 
@@ -704,13 +705,19 @@ export const Menu: React.FC<{
                   <button
                     key={it.value}
                     type="button"
+                    disabled={it.disabled}
                     onClick={() => {
+                      if (it.disabled) return;
                       onSelect(it.value);
                       onClose();
                     }}
                     className={cn(
                       'w-full h-7 flex items-center gap-2 px-2 rounded-[4px] text-sm text-left transition-colors',
-                      it.danger ? 'text-danger hover:bg-danger/5' : 'text-fg-muted hover:text-fg hover:bg-hover',
+                      it.disabled
+                        ? 'opacity-40 cursor-not-allowed text-fg-faint'
+                        : it.danger
+                        ? 'text-danger hover:bg-danger/5'
+                        : 'text-fg-muted hover:text-fg hover:bg-hover',
                       it.selected && 'text-fg font-medium'
                     )}
                   >

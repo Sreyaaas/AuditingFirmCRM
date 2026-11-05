@@ -184,3 +184,5 @@ Dropdown lists remain in `practice_configs`.
 * Added ITR returns KPI metric and attention items to Overview dashboard.
 * Added `+ Add Account` modal dialog to Debtors view matching Apple/Vercel design system.
 * Fixed table cell dropdown clipping in `Menu` primitive using React `createPortal` with viewport-aware dynamic positioning, preventing clipping by table containers or row boundaries.
+* Added `vercel.json` SPA rewrite rule to ensure client-side routing resolves properly on Vercel deployments.
+* Refined WhatsApp messaging workflow: table rows trigger centered preview modal directly; modal footer includes dual-action "Send to Group" and "Send to Owner" along with direct text copy.

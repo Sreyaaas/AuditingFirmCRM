@@ -469,7 +469,17 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
                         </td>
                         <td className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {closing > 0 && <IconButton icon={MessageSquare} label="Send WhatsApp reminder" size="sm" onClick={() => onOpenWhatsApp(d)} />}
+                            {closing > 0 && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                icon={MessageSquare}
+                                onClick={() => onOpenWhatsApp(d)}
+                                className="h-7 text-xs font-medium"
+                              >
+                                WhatsApp
+                              </Button>
+                            )}
                             {canEdit && isLatest && (
                               <>
                                 <Button
