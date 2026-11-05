@@ -2,106 +2,215 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Shameer & Associates — v2 "Ledger" design system
+   --------------------------------------------------------------------------
+   Neutral zinc greyscale, a single restrained blue accent, near-black "ink"
+   for primary actions. Tokens are RGB channels so Tailwind opacity modifiers
+   work (`bg-success/10`). Mapped to utilities in tailwind.config.js.
+   ========================================================================== */
+
 :root {
-  /* Shameer & Associates - High-Contrast Enterprise Minimalist */
-  --bg-primary: #FAFAFA;
-  --bg-secondary: #FFFFFF;
-  --bg-tertiary: #F2F2F7;
-  --bg-hover: #EAEAEE;
-  --border-hairline: #E5E5EA;
-  --border-subtle: #D1D1D6;
-  --text-primary: #09090B;
-  --text-secondary: #4B5563;
-  --text-tertiary: #6B7280;
-  --accent: #0071E3;
-  --accent-hover: #0077ED;
-  --accent-subtle: #EBF4FC;
-  --status-green: #16A34A;
-  --status-green-bg: rgba(22, 163, 74, 0.1);
-  --status-green-border: rgba(22, 163, 74, 0.2);
-  --status-amber: #D97706;
-  --status-amber-bg: rgba(217, 119, 6, 0.1);
-  --status-amber-border: rgba(217, 119, 6, 0.2);
-  --status-red: #DC2626;
-  --status-red-bg: rgba(220, 38, 38, 0.1);
-  --status-red-border: rgba(220, 38, 38, 0.2);
+  /* Surfaces */
+  --c-canvas: 248 248 249;      /* #F8F8F9  app background            */
+  --c-surface: 255 255 255;     /* #FFFFFF  cards, tables, dialogs    */
+  --c-subtle: 244 244 246;      /* #F4F4F6  insets, table heads, fills */
+  --c-hover: 239 239 242;       /* #EFEFF2  row / item hover          */
+  --c-muted: 228 228 232;       /* #E4E4E8  tracks, avatars, kbd      */
+
+  /* Lines */
+  --c-line: 230 230 234;        /* #E6E6EA  hairlines                 */
+  --c-line-strong: 212 212 218; /* #D4D4DA  input borders, hover      */
+
+  /* Text */
+  --c-fg: 24 24 27;             /* #18181B  primary                   */
+  --c-fg-muted: 82 82 91;       /* #52525B  secondary                 */
+  --c-fg-subtle: 113 113 122;   /* #71717A  metadata, column heads    */
+  --c-fg-faint: 161 161 170;    /* #A1A1AA  placeholders, disabled    */
+
+  /* Actions */
+  --c-ink: 24 24 27;            /* primary button                     */
+  --c-ink-hover: 39 39 42;
+  --c-on-ink: 255 255 255;
+  --c-accent: 0 102 214;        /* #0066D6  focus, links, selection   */
+  --c-accent-hover: 0 88 186;
+  --c-on-accent: 255 255 255;
+
+  /* Status — flat, restrained */
+  --c-success: 21 128 61;       /* #15803D */
+  --c-warning: 180 83 9;        /* #B45309 */
+  --c-danger: 200 30 30;        /* #C81E1E */
+
+  --scrollbar: 0 0 0;
+  color-scheme: light;
 }
 
-/* DARK THEME (OLED Deep Charcoal) */
-[data-theme="dark"],
+[data-theme='dark'],
 html.dark {
-  --bg-primary: #121214;
-  --bg-secondary: #1C1C1E;
-  --bg-tertiary: #242426;
-  --bg-hover: #2C2C2E;
-  --border-hairline: #2C2C2E;
-  --border-subtle: #3A3A3C;
-  --text-primary: #F5F5F7;
-  --text-secondary: #A1A1AA;
-  --text-tertiary: #71717A;
-  --accent: #2997FF;
-  --accent-hover: #409CFF;
-  --accent-subtle: rgba(41, 151, 255, 0.15);
-  --status-green: #34C759;
-  --status-green-bg: rgba(52, 199, 89, 0.15);
-  --status-green-border: rgba(52, 199, 89, 0.25);
-  --status-amber: #FF9F0A;
-  --status-amber-bg: rgba(255, 159, 10, 0.15);
-  --status-amber-border: rgba(255, 159, 10, 0.25);
-  --status-red: #FF453A;
-  --status-red-bg: rgba(255, 69, 58, 0.15);
-  --status-red-border: rgba(255, 69, 58, 0.25);
+  --c-canvas: 12 12 14;         /* #0C0C0E */
+  --c-surface: 22 22 25;        /* #161619 */
+  --c-subtle: 29 29 33;         /* #1D1D21 */
+  --c-hover: 36 36 41;          /* #242429 */
+  --c-muted: 46 46 52;          /* #2E2E34 */
+
+  --c-line: 39 39 44;           /* #27272C */
+  --c-line-strong: 58 58 66;    /* #3A3A42 */
+
+  --c-fg: 244 244 245;          /* #F4F4F5 */
+  --c-fg-muted: 172 172 180;    /* #ACACB4 */
+  --c-fg-subtle: 134 134 143;   /* #86868F */
+  --c-fg-faint: 92 92 101;      /* #5C5C65 */
+
+  --c-ink: 244 244 245;
+  --c-ink-hover: 222 222 226;
+  --c-on-ink: 18 18 20;
+  --c-accent: 77 154 255;       /* #4D9AFF */
+  --c-accent-hover: 110 172 255;
+  --c-on-accent: 10 10 12;
+
+  --c-success: 74 201 120;      /* #4AC978 */
+  --c-warning: 240 168 60;      /* #F0A83C */
+  --c-danger: 248 100 96;       /* #F86460 */
+
+  --scrollbar: 255 255 255;
+  color-scheme: dark;
 }
 
 @layer base {
   * {
-    border-color: var(--border-hairline);
-    box-sizing: border-box;
+    border-color: rgb(var(--c-line));
   }
-  
-  html {
-    color-scheme: light dark;
+
+  html,
+  body,
+  #root {
+    height: 100%;
   }
 
   body {
-    font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-    color: var(--text-primary);
-    background-color: var(--bg-primary);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
-    font-variant-numeric: tabular-nums;
-    font-weight: 450;
-    letter-spacing: -0.01em;
-    font-size: 13.5px;
-    line-height: 1.5;
+    @apply bg-canvas text-fg font-sans antialiased;
+    font-size: 13px;
+    line-height: 20px;
+    letter-spacing: -0.006em;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
     text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.014em;
+  }
+
+  ::selection {
+    background: rgb(var(--c-accent) / 0.18);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--c-accent) / 0.55);
+    outline-offset: 1px;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    letter-spacing: inherit;
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: rgb(var(--c-ink));
   }
 }
 
-/* Tabular figures for exact numerical alignment */
-.tabular-nums,
-.font-tabular {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
+@layer components {
+  /* Eyebrow / micro-label — 11px uppercase */
+  .eyebrow {
+    @apply text-2xs font-medium uppercase tracking-[0.06em] text-fg-subtle;
+  }
+
+  /* Figures: currency, dates, counts — tabular, proportional-width font */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum', 'cv11';
+  }
+
+  /* Identifiers: GSTIN, PAN, ARN, phone — monospaced */
+  .ident {
+    @apply font-mono text-xs tracking-normal;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Shared form-control surface (used by Input / Select / Textarea primitives) */
+  .control {
+    @apply w-full h-8 px-2.5 rounded-md bg-surface border border-line-strong text-sm text-fg
+      placeholder:text-fg-faint transition-colors
+      hover:border-fg-faint
+      focus:outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Data table — 36px head, 44px rows */
+  .data-table {
+    @apply w-full text-sm border-collapse;
+  }
+  .data-table thead th {
+    @apply h-9 px-3 text-left align-middle text-2xs font-medium uppercase tracking-[0.06em] text-fg-subtle
+      bg-subtle border-b border-line whitespace-nowrap;
+  }
+  .data-table tbody td {
+    @apply h-11 px-3 align-middle border-b border-line;
+  }
+  .data-table tbody tr {
+    @apply transition-colors hover:bg-subtle;
+  }
+  .data-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
 }
 
-/* Sleek Apple / Vercel minimalist scrollbars */
+@layer utilities {
+  .font-tabular,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Scrollbars — thin, neutral */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--scrollbar) / 0.16) transparent;
+}
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
-  border-radius: 9999px;
+  background: rgb(var(--scrollbar) / 0.14);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.22);
+  background: rgb(var(--scrollbar) / 0.26);
+  background-clip: content-box;
 }
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
-}
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.26);
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
 }

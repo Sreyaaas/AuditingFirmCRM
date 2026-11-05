@@ -1,19 +1,21 @@
 import React from 'react';
 import {
-  LayoutDashboard,
-  CalendarCheck,
-  FileSpreadsheet,
-  Users,
-  Receipt,
+  LayoutGrid,
+  CalendarClock,
+  ListChecks,
+  FileText,
+  Building2,
+  Wallet,
   PhoneCall,
-  ShieldCheck,
-  UserCheck,
+  Users,
   History,
-  SlidersHorizontal,
+  Settings2,
   Database,
-  X
+  X,
+  type LucideIcon,
 } from 'lucide-react';
 import { StaffMember, UserProfile } from '../types/crm';
+import { cn, StatusDot } from './ui';
 
 interface SidebarProps {
   activeTab: string;
@@ -33,6 +35,14 @@ interface SidebarProps {
   onCloseMobile?: () => void;
 }
 
+interface NavItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  count?: number | null;
+  alert?: number | null;
+}
+
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
@@ -50,166 +60,107 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const isAdmin = currentUser.role === 'admin';
 
-  const navItems = [
-    { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-    { id: 'gst-tracker', label: 'Deadlines & Filings', icon: ShieldCheck, badge: gstOverdueCount > 0 ? `${gstOverdueCount} due` : null, badgeUrgent: true },
-    { id: 'monthly', label: 'GST & Audit', icon: CalendarCheck, badge: monthlyTaskCount },
-    { id: 'itr', label: 'ITR', icon: FileSpreadsheet, badge: itrCount },
-    { id: 'clients', label: 'Clients', icon: Users, badge: totalClientsCount },
-    { id: 'debtors', label: 'Debtors', icon: Receipt, badge: debtorsCount },
-    { id: 'staff', label: 'Calls & Tickets', icon: PhoneCall, badge: unassignedTicketsCount > 0 ? `${unassignedTicketsCount} pool` : null },
+  const workspace: NavItem[] = [
+    { id: 'dashboard', label: 'Overview', icon: LayoutGrid },
+    { id: 'gst-tracker', label: 'Deadlines', icon: CalendarClock, alert: gstOverdueCount || null },
+    { id: 'monthly', label: 'GST & Audit', icon: ListChecks, count: monthlyTaskCount },
+    { id: 'itr', label: 'ITR Returns', icon: FileText, count: itrCount },
   ];
 
-  const handleSelectTab = (tabId: string) => {
+  const relationships: NavItem[] = [
+    { id: 'clients', label: 'Clients', icon: Building2, count: totalClientsCount },
+    { id: 'debtors', label: 'Debtors', icon: Wallet, count: debtorsCount },
+    { id: 'staff', label: 'Calls & Tickets', icon: PhoneCall, alert: unassignedTicketsCount || null },
+  ];
+
+  const admin: NavItem[] = [
+    { id: 'employees', label: 'Team', icon: Users, count: staffList.length },
+    { id: 'activity', label: 'Audit Trail', icon: History },
+    { id: 'settings', label: 'Settings', icon: Settings2 },
+  ];
+
+  const select = (tabId: string) => {
     setActiveTab(tabId);
-    if (onCloseMobile) {
-      onCloseMobile();
-    }
+    onCloseMobile?.();
   };
 
-  const sidebarContent = (
-    <div className="w-64 h-full bg-[#FBFBFD] dark:bg-[#161618] border-r border-[#E5E5EA] dark:border-[#2C2C2E] flex flex-col justify-between select-none text-[#1D1D1F] dark:text-[#F5F5F7] transition-colors">
-      <div className="flex flex-col flex-1 min-h-0">
-        {/* Practice Identity / Official Firm Brand — EXACTLY h-14 (56px) to align with Header */}
-        <div className="h-14 px-4 border-b border-[#E5E5EA] dark:border-[#2C2C2E] flex items-center justify-between shrink-0 bg-white dark:bg-[#161618]">
-          <div className="flex items-center min-w-0">
-            {/* Light mode crisp letterhead */}
-            <img
-              src="/logo-light.png"
-              alt="Shameer and Associates - Accountants and Practitioners"
-              className="h-8 w-auto object-contain block dark:hidden max-w-[190px]"
-            />
-            {/* Dark mode crisp silver-white letterhead */}
-            <img
-              src="/logo-dark.png"
-              alt="Shameer and Associates - Accountants and Practitioners"
-              className="h-8 w-auto object-contain hidden dark:block max-w-[190px]"
-            />
-          </div>
-          {onCloseMobile && (
-            <button
-              onClick={onCloseMobile}
-              className="lg:hidden p-1.5 text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] rounded-[6px]"
-              aria-label="Close menu"
-            >
-              <X className="w-4 h-4 stroke-[1.5]" />
-            </button>
-          )}
+  const renderItem = (item: NavItem) => {
+    const Icon = item.icon;
+    const active = activeTab === item.id;
+    return (
+      <button
+        key={item.id}
+        onClick={() => select(item.id)}
+        aria-current={active ? 'page' : undefined}
+        className={cn(
+          'group w-full h-8 flex items-center gap-2.5 px-2.5 rounded-md text-sm transition-colors',
+          active ? 'bg-surface text-fg font-medium shadow-xs ring-1 ring-line' : 'text-fg-muted hover:text-fg hover:bg-hover'
+        )}
+      >
+        <Icon
+          className={cn('w-4 h-4 shrink-0', active ? 'text-accent' : 'text-fg-subtle group-hover:text-fg-muted')}
+          strokeWidth={1.75}
+        />
+        <span className="flex-1 truncate text-left">{item.label}</span>
+        {item.alert ? (
+          <span className="num inline-flex items-center gap-1 text-2xs font-medium text-danger">
+            <StatusDot tone="danger" />
+            {item.alert}
+          </span>
+        ) : item.count !== undefined && item.count !== null ? (
+          <span className={cn('num text-2xs', active ? 'text-fg-muted' : 'text-fg-faint')}>{item.count}</span>
+        ) : null}
+      </button>
+    );
+  };
+
+  const section = (title: string, items: NavItem[]) => (
+    <div className="space-y-px">
+      <div className="eyebrow px-2.5 pb-1.5">{title}</div>
+      {items.map(renderItem)}
+    </div>
+  );
+
+  const content = (
+    <div className="w-60 h-full bg-canvas border-r border-line flex flex-col select-none">
+      {/* Brand — h-14 to align with the header hairline */}
+      <div className="h-14 px-4 border-b border-line flex items-center justify-between shrink-0">
+        <div className="flex items-center min-w-0">
+          <img src="/logo-light.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain block dark:hidden max-w-[176px]" />
+          <img src="/logo-dark.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain hidden dark:block max-w-[176px]" />
         </div>
-
-        {/* Navigation Items */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-4">
-          <nav className="space-y-0.5">
-            <div className="text-[12px] font-semibold text-[#86868B] dark:text-[#6E6E73] px-3 py-1.5 tracking-wider uppercase">
-              Workflows
-            </div>
-
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleSelectTab(item.id)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-[6px] text-[14px] transition-colors ${isActive
-                    ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
-                    : 'text-[#1D1D1F] dark:text-[#E5E5EA] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
-                  }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 stroke-[1.5] ${isActive ? 'text-[#0071E3] dark:text-[#2997FF]' : 'text-[#6E6E73] dark:text-[#8E8E93]'}`} />
-                  <span className="truncate">{item.label}</span>
-                </div>
-                {item.badge !== null && item.badge !== undefined && (
-                  <span
-                    className={`font-tabular text-[12px] px-2 py-0.5 rounded font-medium shrink-0 ml-2 ${item.badgeUrgent
-                        ? 'bg-[#FF3B30]/10 text-[#FF3B30] font-semibold dark:bg-[#FF453A]/20 dark:text-[#FF453A]'
-                        : isActive
-                          ? 'text-[#0071E3] font-semibold dark:text-[#2997FF]'
-                          : 'text-[#6E6E73] dark:text-[#8E8E93]'
-                      }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-
-          {/* Admin Tools */}
-          {isAdmin && (
-            <div className="pt-2 mt-2 border-t border-[#E5E5EA] dark:border-[#2C2C2E] space-y-0.5">
-              <div className="text-[12px] font-semibold text-[#86868B] dark:text-[#6E6E73] px-3 py-1.5 tracking-wider uppercase">
-                Administration
-              </div>
-
-              <button
-                onClick={() => handleSelectTab('employees')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-[6px] text-[14px] transition-colors ${activeTab === 'employees'
-                    ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
-                    : 'text-[#1D1D1F] dark:text-[#E5E5EA] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
-                  }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <UserCheck className={`w-4 h-4 shrink-0 stroke-[1.5] ${activeTab === 'employees' ? 'text-[#0071E3] dark:text-[#2997FF]' : 'text-[#6E6E73] dark:text-[#8E8E93]'}`} />
-                  <span className="truncate">Team</span>
-                </div>
-                <span className="font-tabular text-[12px] text-[#6E6E73] dark:text-[#8E8E93] shrink-0 ml-2">{staffList.length}</span>
-              </button>
-
-              <button
-                onClick={() => handleSelectTab('activity')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-[6px] text-[14px] transition-colors ${activeTab === 'activity'
-                    ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
-                    : 'text-[#1D1D1F] dark:text-[#E5E5EA] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
-                  }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <History className={`w-4 h-4 shrink-0 stroke-[1.5] ${activeTab === 'activity' ? 'text-[#0071E3] dark:text-[#2997FF]' : 'text-[#6E6E73] dark:text-[#8E8E93]'}`} />
-                  <span className="truncate">Activity Log</span>
-                </div>
-              </button>
-            </div>
-          )}
-        </nav>
-        </div>
+        {onCloseMobile && (
+          <button
+            onClick={onCloseMobile}
+            className="lg:hidden h-7 w-7 inline-flex items-center justify-center rounded-md text-fg-subtle hover:text-fg hover:bg-hover"
+            aria-label="Close menu"
+          >
+            <X className="w-4 h-4" strokeWidth={1.75} />
+          </button>
+        )}
       </div>
 
-      {/* Footer System Status */}
-      <div className="p-3 border-t border-[#E5E5EA] dark:border-[#2C2C2E] space-y-1 shrink-0 bg-[#FBFBFD] dark:bg-[#161618]">
-        {isAdmin && (
-          <>
-            <button
-              onClick={onOpenIntegrations}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 text-[12px] rounded-[6px] text-[#6E6E73] dark:text-[#8E8E93] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Database className="w-3.5 h-3.5 stroke-[1.5]" />
-                <span>Database Sync</span>
-              </div>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#34C759]" title="Connected to Supabase" />
-            </button>
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        {section('Workspace', workspace)}
+        {section('Relationships', relationships)}
+        {isAdmin && section('Practice', admin)}
+      </nav>
 
-            <button
-              onClick={() => handleSelectTab('settings')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-[12px] rounded-[6px] transition-colors ${activeTab === 'settings'
-                  ? 'bg-[#EBF4FC] text-[#0071E3] font-semibold dark:bg-[#0071E3]/20 dark:text-[#2997FF]'
-                  : 'text-[#6E6E73] dark:text-[#8E8E93] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
-                }`}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 stroke-[1.5]" />
-              <span>Settings</span>
-            </button>
-          </>
-        )}
-
-        {!isAdmin && (
-          <div className="flex items-center justify-between px-2.5 py-1 text-[11px] text-[#86868B] dark:text-[#6E6E73]">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#34C759]" />
-              <span>Online • Practice Cloud</span>
-            </div>
-            <span className="text-[10px] font-mono">v1.0</span>
+      <div className="px-3 py-3 border-t border-line shrink-0">
+        {isAdmin ? (
+          <button
+            onClick={onOpenIntegrations}
+            className="w-full h-8 flex items-center gap-2.5 px-2.5 rounded-md text-xs text-fg-subtle hover:text-fg hover:bg-hover transition-colors"
+          >
+            <Database className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <span className="flex-1 text-left">Cloud sync</span>
+            <StatusDot tone="success" title="Connected" />
+          </button>
+        ) : (
+          <div className="h-8 flex items-center gap-2.5 px-2.5 text-xs text-fg-subtle">
+            <StatusDot tone="success" />
+            <span className="flex-1">Connected</span>
+            <span className="ident text-2xs text-fg-faint">v2.0</span>
           </div>
         )}
       </div>
@@ -218,21 +169,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Desktop Persistent Sidebar */}
-      <aside className="hidden lg:block shrink-0 h-screen">
-        {sidebarContent}
-      </aside>
+      <aside className="hidden lg:block shrink-0 h-full">{content}</aside>
 
-      {/* Mobile Drawer Overlay & Sliding Sidebar */}
       {isMobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
-            onClick={onCloseMobile}
-          />
-          <div className="relative z-10 animate-in slide-in-from-left duration-200 shadow-2xl h-screen">
-            {sidebarContent}
-          </div>
+          <div className="fixed inset-0 bg-black/40 animate-fade-in" onClick={onCloseMobile} />
+          <div className="relative z-10 h-full shadow-dialog animate-slide-in-left">{content}</div>
         </div>
       )}
     </>

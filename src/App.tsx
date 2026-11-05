@@ -19,6 +19,7 @@ import { NewTicketModal } from './components/NewTicketModal';
 import { CommandPalette } from './components/CommandPalette';
 import { LoginView } from './components/LoginView';
 import { PracticeConfigManager } from './components/PracticeConfigManager';
+import { Avatar, Button, Card, EmptyState, PageHeader } from './components/ui';
 import { 
   fetchPracticeConfigs, 
   savePracticeConfigOption, 
@@ -813,11 +814,11 @@ export function App() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex bg-[#FAFAFA] dark:bg-[#121214] text-[#09090B] dark:text-[#F5F5F7] font-sans font-medium">
+    <div className="h-screen w-screen overflow-hidden flex bg-canvas text-fg">
       {/* Toast */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-[#1D1D1F] dark:bg-[#FFFFFF] text-white dark:text-[#1D1D1F] px-3.5 py-2 rounded-[8px] shadow-2xl flex items-center gap-2 text-[13px] font-medium animate-in fade-in slide-in-from-bottom-2 duration-150">
-          <Check className="w-3.5 h-3.5 text-[#34C759]" strokeWidth={2} />
+        <div role="status" className="fixed bottom-5 right-5 z-[60] bg-ink text-ink-fg pl-3 pr-4 h-10 rounded-lg shadow-dialog flex items-center gap-2.5 text-sm font-medium animate-toast-in">
+          <Check className="w-4 h-4 text-success" strokeWidth={2} />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -857,24 +858,20 @@ export function App() {
           onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
         />
 
-        <main className="flex-1 p-6 lg:p-8 overflow-y-auto space-y-6">
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-7 space-y-6">
           {/* Active staff filter indicator */}
           {activeStaffFilter && (
-            <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] px-3 py-2 flex items-center justify-between text-[13px]">
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-[#E5E5EA] dark:bg-[#2C2C2E] font-medium text-[10px] flex items-center justify-center">
-                  {activeStaffFilter.initials}
-                </span>
-                <span className="text-[#6E6E73] dark:text-[#8E8E93]">Filtered by:</span>
-                <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">{activeStaffFilter.name}</span>
-                <span className="text-[#6E6E73] dark:text-[#8E8E93]">({activeStaffFilter.role})</span>
+            <div className="flex items-center justify-between gap-3 h-10 pl-2 pr-1.5 rounded-lg border border-line bg-surface text-sm shadow-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <Avatar initials={activeStaffFilter.initials} size="xs" />
+                <span className="text-fg-subtle">Showing work for</span>
+                <span className="font-medium text-fg truncate">{activeStaffFilter.name}</span>
+                <span className="text-fg-faint hidden sm:inline">· {activeStaffFilter.role}</span>
               </div>
-              <button
-                onClick={() => setSelectedStaffId(null)}
-                className="text-[12px] text-[#0071E3] dark:text-[#2997FF] hover:underline"
-              >
+              <Button size="sm" variant="ghost" onClick={() => setSelectedStaffId(null)}>
                 Clear Filter
-              </button>
+              </Button>
             </div>
           )}
 
@@ -987,7 +984,7 @@ export function App() {
                 onSelectClient={handleSelectClient}
               />
 
-              <div className="pt-6 border-t border-[#E5E5EA] dark:border-[#2C2C2E]">
+              <div className="pt-2">
                 <StaffWorkloadView
                   staffList={staffList}
                   tasks={monthlyTasks}
@@ -1019,13 +1016,9 @@ export function App() {
                 }}
               />
             ) : (
-              <div className="p-8 bg-[#FFFFFF] dark:bg-[#1C1C1E] rounded-[8px] border border-[#FF3B30]/30 text-center max-w-md mx-auto mt-10">
-                <ShieldAlert className="w-8 h-8 text-[#FF3B30] mx-auto mb-2 stroke-[1.5]" />
-                <h2 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Access Restricted</h2>
-                <p className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] mt-1">
-                  Employee account management is restricted to Practice Administrators.
-                </p>
-              </div>
+              <Card className="max-w-md mx-auto mt-10">
+                <EmptyState icon={ShieldAlert} title="Restricted to administrators" description="Team management is available to Shameer and Ameen only." />
+              </Card>
             )
           )}
 
@@ -1034,29 +1027,20 @@ export function App() {
             isAdmin ? (
               <ActivityHistory logs={activityLogs} />
             ) : (
-              <div className="p-8 bg-[#FFFFFF] dark:bg-[#1C1C1E] rounded-[8px] border border-[#FF3B30]/30 text-center max-w-md mx-auto mt-10">
-                <ShieldAlert className="w-8 h-8 text-[#FF3B30] mx-auto mb-2 stroke-[1.5]" />
-                <h2 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Access Restricted</h2>
-                <p className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] mt-1">
-                  Activity logs are restricted to Practice Administrators.
-                </p>
-              </div>
+              <Card className="max-w-md mx-auto mt-10">
+                <EmptyState icon={ShieldAlert} title="Restricted to administrators" description="The audit trail is available to Shameer and Ameen only." />
+              </Card>
             )
           )}
 
           {/* VIEW: Settings */}
           {activeTab === 'settings' && (
-            <div className="space-y-6 text-[13px]">
-              <div>
-                <h1 className="text-[22px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
-                  Firm Settings &amp; Dropdown Configurations
-                </h1>
-                <p className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-                  Manage practice metadata, filing types, return categories, and live Supabase cloud database sync
-                </p>
-              </div>
+            <div className="space-y-6">
+              <PageHeader
+                title="Settings"
+                description="Firm profile, dropdown lists, message templates and data backup."
+              />
 
-              {/* Practice Configuration Manager (Admins can customize dropdowns, templates, firm bank details & backup) */}
               <PracticeConfigManager
                 configs={practiceConfigs}
                 onAddOption={handleAddConfigOption}
@@ -1071,6 +1055,7 @@ export function App() {
               />
             </div>
           )}
+          </div>
         </main>
       </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, Copy, Check } from 'lucide-react';
+import { Send, Copy, Check, MessageSquare } from 'lucide-react';
+import { Button, Field, Input, Label, Modal, Segmented, Textarea, formatINR } from './ui';
 import { MonthlyTask, ITRFiling, StaffTicket, DebtorRecord, GSTComplianceItem } from '../types/crm';
 import { 
   getStoredWhatsAppTemplates, 
@@ -22,8 +23,7 @@ interface WhatsAppModalProps {
   firmProfile?: FirmProfileSettings;
 }
 
-export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
-  isOpen,
+const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
   onClose,
   task,
   itrFiling,
@@ -34,8 +34,6 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   customTemplates,
   firmProfile: propFirmProfile,
 }) => {
-  if (!isOpen || (!task && !itrFiling && !debtor && !ticket && !gstItem)) return null;
-
   const storedTemplates = customTemplates || getStoredWhatsAppTemplates();
   const profile = propFirmProfile || getStoredFirmProfile();
 
@@ -216,124 +214,69 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const contextLabel = ticket
+    ? ticket.ticketNo
+    : debtor
+      ? `${formatINR(debtor.currentBalance ?? debtor.outstandingBalance ?? 0)} outstanding`
+      : gstItem
+        ? `${gstItem.returnType} · ${gstItem.filingMonth}`
+        : task
+          ? `${task.filingType} · ${task.period}`
+          : `${itrFiling?.itrForm} · ${itrFiling?.assessmentYear}`;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-      <div 
-        className="w-full max-w-lg bg-[#FFFFFF] dark:bg-[#1C1C1E] rounded-[8px] border border-[#E5E5EA] dark:border-[#2C2C2E] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
+    <Modal
+      isOpen
+      onClose={onClose}
+      size="md"
+      icon={MessageSquare}
+      title={ticket ? 'Call follow-up' : debtor ? 'Fee reminder' : 'WhatsApp message'}
+      description={`${tradeName}${clientName !== tradeName ? ` · ${clientName}` : ''}`}
+      footer={
+        <>
+          <Button variant="ghost" icon={copied ? Check : Copy} onClick={handleCopy} className="mr-auto">
+            {copied ? 'Copied' : 'Copy Text'}
+          </Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" icon={Send} onClick={handleOpenWhatsApp} disabled={!phone || !message.trim()}>
+            Open in WhatsApp
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Recipient number" hint="Country code included, digits only">
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="font-mono" />
+          </Field>
           <div>
-            <h3 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
-              {ticket 
-                ? 'Follow-up Call' 
-                : (debtor ? 'Fee Reminder' : 'Message on WhatsApp')}
-            </h3>
-            <p className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-              Recipient: {clientName} ({tradeName})
-            </p>
-          </div>
-          <button 
-            onClick={onClose}
-            className="p-1 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] rounded"
-          >
-            <X className="w-4 h-4 stroke-[1.5]" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-5 overflow-y-auto space-y-4 text-[13px]">
-          {/* Recipient Details Bar */}
-          <div className="grid grid-cols-2 gap-3 p-3 bg-[#F2F2F7] dark:bg-[#242426] rounded-[6px]">
-            <div>
-              <span className="text-[#6E6E73] dark:text-[#8E8E93] block text-[11px]">Phone number</span>
-              <input 
-                type="text" 
-                value={phone} 
-                onChange={(e) => setPhone(e.target.value)} 
-                className="mt-1 w-full bg-[#FFFFFF] dark:bg-[#3A3A3C] px-2 py-1 rounded-[4px] border border-[#E5E5EA] dark:border-[#48484A] font-tabular text-[12px] focus:outline-none focus:border-[#0071E3] text-[#1D1D1F] dark:text-[#F5F5F7]"
-              />
-            </div>
-            <div>
-              <span className="text-[#6E6E73] dark:text-[#8E8E93] block text-[11px]">Context</span>
-              <span className="font-tabular text-[#1D1D1F] dark:text-[#F5F5F7] block mt-1 font-medium truncate">
-                {ticket 
-                  ? `${ticket.ticketNo}`
-                  : (debtor 
-                    ? `Due: ₹${debtor.outstandingBalance.toLocaleString('en-IN')}` 
-                    : (task ? `${task.filingType}` : `${itrFiling?.itrForm}`))}
-              </span>
-            </div>
-          </div>
-
-          {/* Template Selector */}
-          <div>
-            <label className="text-[11px] font-semibold text-[#86868B] dark:text-[#6E6E73] uppercase tracking-wider mb-1.5 block">
-              Message Template
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-              {activeTemplates.map((tpl, idx) => (
-                <button
-                  key={tpl.id}
-                  type="button"
-                  onClick={() => handleSelectTemplate(idx)}
-                  className={`px-2 py-1 text-[12px] rounded-[5px] text-center transition-colors ${
-                    selectedTemplateIndex === idx
-                      ? 'bg-[#0071E3] text-white font-medium'
-                      : 'bg-[#F2F2F7] dark:bg-[#242426] text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
-                  }`}
-                >
-                  {tpl.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Message Area */}
-          <div>
-            <label className="text-[11px] font-semibold text-[#86868B] dark:text-[#6E6E73] uppercase tracking-wider mb-1.5 block">
-              Message Text
-            </label>
-            <textarea
-              rows={6}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="w-full p-3 text-[13px] bg-[#F2F2F7] dark:bg-[#242426] rounded-[6px] border border-[#E5E5EA] dark:border-[#3A3A3C] focus:outline-none focus:border-[#0071E3] leading-relaxed text-[#1D1D1F] dark:text-[#F5F5F7]"
-            />
+            <Label>Regarding</Label>
+            <div className="h-8 px-2.5 flex items-center rounded-md border border-line bg-subtle text-sm text-fg num truncate">{contextLabel}</div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-5 py-3 border-t border-[#E5E5EA] dark:border-[#2C2C2E] flex items-center justify-between">
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] bg-[#F2F2F7] dark:bg-[#242426] rounded-[6px] hover:bg-[#E5E5EA] dark:hover:bg-[#3A3A3C] transition-colors"
-          >
-            {copied ? <Check className="w-3.5 h-3.5 text-[#34C759]" /> : <Copy className="w-3.5 h-3.5 text-[#6E6E73] stroke-[1.5]" />}
-            <span>{copied ? 'Copied' : 'Copy'}</span>
-          </button>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 text-[13px] text-[#6E6E73] hover:text-[#1D1D1F]"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenWhatsApp}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-[13px] font-medium text-white bg-[#34C759] hover:bg-[#30B753] rounded-[6px] transition-colors"
-            >
-              <Send className="w-3 h-3 stroke-[1.5]" />
-              <span>Send WhatsApp</span>
-            </button>
-          </div>
+        <div>
+          <Label>Template</Label>
+          <Segmented
+            size="sm"
+            value={String(selectedTemplateIndex)}
+            onChange={(v) => handleSelectTemplate(Number(v))}
+            options={activeTemplates.map((tpl, idx) => ({ value: String(idx), label: tpl.label }))}
+            className="w-full"
+          />
         </div>
+
+        <Field label="Message">
+          <Textarea rows={9} value={message} onChange={(e) => setMessage(e.target.value)} className="leading-6" />
+        </Field>
+        <div className="text-xs text-fg-subtle num text-right -mt-2">{message.length} characters</div>
       </div>
-    </div>
+    </Modal>
   );
 };
+
+/** Mounts only while open with a subject, so hooks never run conditionally. */
+export const WhatsAppModal: React.FC<WhatsAppModalProps> = (props) =>
+  props.isOpen && (props.task || props.itrFiling || props.debtor || props.ticket || props.gstItem) ? <WhatsAppModalForm {...props} /> : null;

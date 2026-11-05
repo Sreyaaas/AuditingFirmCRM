@@ -33,7 +33,7 @@ The UI is built for senior accountants and tax practitioners working with compli
 ### 🚫 Explicit Ban List ("AI Slop" Anti-Patterns)
 1. **NO 3D Glossy / Gradient Spheres or Orbs:**
    * Never use glossy, shaded, or spherically gradient dots (e.g. pink, green, or orange shaded 3D balls).
-   * Status indicators must be flat, clean, 1.5px/2px hairline badges or subtle flat solid dots (`w-1.5 h-1.5 rounded-full bg-[#34C759]`).
+   * Status indicators must be flat, clean, 1.5px/2px hairline badges or subtle flat solid dots (`<StatusDot tone="success" />`).
 2. **NO Mesh or Rainbow Gradients:**
    * Avoid multi-color gradients (purple-to-pink, cyan-to-purple, orange-to-magenta).
    * Keep background surfaces calm, solid, and monochromatic.
@@ -49,34 +49,34 @@ The UI is built for senior accountants and tax practitioners working with compli
 
 ---
 
-## 3. Design Tokens & Styling Rules
+## 3. Design Tokens & Styling Rules (v2 "Ledger")
+
+All colour is token-driven. Tokens live as RGB channels in `src/index.css` and map to Tailwind utilities in `tailwind.config.js`. A single class is correct in both themes — **never write `dark:` colour pairs or raw hex classes** (`bg-[#…]`, `text-[#…]`). Only the logo swap uses `dark:`.
 
 ### Color Foundations
-| Surface / Role | Light Mode | Dark Mode | Usage |
+| Token (utility) | Light | Dark | Usage |
 | :--- | :--- | :--- | :--- |
-| **App Canvas** | `#FAFAFA` | `#121214` | Global background |
-| **Surface Cards & Modals** | `#FFFFFF` | `#1C1C1E` | Table containers, dialogs, cards |
-| **Sub-surfaces & Insets** | `#F2F2F7` | `#242426` | Filter bars, code blocks, input fills |
-| **Hairline Borders** | `1px solid #E5E5EA` | `1px solid #2C2C2E` | Subtle dividers and outlines |
-| **Subtle Hover Borders** | `#D1D1D6` | `#3A3A3C` | Input borders on hover/focus |
-| **Primary Accent** | `#0071E3` (Apple Blue) | `#2997FF` | Primary CTA, active tab, links |
-| **Primary Text** | `#1D1D1F` | `#F5F5F7` | Headings, company titles, key metrics |
-| **Muted / Secondary Text** | `#6E6E73` | `#8E8E93` | Metadata, subtitles, column headers |
-| **Tertiary Micro-labels** | `#86868B` | `#6E6E73` | Eyebrow labels, timestamps |
+| `bg-canvas` | `#F8F8F9` | `#0C0C0E` | App background, sidebar, header |
+| `bg-surface` | `#FFFFFF` | `#161619` | Cards, tables, dialogs |
+| `bg-subtle` | `#F4F4F6` | `#1D1D21` | Table heads, insets, segmented tracks |
+| `bg-hover` | `#EFEFF2` | `#242429` | Row / item hover |
+| `bg-muted` | `#E4E4E8` | `#2E2E34` | Avatars, progress tracks |
+| `border-line` | `#E6E6EA` | `#27272C` | Hairlines |
+| `border-line-strong` | `#D4D4DA` | `#3A3A42` | Input borders |
+| `text-fg` | `#18181B` | `#F4F4F5` | Primary text, figures |
+| `text-fg-muted` | `#52525B` | `#ACACB4` | Secondary text |
+| `text-fg-subtle` | `#71717A` | `#86868F` | Metadata, column heads |
+| `text-fg-faint` | `#A1A1AA` | `#5C5C65` | Placeholders, disabled, em-dash |
+| `bg-ink` / `text-ink-fg` | `#18181B` | `#F4F4F5` | **Primary buttons** (near-black / near-white) |
+| `accent` | `#0066D6` | `#4D9AFF` | Focus rings, links, active nav icon, "info" tone |
 
-### Restrained Semantic Status Tints (Flat, Never 3D)
-* **Filed / Cleared / Active:**
-  * Foreground: `#16A34A` (light) / `#34C759` (dark)
-  * Background: `bg-[#16A34A]/10` (light) / `bg-[#34C759]/15` (dark)
-  * Border: `border-[#16A34A]/20`
-* **Overdue / Critical:**
-  * Foreground: `#DC2626` (light) / `#FF453A` (dark)
-  * Background: `bg-[#DC2626]/10` (light) / `bg-[#FF453A]/15` (dark)
-  * Border: `border-[#DC2626]/20`
-* **Due Soon / Pending Review:**
-  * Foreground: `#D97706` (light) / `#FF9F0A` (dark)
-  * Background: `bg-[#D97706]/10` (light) / `bg-[#FF9F0A]/15` (dark)
-  * Border: `border-[#D97706]/20`
+### Restrained Semantic Status (Flat, Never 3D)
+`success` `#15803D`/`#4AC978` · `warning` `#B45309`/`#F0A83C` · `danger` `#C81E1E`/`#F86460`.
+Express status only through the `Badge` (tone + optional dot) and `StatusDot` primitives — tinted at 7–8% fill with a 20% border. Never colour whole rows or KPI numbers.
+
+### Shared Primitives (`src/components/ui`)
+Use these instead of hand-rolled markup: `Button` (primary · secondary · ghost · danger · accent; sm h-7 / md h-8 / lg h-9), `IconButton`, `Input`, `Select`, `Textarea`, `Field`, `SearchInput`, `Badge`, `StatusDot`, `Avatar`, `Kbd`, `Card`/`CardHeader`, `PageHeader`, `Metric`/`MetricGrid`, `Segmented`, `Tabs`, `Toolbar`, `TableCard`, `Pagination`, `Menu`, `Modal`, `DescriptionList`, `Progress`, `EmptyState`; helpers `cn`, `formatINR`, `formatDate`, `statusTone`.
+Tables use the `.data-table` class (36px head, 44px rows). Copy: sentence case for headings and labels, Title Case for button labels.
 
 ---
 
@@ -86,7 +86,7 @@ The UI is built for senior accountants and tax practitioners working with compli
   * System Font Stack: **SF Pro Text / Inter / -apple-system** (`font-sans`). Restrained, enterprise-grade Apple HIG typography.
   * **Professional Grade Legibility (No Tiny AI Slop Text):**
     * Standard Body & Table Text: `13px` - `14px` (never tiny illegible 9px or 10px).
-    * Metadata & Secondary Labels: Minimum `12px` (`text-[#6E6E73]`).
+    * Metadata & Secondary Labels: Minimum `12px` (`text-fg-subtle`).
     * Headers & Titles: `16px` - `24px` with clear typographic hierarchy.
     * Micro-Labels: `11px` - `12px` font-semibold uppercase tracking-wider.
 * **Tabular Numerals (`font-mono` or `font-tabular`):**
@@ -102,8 +102,8 @@ The UI is built for senior accountants and tax practitioners working with compli
 ## 5. Themes
 
 The CRM strictly supports 2 themes via `data-theme`:
-1. **Light Minimal** (`light`): Clean Apple / Vercel monochromatic canvas (`#FAFAFA` background, `#FFFFFF` cards, `#0071E3` accent).
-2. **Dark Mode** (`dark`): Midnight OLED charcoal (`#121214` canvas, `#1C1C1E` cards, `#2997FF` accent).
+1. **Light** (`light`): neutral zinc canvas (`#F8F8F9`), white surfaces, ink primary actions, blue accent for focus/links.
+2. **Dark** (`dark`): `#0C0C0E` canvas, `#161619` surfaces, near-white primary actions, `#4D9AFF` accent.
 
 ---
 
@@ -111,24 +111,18 @@ The CRM strictly supports 2 themes via `data-theme`:
 
 ### Continuous Top Chrome Alignment (Sidebar Brand & Header)
 * Both the Sidebar Brand header and the main Header MUST share the EXACT same height: `h-14` (`56px`).
-* Both must use `border-b border-[#E5E5EA] dark:border-[#2C2C2E]` so the horizontal dividing line forms one unbroken, continuous hairline across the entire screen from left to right.
+* Both must use `border-b border-line` so the horizontal dividing line forms one unbroken, continuous hairline across the entire screen from left to right.
 * All controls in the top-right toolbar (Theme switch, Search bar, User profile button, `+ Add Task` CTA) must share an exact uniform height of `h-8` (`32px`) and `rounded-[6px]`.
 * Viewport root must be `h-screen w-screen overflow-hidden flex`, with vertical scrolling strictly contained within `<main className="flex-1 overflow-y-auto">`, preventing browser scrollbars from ever appearing adjacent to the top header chrome.
 
 ### Centered Modals (Dialogs)
-* Structure:
-  ```tsx
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
-    <div className="w-full max-w-3xl max-h-[92vh] bg-white dark:bg-[#1C1C1E] rounded-[12px] border border-[#E5E5EA] dark:border-[#2C2C2E] shadow-2xl flex flex-col overflow-hidden">
-      {/* Header, Scrollable Body, and Footer */}
-    </div>
-  </div>
-  ```
-* Include keyboard support: Close on `Escape` key and click outside.
+* Always use the `Modal` primitive (`src/components/ui`): centred, `max-w-md` / `max-w-2xl` / `max-w-3xl`, header + scrollable body + footer, Escape and backdrop-click dismissal, close button labelled `Close dialog`.
+* Forms inside a dialog submit through the footer: `<Button type="submit" form="<form-id>">`.
+* Dialogs with internal state mount only while open (gate component), so hooks never run conditionally.
 
 ### Tables
-* Header: 36px height, subtle uppercase text, muted grey, 1px bottom border.
-* Row: 44px to 52px height, subtle hover background (`hover:bg-[#F2F2F7] dark:hover:bg-[#242426]`).
+* Use `<TableCard>` + `<table className="data-table">`. Header: 36px, 11px uppercase `text-fg-subtle` on `bg-subtle`.
+* Row: 44px, hover `bg-subtle`. Numbers right-aligned with `.num`; identifiers (GSTIN, PAN, ARN, phone) with `.ident`.
 * Actions: Always right-aligned with clear labels (e.g. WhatsApp CTA, View Details).
 
 ### OneDrive & Document Repositories

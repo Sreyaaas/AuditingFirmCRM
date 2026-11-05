@@ -328,7 +328,7 @@ async function runTests() {
       await susmiOption.click();
       await driver.sleep(600);
 
-      const sidebar = await driver.findElement(By.xpath("//nav/ancestor::div[contains(@class, 'w-64')]"));
+      const sidebar = await driver.findElement(By.xpath("//nav/ancestor::div[contains(@class, 'w-60')]"));
       const sidebarText = await sidebar.getText();
 
       const hasTeam = sidebarText.includes('Team');

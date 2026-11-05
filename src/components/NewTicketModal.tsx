@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, PhoneCall } from 'lucide-react';
+import { PhoneCall } from 'lucide-react';
+import { Button, Field, Input, Modal, Select, Textarea } from './ui';
 import { StaffTicket, Client, StaffMember, TicketCategory, TicketPriority } from '../types/crm';
 
 interface NewTicketModalProps {
@@ -11,7 +12,7 @@ interface NewTicketModalProps {
   currentStaffId?: string | null;
 }
 
-export const NewTicketModal: React.FC<NewTicketModalProps> = ({
+const NewTicketModalForm: React.FC<NewTicketModalProps> = ({
   isOpen,
   onClose,
   clients,
@@ -19,8 +20,6 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({
   onAddTicket,
   currentStaffId,
 }) => {
-  if (!isOpen) return null;
-
   const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || '');
   const [callerName, setCallerName] = useState('');
   const [callerPhone, setCallerPhone] = useState(clients[0]?.phone || '');
@@ -71,184 +70,105 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-      <div 
-        className="w-full max-w-xl bg-[#FFFFFF] dark:bg-[#1C1C1E] rounded-[8px] border border-[#E5E5EA] dark:border-[#2C2C2E] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-          <div>
-            <h3 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">Log Client Call / Ticket</h3>
-            <p className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">Record client inquiry and assign executive</p>
-          </div>
-          <button onClick={onClose} className="p-1 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]">
-            <X className="w-4 h-4 stroke-[1.5]" />
-          </button>
+    <Modal
+      isOpen
+      onClose={onClose}
+      size="md"
+      icon={PhoneCall}
+      title="Log client call"
+      description="Record the request and route it to an owner."
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" form="new-ticket-form">
+            Log Call
+          </Button>
+        </>
+      }
+    >
+      <form id="new-ticket-form" onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Client">
+          <Select value={selectedClientId} onChange={(e) => handleClientChange(e.target.value)}>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.tradeName} · {c.clientCode}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field label="Caller">
+            <Input placeholder="Director, accountant…" value={callerName} onChange={(e) => setCallerName(e.target.value)} />
+          </Field>
+          <Field label="Phone">
+            <Input value={callerPhone} onChange={(e) => setCallerPhone(e.target.value)} className="font-mono" />
+          </Field>
+          <Field label="Channel">
+            <Select value={callType} onChange={(e) => setCallType(e.target.value as any)}>
+              <option value="Inbound Phone Call">Phone</option>
+              <option value="WhatsApp Query">WhatsApp</option>
+              <option value="Office Visit">Office visit</option>
+              <option value="Email Inquiry">Email</option>
+            </Select>
+          </Field>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 text-[13px]">
-          <div>
-            <label className="text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] block mb-1">
-              Client Account
-            </label>
-            <select
-              value={selectedClientId}
-              onChange={(e) => handleClientChange(e.target.value)}
-              className="w-full px-3 py-1.5 bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none"
-            >
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.tradeName} ({c.name} • {c.clientCode})
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field label="Subject" required className="sm:col-span-2">
+            <Input required placeholder="Provisional balance sheet for bank sanction" value={subject} onChange={(e) => setSubject(e.target.value)} />
+          </Field>
+          <Field label="Category">
+            <Select value={category} onChange={(e) => setCategory(e.target.value as TicketCategory)}>
+              <option value="GST & Return Query">GST query</option>
+              <option value="Income Tax Notice">Tax notice</option>
+              <option value="Bank Loan / Computation">Bank loan</option>
+              <option value="Accounting & Books">Accounting</option>
+              <option value="DSC & Portal Access">DSC &amp; portal</option>
+              <option value="General Inquiry">General</option>
+            </Select>
+          </Field>
+        </div>
+
+        <Field label="Notes">
+          <Textarea rows={3} placeholder="What was requested, and by when?" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-line">
+          <Field label="Priority">
+            <Select value={priority} onChange={(e) => setPriority(e.target.value as TicketPriority)}>
+              <option value="Urgent">Urgent</option>
+              <option value="High">High</option>
+              <option value="Normal">Normal</option>
+              <option value="Low">Low</option>
+            </Select>
+          </Field>
+          <Field label="Assign to">
+            <Select value={assignedStaffId} onChange={(e) => setAssignedStaffId(e.target.value)}>
+              <option value="unassigned">Unassigned</option>
+              {staffList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
                 </option>
               ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] block mb-1">Caller Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Director / Accountant"
-                value={callerName}
-                onChange={(e) => setCallerName(e.target.value)}
-                className="w-full px-3 py-1.5 bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none focus:border-[#0071E3] text-[#1D1D1F] dark:text-[#F5F5F7]"
-              />
-            </div>
-            <div>
-              <label className="text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] block mb-1">Phone Number</label>
-              <input
-                type="text"
-                value={callerPhone}
-                onChange={(e) => setCallerPhone(e.target.value)}
-                className="w-full px-3 py-1.5 font-tabular bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none focus:border-[#0071E3] text-[#1D1D1F] dark:text-[#F5F5F7]"
-              />
-            </div>
-            <div>
-              <label className="text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] block mb-1">Channel</label>
-              <select
-                value={callType}
-                onChange={(e) => setCallType(e.target.value as any)}
-                className="w-full px-3 py-1.5 bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none text-[#1D1D1F] dark:text-[#F5F5F7]"
-              >
-                <option value="Inbound Phone Call">Inbound Call</option>
-                <option value="WhatsApp Query">WhatsApp</option>
-                <option value="Office Visit">Office Visit</option>
-                <option value="Email Inquiry">Email</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="sm:col-span-2">
-              <label className="text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] block mb-1">
-                Subject / Request Topic
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Bank Sanction: Provisional Balance Sheet"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="w-full px-3 py-1.5 bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none focus:border-[#0071E3] text-[#1D1D1F] dark:text-[#F5F5F7]"
-              />
-            </div>
-            <div>
-              <label className="text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] block mb-1">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as TicketCategory)}
-                className="w-full px-3 py-1.5 bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none text-[#1D1D1F] dark:text-[#F5F5F7]"
-              >
-                <option value="GST & Return Query">GST Query</option>
-                <option value="Income Tax Notice">Tax Notice</option>
-                <option value="Bank Loan / Computation">Bank Loan</option>
-                <option value="Accounting & Books">Accounting</option>
-                <option value="DSC & Portal Access">DSC &amp; Portal</option>
-                <option value="General Inquiry">General</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] block mb-1">
-              Call Notes / Details
-            </label>
-            <textarea
-              rows={3}
-              placeholder="What did the client request? Deadlines mentioned?"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full p-2.5 bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] leading-relaxed focus:outline-none focus:border-[#0071E3] text-[#1D1D1F] dark:text-[#F5F5F7]"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-[#F2F2F7] dark:bg-[#242426] rounded-[6px]">
-            <div>
-              <label className="text-[11px] font-medium text-[#6E6E73] dark:text-[#8E8E93] block mb-1">Priority</label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as TicketPriority)}
-                className="w-full px-2 py-1 bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[4px] focus:outline-none text-[#1D1D1F] dark:text-[#F5F5F7]"
-              >
-                <option value="Urgent">Urgent</option>
-                <option value="High">High</option>
-                <option value="Normal">Normal</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-medium text-[#6E6E73] dark:text-[#8E8E93] block mb-1">Assign To</label>
-              <select
-                value={assignedStaffId}
-                onChange={(e) => setAssignedStaffId(e.target.value)}
-                className="w-full px-2 py-1 bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[4px] focus:outline-none text-[#1D1D1F] dark:text-[#F5F5F7]"
-              >
-                <option value="unassigned">Unassigned (Pool)</option>
-                {staffList.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-medium text-[#6E6E73] dark:text-[#8E8E93] block mb-1">Logged By</label>
-              <select
-                value={loggedByStaffId}
-                onChange={(e) => setLoggedByStaffId(e.target.value)}
-                className="w-full px-2 py-1 bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[4px] focus:outline-none text-[#1D1D1F] dark:text-[#F5F5F7]"
-              >
-                {staffList.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-[#E5E5EA] dark:border-[#2C2C2E] flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 text-[13px] text-[#6E6E73] hover:text-[#1D1D1F]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-1.5 text-[13px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[6px]"
-            >
-              Log Ticket
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+            </Select>
+          </Field>
+          <Field label="Logged by">
+            <Select value={loggedByStaffId} onChange={(e) => setLoggedByStaffId(e.target.value)}>
+              {staffList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+      </form>
+    </Modal>
   );
 };
+
+/** Mounts the form only while open, so its state resets on every open. */
+export const NewTicketModal: React.FC<NewTicketModalProps> = (props) => (props.isOpen ? <NewTicketModalForm {...props} /> : null);

@@ -1,14 +1,8 @@
 import React, { useState } from 'react';
-import { 
-  ChevronLeft, 
-  ChevronRight,
-  MessageSquare,
-  Search,
-  ArrowUpRight,
-  Plus
-} from 'lucide-react';
+import { MessageSquare, Plus } from 'lucide-react';
 import { Client, StaffMember } from '../types/crm';
 import { NewClientModal } from './NewClientModal';
+import { Avatar, Badge, Button, EmptyState, IconButton, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, formatINR } from './ui';
 
 interface ClientDirectoryProps {
   clients: Client[];
@@ -65,216 +59,150 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
 
   const getStaff = (id: string) => staffList.find((s) => s.id === id);
 
+  const recurringCount = clients.filter((c) => c.isRecurringGST || c.isRecurringStatutory).length;
+  const itrOnlyCount = clients.filter((c) => !c.isRecurringGST && !c.isRecurringStatutory).length;
+
   return (
-    <div className="space-y-5">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E] pb-3">
-        <div>
-          <h1 className="text-[22px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
-            Clients
-          </h1>
-          <p className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-            {clients.length} registered companies, firms, and individual accounts
-          </p>
-        </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Clients"
+        description={`${clients.length} companies, firms and individuals under engagement`}
+        actions={
+          isAdmin &&
+          onAddClient && (
+            <Button variant="primary" icon={Plus} onClick={() => setIsNewClientModalOpen(true)}>
+              Add Client
+            </Button>
+          )
+        }
+      />
 
-        <div className="flex items-center gap-3">
-          <div className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] font-tabular hidden sm:block">
-            {filteredClients.length} accounts listed
-          </div>
-
-          {isAdmin && onAddClient && (
-            <button
-              onClick={() => setIsNewClientModalOpen(true)}
-              className="h-8 px-3 rounded-[6px] bg-[#0071E3] hover:bg-[#0077ED] text-white text-[13px] font-medium flex items-center gap-1.5 transition-colors shadow-sm"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[2]" />
-              <span>Add Client</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Segmented Filter Control */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#F2F2F7] dark:bg-[#1C1C1E] p-1 rounded-[8px]">
-        <div className="flex flex-wrap items-center gap-1">
-          <button
-            onClick={() => { setTypeFilter('all'); setCurrentPage(1); }}
-            className={`px-3 py-1 text-[13px] rounded-[6px] transition-all ${
-              typeFilter === 'all'
-                ? 'bg-[#FFFFFF] dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold shadow-sm'
-                : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
-            }`}
-          >
-            All Accounts ({clients.length})
-          </button>
-          <button
-            onClick={() => { setTypeFilter('recurring'); setCurrentPage(1); }}
-            className={`px-3 py-1 text-[13px] rounded-[6px] transition-all ${
-              typeFilter === 'recurring'
-                ? 'bg-[#FFFFFF] dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold shadow-sm'
-                : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
-            }`}
-          >
-            Monthly Recurring ({clients.filter(c => c.isRecurringGST || c.isRecurringStatutory).length})
-          </button>
-          <button
-            onClick={() => { setTypeFilter('itr-only'); setCurrentPage(1); }}
-            className={`px-3 py-1 text-[13px] rounded-[6px] transition-all ${
-              typeFilter === 'itr-only'
-                ? 'bg-[#FFFFFF] dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold shadow-sm'
-                : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
-            }`}
-          >
-            Annual ITR Only ({clients.filter(c => !c.isRecurringGST && !c.isRecurringStatutory).length})
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <select
-            value={entityFilter}
-            onChange={(e) => {
-              setEntityFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="px-2.5 py-1 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] text-[12px] focus:outline-none"
-          >
-            <option value="all">All Entities</option>
-            {entityTypes.map((type) => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-
-          <div className="flex items-center gap-1.5 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-[#E5E5EA] dark:border-[#3A3A3C] px-2 py-1 rounded-[6px]">
-            <Search className="w-3.5 h-3.5 text-[#6E6E73] dark:text-[#8E8E93] stroke-[1.5]" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
+      <TableCard
+        toolbar={
+          <Toolbar className="justify-between">
+            <Segmented
+              size="sm"
+              value={typeFilter}
+              onChange={(v) => {
+                setTypeFilter(v);
                 setCurrentPage(1);
               }}
-              className="text-[12px] bg-transparent focus:outline-none placeholder:text-[#86868B] text-[#1D1D1F] dark:text-[#F5F5F7] w-28 sm:w-36"
+              options={[
+                { value: 'all', label: 'All', count: clients.length },
+                { value: 'recurring', label: 'Monthly retainer', count: recurringCount },
+                { value: 'itr-only', label: 'Annual ITR only', count: itrOnlyCount },
+              ]}
             />
-          </div>
-        </div>
-      </div>
-
-      {/* Directory Table */}
-      <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[8px] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-[14px] border-collapse">
-            <thead>
-              <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[11px] uppercase tracking-[0.04em] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-                <th className="py-2 px-3.5 font-semibold min-w-[200px]">Client Code &amp; Legal Name</th>
-                <th className="py-2 px-3.5 font-semibold">Entity Type</th>
-                <th className="py-2 px-3.5 font-semibold">GSTIN / PAN</th>
-                <th className="py-2 px-3.5 font-semibold">Staff</th>
-                <th className="py-2 px-3.5 font-semibold">Filing Plan</th>
-                <th className="py-2 px-3.5 font-semibold text-right">Actions</th>
+            <div className="flex items-center gap-2">
+              <Select
+                value={entityFilter}
+                onChange={(e) => {
+                  setEntityFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="h-7 text-xs w-auto"
+              >
+                <option value="all">All entities</option>
+                {entityTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </Select>
+              <SearchInput
+                placeholder="Name, GSTIN, PAN or city"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+                wrapperClassName="w-40 sm:w-56"
+                className="h-7 text-xs"
+              />
+            </div>
+          </Toolbar>
+        }
+        footer={
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredClients.length}
+            pageSize={itemsPerPage}
+            onChange={setCurrentPage}
+            noun="clients"
+          />
+        }
+      >
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th className="min-w-[240px]">Client</th>
+              <th>Entity</th>
+              <th>GSTIN / PAN</th>
+              <th>Owner</th>
+              <th>Engagement</th>
+              <th className="text-right">Monthly fee</th>
+              <th className="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedClients.length === 0 && (
+              <tr>
+                <td colSpan={7} className="!h-auto">
+                  <EmptyState title="No clients found" description="Try a different name, identifier or entity type." />
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">
-              {paginatedClients.map((client) => {
-                const staff = getStaff(client.assignedStaffId);
-                return (
-                  <tr key={client.id} className="hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors group">
-                    <td className="py-2.5 px-3.5">
-                      <button
-                        onClick={() => onSelectClient(client.id)}
-                        className="font-semibold text-[13.5px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-xs"
-                      >
-                        {client.tradeName}
-                      </button>
-                      <div className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] flex items-center gap-1.5 mt-0.5">
-                        <span className="font-mono tabular-nums font-medium">{client.clientCode}</span>
-                        <span>•</span>
-                        <span className="truncate">{client.name}</span>
-                      </div>
-                    </td>
+            )}
+            {paginatedClients.map((client) => {
+              const staff = getStaff(client.assignedStaffId);
+              return (
+                <tr key={client.id}>
+                  <td className="py-2">
+                    <button
+                      onClick={() => onSelectClient(client.id)}
+                      className="block max-w-xs truncate text-left font-medium text-fg hover:underline underline-offset-2"
+                    >
+                      {client.tradeName}
+                    </button>
+                    <div className="flex items-center gap-1.5 text-xs text-fg-subtle mt-0.5 min-w-0">
+                      <span className="ident text-2xs">{client.clientCode}</span>
+                      <span className="text-fg-faint">·</span>
+                      <span className="truncate">{client.name}</span>
+                    </div>
+                  </td>
+                  <td className="py-2 whitespace-nowrap">
+                    <div className="text-fg">{client.entityType}</div>
+                    <div className="text-xs text-fg-subtle">{client.city}</div>
+                  </td>
+                  <td className="py-2 whitespace-nowrap">
+                    <div className="ident text-fg">{client.gstin}</div>
+                    <div className="ident text-fg-subtle">{client.pan}</div>
+                  </td>
+                  <td className="whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      {staff && <Avatar initials={staff.initials} size="xs" />}
+                      <span className={staff ? 'text-fg' : 'text-fg-faint'}>{staff?.name || 'Unassigned'}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <Badge tone={client.isRecurringGST ? 'info' : 'neutral'}>{client.isRecurringGST ? 'Monthly GST' : 'Annual ITR'}</Badge>
+                  </td>
+                  <td className="num text-right text-fg whitespace-nowrap">{formatINR(client.monthlyAuditFee)}</td>
+                  <td className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <IconButton icon={MessageSquare} label="Message on WhatsApp" size="sm" onClick={() => onOpenWhatsAppForClient(client)} />
+                      <Button size="sm" onClick={() => onSelectClient(client.id)}>
+                        View Account
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </TableCard>
 
-                    <td className="py-2.5 px-3.5">
-                      <span className="text-[#1D1D1F] dark:text-[#F5F5F7] font-medium block">{client.entityType}</span>
-                      <span className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">{client.city}</span>
-                    </td>
-
-                    <td className="py-2.5 px-3.5 font-mono tabular-nums text-[12px]">
-                      <span className="text-[#1D1D1F] dark:text-[#F5F5F7] block">{client.gstin}</span>
-                      <span className="text-[#6E6E73] dark:text-[#8E8E93] block">{client.pan}</span>
-                    </td>
-
-                    <td className="py-2.5 px-3.5 text-[12.5px] text-[#1D1D1F] dark:text-[#F5F5F7]">
-                      {staff?.name || 'Unassigned'}
-                    </td>
-
-                    <td className="py-2.5 px-3.5">
-                      <span className={`inline-block px-1.5 py-0.2 rounded-[4px] text-[11px] font-medium ${
-                        client.isRecurringGST 
-                          ? 'bg-[#0071E3]/10 text-[#0071E3] dark:text-[#2997FF]' 
-                          : 'bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93]'
-                      }`}>
-                        {client.isRecurringGST ? 'Monthly GST' : 'Annual ITR'}
-                      </span>
-                      <div className="font-mono tabular-nums text-[11px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-                        ₹{client.monthlyAuditFee.toLocaleString('en-IN')}/mo
-                      </div>
-                    </td>
-
-                    <td className="py-2.5 px-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => onOpenWhatsAppForClient(client)}
-                          title="Message on WhatsApp"
-                          className="h-7 px-2 border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-[5px] flex items-center gap-1 transition-colors text-[11px] font-medium"
-                        >
-                          <MessageSquare className="w-3 h-3 text-[#16A34A] dark:text-[#34C759]" strokeWidth={1.5} />
-                          <span className="hidden sm:inline">Notice</span>
-                        </button>
-                        <button
-                          onClick={() => onSelectClient(client.id)}
-                          className="h-7 px-2 text-[11px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] bg-[#F2F2F7] dark:bg-[#2C2C2E] hover:bg-[#E5E5EA] dark:hover:bg-[#3A3A3C] rounded-[5px] transition-colors"
-                        >
-                          View Account
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="px-3 py-2 border-t border-[#E5E5EA] dark:border-[#2C2C2E] bg-[#FBFBFD] dark:bg-[#161618] flex items-center justify-between text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">
-          <span className="font-tabular">
-            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredClients.length)} of {filteredClients.length}
-          </span>
-
-          <div className="flex items-center gap-1 font-tabular">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="p-1 border border-[#E5E5EA] dark:border-[#2C2C2E] rounded hover:bg-white dark:hover:bg-[#2C2C2E] disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-3.5 h-3.5 stroke-[1.5]" />
-            </button>
-            <span className="px-2">
-              {currentPage} / {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="p-1 border border-[#E5E5EA] dark:border-[#2C2C2E] rounded hover:bg-white dark:hover:bg-[#2C2C2E] disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-3.5 h-3.5 stroke-[1.5]" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Admin New Client Registration Modal */}
       {isAdmin && onAddClient && (
         <NewClientModal
           isOpen={isNewClientModalOpen}

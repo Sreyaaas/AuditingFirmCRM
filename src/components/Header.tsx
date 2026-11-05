@@ -1,16 +1,7 @@
-import React, { useState } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Sun, 
-  Moon, 
-  Check, 
-  ChevronDown,
-  Shield,
-  Menu,
-  LogOut
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Search, Plus, Sun, Moon, Check, ChevronDown, Menu, LogOut } from 'lucide-react';
 import { UserProfile } from '../types/crm';
+import { Avatar, Button, IconButton, Kbd, cn } from './ui';
 
 interface HeaderProps {
   activeTab: string;
@@ -26,6 +17,27 @@ interface HeaderProps {
   onToggleMobileSidebar?: () => void;
 }
 
+const TAB_TITLES: Record<string, string> = {
+  dashboard: 'Overview',
+  'gst-tracker': 'Deadlines',
+  monthly: 'GST & Audit',
+  itr: 'ITR Returns',
+  clients: 'Clients',
+  debtors: 'Debtors',
+  staff: 'Calls & Tickets',
+  employees: 'Team',
+  activity: 'Audit Trail',
+  settings: 'Settings',
+};
+
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join('');
+
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   onOpenCommandPalette,
@@ -39,171 +51,114 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleMobileSidebar,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const isAdmin = currentUser.role === 'admin';
+  const title = TAB_TITLES[activeTab] || 'Overview';
 
-  const tabMeta: Record<string, { title: string; subtitle: string }> = {
-    dashboard: { title: 'Firm Overview', subtitle: 'Shameer & Associates • FY 2026-27' },
-    'gst-tracker': { title: 'Upcoming Deadlines & Filings', subtitle: 'GST & Statutory Compliance' },
-    monthly: { title: 'GST & Audit', subtitle: 'Monthly GST and TDS filings' },
-    itr: { title: 'Annual Tax Returns (ITR)', subtitle: 'Assessment Year 2026-27' },
-    clients: { title: 'Clients', subtitle: 'Registered Practice Entities' },
-    debtors: { title: 'Debtors', subtitle: 'Client Fee Accounts & Collections' },
-    staff: { title: 'Client Calls & Follow-ups', subtitle: 'Inbound Inquiries & Workload Queue' },
-    employees: { title: 'Team', subtitle: 'Staff Accounts & Access Controls' },
-    activity: { title: 'Activity History & Audit Trail', subtitle: 'Immutable System Activity' },
-    settings: { title: 'Firm Settings', subtitle: 'Practice Parameters & Setup' },
-  };
-
-  const currentTabInfo = tabMeta[activeTab] || { title: 'Firm Overview', subtitle: 'Shameer & Associates' };
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setIsUserMenuOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isUserMenuOpen]);
 
   return (
-    <header className="h-14 px-4 sm:px-6 flex items-center justify-between border-b border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] sticky top-0 z-20 shrink-0 transition-colors">
-      {/* Left: Mobile hamburger + Active Screen Title & Breadcrumb */}
-      <div className="flex items-center gap-3 min-w-0">
+    <header className="h-14 px-4 sm:px-6 flex items-center gap-4 border-b border-line bg-canvas shrink-0 z-20">
+      {/* Left — breadcrumb */}
+      <div className="flex items-center gap-2 min-w-0 flex-1">
         {onToggleMobileSidebar && (
-          <button
-            onClick={onToggleMobileSidebar}
-            className="lg:hidden p-1.5 -ml-1 text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] rounded-[6px]"
-            aria-label="Toggle navigation menu"
-          >
-            <Menu className="w-5 h-5 stroke-[1.5]" />
-          </button>
+          <IconButton icon={Menu} label="Toggle navigation menu" onClick={onToggleMobileSidebar} className="lg:hidden -ml-1.5" />
         )}
-        <div className="min-w-0 flex items-center gap-2">
-          <h1 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight truncate">
-            {currentTabInfo.title}
-          </h1>
-          <span className="hidden sm:inline-block text-[#D1D1D6] dark:text-[#3A3A3C] text-[13px]">/</span>
-          <span className="text-[12px] text-[#86868B] dark:text-[#8E8E93] truncate hidden sm:inline-block font-normal">
-            {currentTabInfo.subtitle}
+        <nav className="flex items-center gap-1.5 min-w-0 text-sm">
+          <span className="hidden sm:inline text-fg-subtle truncate">Shameer &amp; Associates</span>
+          <span className="hidden sm:inline text-fg-faint">/</span>
+          <h1 className="font-medium text-fg truncate">{title}</h1>
+        </nav>
+      </div>
+
+      {/* Right — h-8 controls */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={onOpenCommandPalette}
+          className="hidden md:flex w-64 lg:w-72 h-8 pl-2.5 pr-1.5 rounded-md bg-surface border border-line hover:border-line-strong items-center justify-between text-sm text-fg-faint transition-colors"
+        >
+          <span className="flex items-center gap-2 truncate">
+            <Search className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <span className="truncate">Search clients, filings…</span>
           </span>
-        </div>
-      </div>
-
-      {/* Center: Clean Search Bar */}
-      <div className="flex-1 max-w-sm mx-4 lg:mx-8 hidden md:block">
-        <button
-          onClick={onOpenCommandPalette}
-          className="w-full h-8 px-2.5 rounded-[6px] bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] hover:border-[#D1D1D6] dark:hover:border-[#3A3A3C] flex items-center justify-between text-[12.5px] text-[#86868B] transition-colors group"
-        >
-          <div className="flex items-center gap-2 truncate">
-            <span className="truncate">Search clients, tasks, or jump to...</span>
-          </div>
-          <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium text-[#86868B] bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded">
-            Ctrl+K
-          </kbd>
+          <Kbd>Ctrl K</Kbd>
         </button>
-      </div>
+        <IconButton icon={Search} label="Search" onClick={onOpenCommandPalette} className="md:hidden" />
 
-      {/* Right Controls: Exactly unified h-8 height */}
-      <div className="flex items-center gap-2 shrink-0">
-        {/* Mobile Search Button */}
-        <button
-          onClick={onOpenCommandPalette}
-          className="md:hidden h-8 w-8 text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] rounded-[6px] border border-[#E5E5EA] dark:border-[#2C2C2E] flex items-center justify-center transition-colors"
-          title="Search"
-        >
-          <Search className="w-3.5 h-3.5 stroke-[1.5]" />
-        </button>
-
-        {/* Dark Mode Toggle */}
-        <button
+        <IconButton
+          icon={theme === 'light' ? Moon : Sun}
+          label={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
           onClick={onToggleTheme}
-          title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
-          className="h-8 w-8 rounded-[6px] text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] flex items-center justify-center transition-colors"
-        >
-          {theme === 'light' ? (
-            <Moon className="w-3.5 h-3.5 stroke-[1.5]" />
-          ) : (
-            <Sun className="w-3.5 h-3.5 stroke-[1.5]" />
-          )}
-        </button>
+        />
 
-        {/* User Session Switcher */}
         <div className="relative">
           <button
-            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="h-8 flex items-center gap-1.5 px-3 rounded-[6px] text-[13px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] transition-colors"
+            onClick={() => setIsUserMenuOpen((v) => !v)}
+            className={cn(
+              'h-8 flex items-center gap-2 pl-1 pr-2 rounded-md text-sm font-medium text-fg hover:bg-hover transition-colors',
+              isUserMenuOpen && 'bg-hover'
+            )}
           >
-            <span className="truncate">{currentUser.name}</span>
-            <ChevronDown className="w-3 h-3 text-[#86868B] stroke-[1.5]" />
+            <Avatar initials={initialsOf(currentUser.name)} size="sm" />
+            <span className="hidden sm:inline truncate max-w-[120px]">{currentUser.name}</span>
+            <ChevronDown className="w-3.5 h-3.5 text-fg-subtle" strokeWidth={1.75} />
           </button>
 
-          {/* User Popover Menu with Backdrop */}
           {isUserMenuOpen && (
             <>
-              <div 
-                className="fixed inset-0 z-40" 
-                onClick={() => setIsUserMenuOpen(false)} 
-              />
-              <div 
-                className="absolute right-0 mt-1.5 w-64 bg-white dark:bg-[#1C1C1E] rounded-[8px] border border-[#E5E5EA] dark:border-[#2C2C2E] shadow-2xl z-50 p-1.5 text-[13px] animate-in fade-in duration-100"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="px-3 py-2 border-b border-[#E5E5EA] dark:border-[#2C2C2E] mb-1">
-                  <div className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-1.5">
-                    <span>{currentUser.name}</span>
-                    {isAdmin && <Shield className="w-3 h-3 text-[#0071E3] stroke-[1.5]" />}
+              <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+              <div className="absolute right-0 mt-1.5 w-64 bg-surface rounded-lg shadow-pop z-50 p-1 animate-pop-in" onClick={(e) => e.stopPropagation()}>
+                <div className="px-2.5 py-2.5 flex items-center gap-2.5">
+                  <Avatar initials={initialsOf(currentUser.name)} size="md" />
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-fg truncate">{currentUser.name}</div>
+                    <div className="text-xs text-fg-subtle truncate">{currentUser.designation}</div>
                   </div>
-                  <div className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] truncate">{currentUser.email}</div>
-                  <div className="text-[12px] text-[#86868B] mt-0.5">{currentUser.designation}</div>
                 </div>
-
-                <div className="px-3 py-1 text-[11px] font-semibold text-[#86868B] dark:text-[#6E6E73] uppercase tracking-wider">
-                  Switch Active User
-                </div>
-
-                <div className="space-y-0.5">
-                  {profiles.map((p) => {
-                    const isSelected = p.id === currentUser.id;
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          onSwitchUser(p.id);
-                          setIsUserMenuOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-[5px] transition-colors text-left ${
-                          isSelected 
-                            ? 'bg-[#0071E3]/10 text-[#0071E3] dark:text-[#2997FF] font-semibold' 
-                            : 'text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
-                        }`}
-                      >
-                        <div className="truncate pr-2">
-                          <div className="truncate font-medium">{p.name}</div>
-                          <div className="text-[12px] text-[#86868B] capitalize">{p.role} • {p.designation}</div>
-                        </div>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-[#0071E3] shrink-0 stroke-[1.5]" />}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="pt-1 mt-1 border-t border-[#E5E5EA] dark:border-[#2C2C2E]">
-                  <button
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      if (onLogout) onLogout();
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-[5px] text-[12px] text-[#FF3B30] dark:text-[#FF453A] hover:bg-[#FF3B30]/10 transition-colors text-left font-medium"
-                  >
-                    <LogOut className="w-3.5 h-3.5 stroke-[1.5]" />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
+                <div className="h-px bg-line my-1" />
+                <div className="eyebrow px-2.5 pt-1.5 pb-1">Switch user</div>
+                {profiles.map((p) => {
+                  const selected = p.id === currentUser.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        onSwitchUser(p.id);
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-left hover:bg-hover transition-colors"
+                    >
+                      <Avatar initials={initialsOf(p.name)} size="xs" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-fg truncate">{p.name}</div>
+                        <div className="text-xs text-fg-subtle truncate capitalize">{p.role} · {p.designation}</div>
+                      </div>
+                      {selected && <Check className="w-3.5 h-3.5 text-fg shrink-0" strokeWidth={2} />}
+                    </button>
+                  );
+                })}
+                <div className="h-px bg-line my-1" />
+                <button
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    onLogout?.();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-2.5 h-8 rounded-md text-sm text-fg-muted hover:text-danger hover:bg-hover transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  Sign out
+                </button>
               </div>
             </>
           )}
         </div>
 
-        {/* Primary Action Button */}
-        <button
-          onClick={onOpenNewTask}
-          className="h-8 inline-flex items-center gap-1.5 px-3 text-[13px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[6px] transition-colors shadow-sm shrink-0"
-        >
-          <Plus className="w-3.5 h-3.5 stroke-[2]" />
-          <span>Add Task</span>
-        </button>
+        <Button variant="primary" icon={Plus} onClick={onOpenNewTask} className="ml-1">
+          <span className="hidden sm:inline">New Task</span>
+        </Button>
       </div>
     </header>
   );

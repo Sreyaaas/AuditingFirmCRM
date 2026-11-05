@@ -1,25 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ShieldCheck, 
-  User, 
-  Lock, 
-  Mail, 
-  ArrowRight, 
-  Eye, 
-  EyeOff, 
-  Sun, 
-  Moon, 
-  CheckCircle2, 
-  UserPlus, 
-  KeyRound,
-  ShieldAlert,
-  Database,
-  RefreshCw,
-  Server
-} from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Sun, Moon, CheckCircle2, UserPlus, ShieldAlert, RefreshCw } from 'lucide-react';
 import { UserProfile, UserRole } from '../types/crm';
 import { supabase, isSupabaseConfigured, getSupabaseConfig } from '../services/supabaseClient';
 import { saveProfileToDb } from '../services/dbSyncService';
+import { Avatar, Badge, Button, Card, Field, IconButton, Input, Segmented, Select, StatusDot, cn } from './ui';
 
 interface LoginViewProps {
   profiles: UserProfile[];
@@ -219,362 +203,167 @@ export const LoginView: React.FC<LoginViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#121214] text-[#1D1D1F] dark:text-[#F5F5F7] flex flex-col justify-between selection:bg-[#0071E3]/20 font-sans antialiased transition-colors">
-      {/* Top Bar with Firm Name & Live Supabase Status */}
-      <header className="px-6 py-3.5 flex items-center justify-between border-b border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E]">
-        <div className="flex items-center gap-3">
-          <img
-            src="/logo-light.png"
-            alt="Shameer and Associates - Accountants and Practitioners"
-            className="h-8 w-auto object-contain block dark:hidden max-w-[200px]"
-          />
-          <img
-            src="/logo-dark.png"
-            alt="Shameer and Associates - Accountants and Practitioners"
-            className="h-8 w-auto object-contain hidden dark:block max-w-[200px]"
-          />
+    <div className="min-h-screen bg-canvas text-fg flex flex-col">
+      <header className="h-14 px-6 flex items-center justify-between border-b border-line">
+        <div className="flex items-center">
+          <img src="/logo-light.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain block dark:hidden max-w-[180px]" />
+          <img src="/logo-dark.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain hidden dark:block max-w-[180px]" />
         </div>
-
-        <div className="flex items-center gap-3">
-          {/* Supabase PostgreSQL Backend Status Pill */}
-          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-[6px] bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] text-[11px]">
-            <span className={`w-1.5 h-1.5 rounded-full ${isDbLive ? 'bg-[#34C759]' : 'bg-[#FF9F0A]'}`} />
-            <span className="font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">
-              {isDbLive ? 'Supabase PostgreSQL Live' : 'Offline Local Storage'}
-            </span>
-          </div>
-
-          <button
-            onClick={onToggleTheme}
-            aria-label="Toggle Theme"
-            className="w-8 h-8 rounded-[6px] text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] flex items-center justify-center transition-colors border border-transparent hover:border-[#E5E5EA] dark:hover:border-[#3A3A3C]"
-          >
-            {theme === 'light' ? (
-              <Moon className="w-4 h-4 stroke-[1.5]" />
-            ) : (
-              <Sun className="w-4 h-4 stroke-[1.5]" />
-            )}
-          </button>
+        <div className="flex items-center gap-2">
+          <span className="hidden sm:inline-flex items-center gap-2 text-xs text-fg-subtle">
+            <StatusDot tone={isDbLive ? 'success' : 'warning'} />
+            {isDbLive ? 'Cloud database connected' : 'Local mode'}
+          </span>
+          <IconButton icon={theme === 'light' ? Moon : Sun} label="Toggle Theme" onClick={onToggleTheme} />
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-        <div className="w-full max-w-[440px] space-y-6">
-          {/* Card Container */}
-          <div className="bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[10px] p-6 sm:p-8 shadow-sm">
-            {/* Header */}
-            <div className="text-center space-y-1.5 pb-4 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-              <h2 className="text-[18px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
-                {tab === 'signin' ? 'Sign In to Practice' : 'Register Practice Account'}
-              </h2>
-              <p className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">
-                {tab === 'signin' 
-                  ? 'Shameer & Associates • Practice Management CRM' 
-                  : 'Add a new verified accountant or staff employee'}
-              </p>
-            </div>
+      <main className="flex-1 flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-[400px]">
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold tracking-tight text-fg">
+              {tab === 'signin' ? 'Sign in' : 'Create an account'}
+            </h1>
+            <p className="text-sm text-fg-subtle mt-1">
+              {tab === 'signin' ? 'Practice management for Shameer & Associates.' : 'Add a practitioner or staff member to the practice.'}
+            </p>
+          </div>
 
-            {/* Tab Switcher */}
-            <div className="grid grid-cols-2 p-1 bg-[#F2F2F7] dark:bg-[#242426] rounded-[6px] my-4 text-[12px] font-medium">
-              <button
-                type="button"
-                onClick={() => { setTab('signin'); setLoginError(null); }}
-                className={`py-1.5 rounded-[5px] transition-all ${
-                  tab === 'signin'
-                    ? 'bg-white dark:bg-[#1C1C1E] text-[#1D1D1F] dark:text-[#F5F5F7] shadow-sm font-semibold'
-                    : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => { setTab('register'); setLoginError(null); }}
-                className={`py-1.5 rounded-[5px] transition-all ${
-                  tab === 'register'
-                    ? 'bg-white dark:bg-[#1C1C1E] text-[#1D1D1F] dark:text-[#F5F5F7] shadow-sm font-semibold'
-                    : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
-                }`}
-              >
-                Create Account
-              </button>
-            </div>
+          <Card className="p-6">
+            <Segmented
+              value={tab}
+              onChange={(v) => {
+                setTab(v);
+                setLoginError(null);
+              }}
+              options={[
+                { value: 'signin', label: 'Sign In' },
+                { value: 'register', label: 'Create Account' },
+              ]}
+              className="w-full grid grid-cols-2 mb-5"
+            />
 
-            {/* Error Notification */}
             {loginError && (
-              <div className="mb-4 p-2.5 rounded-[6px] bg-[#DC2626]/10 border border-[#DC2626]/20 flex items-start gap-2 text-[12px] text-[#DC2626] dark:text-[#FF453A]">
-                <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 stroke-[1.5]" />
+              <div className="mb-4 flex items-start gap-2 px-3 py-2.5 rounded-md border border-danger/25 bg-danger/[0.06] text-sm text-danger animate-fade-in">
+                <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={1.75} />
                 <span>{loginError}</span>
               </div>
             )}
-
-            {/* Success Notification */}
             {regSuccess && (
-              <div className="mb-4 p-2.5 rounded-[6px] bg-[#16A34A]/10 border border-[#16A34A]/20 flex items-center gap-2 text-[12px] text-[#16A34A] dark:text-[#34C759]">
-                <CheckCircle2 className="w-4 h-4 shrink-0 stroke-[1.5]" />
+              <div className="mb-4 flex items-center gap-2 px-3 py-2.5 rounded-md border border-success/25 bg-success/[0.06] text-sm text-fg animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-success" strokeWidth={1.75} />
                 <span>{regSuccess}</span>
               </div>
             )}
 
-            {/* FORM: Sign In */}
             {tab === 'signin' && (
-              <form onSubmit={handleFormSubmit} className="space-y-3.5">
-                <div className="space-y-1">
-                  <label className="text-[12px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
-                    Practice Email
-                  </label>
+              <form onSubmit={handleFormSubmit} className="space-y-4">
+                <Field label="Email">
+                  <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@shameerassociates.in" className="h-9" />
+                </Field>
+                <Field label="Password">
                   <div className="relative">
-                    <Mail className="w-3.5 h-3.5 absolute left-3 top-3 text-[#86868B] stroke-[1.5]" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@shameerassociates.in"
-                      className="w-full pl-9 pr-3 py-2 text-[13px] bg-white dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-[#86868B] focus:outline-none focus:border-[#0071E3] dark:focus:border-[#2997FF] transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[12px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
-                      Password
-                    </label>
-                  </div>
-                  <div className="relative">
-                    <Lock className="w-3.5 h-3.5 absolute left-3 top-3 text-[#86868B] stroke-[1.5]" />
-                    <input
+                    <Input
                       type={showPassword ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter password"
-                      className="w-full pl-9 pr-9 py-2 text-[13px] bg-white dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-[#86868B] focus:outline-none focus:border-[#0071E3] dark:focus:border-[#2997FF] transition-all font-mono text-[12px]"
+                      placeholder="Password"
+                      className="h-9 pr-9"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-2.5 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg"
                       aria-label="Toggle password visibility"
                     >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4 stroke-[1.5]" />
-                      ) : (
-                        <Eye className="w-4 h-4 stroke-[1.5]" />
-                      )}
+                      {showPassword ? <EyeOff className="w-4 h-4" strokeWidth={1.75} /> : <Eye className="w-4 h-4" strokeWidth={1.75} />}
                     </button>
                   </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-0.5">
-                  <label className="flex items-center gap-2 cursor-pointer text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="rounded border-[#E5E5EA] dark:border-[#3A3A3C] text-[#0071E3] focus:ring-0 w-3.5 h-3.5"
-                    />
-                    <span>Remember this device</span>
-                  </label>
-                  <span className="text-[11px] text-[#0071E3] dark:text-[#2997FF] cursor-default">
-                    Internal Practice Portal
-                  </span>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-2 px-4 bg-[#0071E3] dark:bg-[#2997FF] hover:bg-[#0077ED] dark:hover:bg-[#409CFF] text-white rounded-[6px] text-[13px] font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Authenticating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Sign In</span>
-                      <ArrowRight className="w-3.5 h-3.5 stroke-[2]" />
-                    </>
-                  )}
-                </button>
+                </Field>
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-fg-muted">
+                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="h-3.5 w-3.5" />
+                  Keep me signed in on this device
+                </label>
+                <Button type="submit" variant="primary" size="lg" disabled={isLoading} icon={isLoading ? RefreshCw : undefined} className={cn('w-full', isLoading && '[&_svg]:animate-spin')}>
+                  {isLoading ? 'Signing in…' : 'Sign In'}
+                </Button>
               </form>
             )}
 
-            {/* FORM: Create Account */}
             {tab === 'register' && (
-              <form onSubmit={handleRegisterSubmit} className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[12px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    placeholder="e.g. Rahul V"
-                    className="w-full px-3 py-1.5 text-[13px] bg-white dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-[#86868B] focus:outline-none focus:border-[#0071E3] dark:focus:border-[#2997FF]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[12px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
-                    Practice Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    placeholder="name@shameerassociates.in"
-                    className="w-full px-3 py-1.5 text-[13px] bg-white dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-[#86868B] focus:outline-none focus:border-[#0071E3] dark:focus:border-[#2997FF]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[12px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
-                    Account Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    placeholder="Set account password"
-                    className="w-full px-3 py-1.5 text-[13px] bg-white dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-[#86868B] focus:outline-none focus:border-[#0071E3] dark:focus:border-[#2997FF] font-mono text-[12px]"
-                  />
-                </div>
-
+              <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                <Field label="Full name" required>
+                  <Input required value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="Full name" />
+                </Field>
+                <Field label="Work email" required>
+                  <Input type="email" required value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="name@shameerassociates.in" />
+                </Field>
+                <Field label="Password" required>
+                  <Input type="password" required value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="Choose a password" />
+                </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[12px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
-                      Role
-                    </label>
-                    <select
-                      value={regRole}
-                      onChange={(e) => setRegRole(e.target.value as UserRole)}
-                      className="w-full px-2.5 py-1.5 text-[12px] bg-white dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none"
-                    >
-                      <option value="employee">Audit Employee</option>
-                      <option value="admin">Practice Admin</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[12px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
-                      Designation
-                    </label>
-                    <input
-                      type="text"
-                      value={regDesignation}
-                      onChange={(e) => setRegDesignation(e.target.value)}
-                      placeholder="e.g. Audit Senior"
-                      className="w-full px-2.5 py-1.5 text-[12px] bg-white dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none"
-                    />
-                  </div>
+                  <Field label="Role">
+                    <Select value={regRole} onChange={(e) => setRegRole(e.target.value as UserRole)}>
+                      <option value="employee">Staff</option>
+                      <option value="admin">Administrator</option>
+                    </Select>
+                  </Field>
+                  <Field label="Designation">
+                    <Input value={regDesignation} onChange={(e) => setRegDesignation(e.target.value)} placeholder="Audit Executive" />
+                  </Field>
                 </div>
-
-                <div className="space-y-1">
-                  <label className="text-[12px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] block">
-                    Contact Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
-                    placeholder="+91 98470 00000"
-                    className="w-full px-3 py-1.5 text-[13px] bg-white dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-[#86868B] focus:outline-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-2 px-4 bg-[#0071E3] dark:bg-[#2997FF] hover:bg-[#0077ED] dark:hover:bg-[#409CFF] text-white rounded-[6px] text-[13px] font-medium flex items-center justify-center gap-2 transition-colors mt-2 disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Creating Account...</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-3.5 h-3.5 stroke-[1.5]" />
-                      <span>Create &amp; Sync to Database</span>
-                    </>
-                  )}
-                </button>
+                <Field label="Phone">
+                  <Input type="tel" value={regPhone} onChange={(e) => setRegPhone(e.target.value)} placeholder="+91 98470 00000" className="font-mono" />
+                </Field>
+                <Button type="submit" variant="primary" size="lg" disabled={isLoading} icon={isLoading ? RefreshCw : UserPlus} className={cn('w-full', isLoading && '[&_svg]:animate-spin')}>
+                  {isLoading ? 'Creating account…' : 'Create Account'}
+                </Button>
               </form>
             )}
+          </Card>
 
-            {/* Quick-Access Verified Personas */}
-            <div className="mt-5 pt-4 border-t border-[#E5E5EA] dark:border-[#2C2C2E] space-y-2">
-              <div className="flex items-center justify-between text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">
-                <span>Quick Practice Sign In</span>
-                <span>Select User</span>
-              </div>
-
-              <div className="space-y-1.5">
-                {profiles.map((p) => {
-                  const isAdmin = p.role === 'admin';
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => handleQuickSelect(p)}
-                      className="w-full flex items-center justify-between p-2 rounded-[6px] bg-[#FAFAFA] dark:bg-[#242426] hover:bg-[#F2F2F7] dark:hover:bg-[#2C2C2E] border border-[#E5E5EA] dark:border-[#333336] transition-all text-left group"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 ${
-                          isAdmin 
-                            ? 'bg-[#0071E3] text-white' 
-                            : 'bg-[#16A34A] dark:bg-[#34C759] text-white'
-                        }`}>
-                          {p.initials || p.name.slice(0, 2).toUpperCase()}
-                        </span>
-                        <div className="truncate">
-                          <div className="text-[13px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] group-hover:text-[#0071E3] dark:group-hover:text-[#2997FF] flex items-center gap-1.5 truncate">
-                            <span>{p.name}</span>
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-normal ${
-                              isAdmin 
-                                ? 'bg-[#0071E3]/10 text-[#0071E3] dark:bg-[#0071E3]/20 dark:text-[#2997FF]' 
-                                : 'bg-[#16A34A]/10 text-[#16A34A] dark:bg-[#34C759]/20 dark:text-[#34C759]'
-                            }`}>
-                              {isAdmin ? 'Admin' : 'Staff'}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] truncate">
-                            {p.designation}
-                          </div>
+          {/* Quick sign-in */}
+          <div className="mt-6">
+            <div className="flex items-center gap-3 mb-2.5">
+              <div className="h-px flex-1 bg-line" />
+              <span className="eyebrow">Quick sign-in</span>
+              <div className="h-px flex-1 bg-line" />
+            </div>
+            <div className="rounded-lg border border-line bg-surface divide-y divide-line overflow-hidden">
+              {profiles.map((p) => {
+                const isAdmin = p.role === 'admin';
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleQuickSelect(p)}
+                    className="group w-full flex items-center justify-between gap-3 px-3 h-12 text-left hover:bg-subtle transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar initials={p.initials || p.name.slice(0, 2).toUpperCase()} size="sm" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium text-fg">{p.name}</span>
+                          <Badge tone={isAdmin ? 'info' : 'neutral'}>{isAdmin ? 'Admin' : 'Staff'}</Badge>
                         </div>
+                        <div className="text-xs text-fg-subtle truncate">{p.designation}</div>
                       </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-[#86868B] group-hover:text-[#0071E3] dark:group-hover:text-[#2997FF] group-hover:translate-x-0.5 transition-all shrink-0 stroke-[1.5]" />
-                    </button>
-                  );
-                })}
-              </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-fg-faint group-hover:text-fg group-hover:translate-x-0.5 transition-all shrink-0" strokeWidth={1.75} />
+                  </button>
+                );
+              })}
             </div>
-          </div>
-
-          {/* Role segregation note */}
-          <div className="text-center text-[11px] text-[#86868B] space-y-1">
-            <div className="flex items-center justify-center gap-1.5 text-[#6E6E73] dark:text-[#8E8E93]">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#16A34A] dark:text-[#34C759] stroke-[1.5]" />
-              <span>Multi-User Role-Based Access Control Active</span>
-            </div>
-            <p>
-              Admins (Shameer &amp; Ameen) hold firm authority. Staff (Susmi) handles assigned filings.
+            <p className="mt-4 text-xs text-fg-subtle text-center">
+              Administrators (Shameer, Ameen) have full access. Staff see their assigned work.
             </p>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="px-6 py-3 text-center text-[11px] text-[#86868B] border-t border-[#E5E5EA] dark:border-[#2C2C2E]">
-        Shameer &amp; Associates • Accountants and Practitioners • Confidential &amp; Proprietary
+      <footer className="h-12 px-6 flex items-center justify-center text-xs text-fg-faint border-t border-line">
+        Shameer &amp; Associates · Accountants and Practitioners · Confidential
       </footer>
     </div>
   );

@@ -1,19 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  Receipt, 
-  Search, 
-  Download, 
-  MessageSquare, 
-  Plus, 
-  Check, 
-  Clock, 
-  AlertCircle,
-  X,
-  History
-} from 'lucide-react';
+import { Download, MessageSquare, Plus } from 'lucide-react';
 import { DebtorRecord, OfficeBillingEntry, StaffMember, MonthDebtorLedger } from '../types/crm';
 import { exportDebtorsAndGSTWorkbook } from '../utils/excelExport';
 import { ACTUAL_GST_COMPLIANCE } from '../data/actualClientData';
+import { Badge, Button, EmptyState, Field, IconButton, Input, Metric, MetricGrid, Modal, PageHeader, SearchInput, Segmented, Select, TableCard, Tabs, Toolbar, cn, formatINR } from './ui';
 
 type SelectedMonthKey = 'november' | 'october' | 'september' | 'august' | 'full-ledger' | 'billing-log';
 
@@ -215,785 +205,518 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
     setBillingInput('');
   };
 
+  const isMonthView = activeMonth !== 'full-ledger' && activeMonth !== 'billing-log';
+  const amt = (n?: number) => (n ? formatINR(n) : <span className="text-fg-faint">—</span>);
+  const statusToneMap = { Cleared: 'success', 'Partially Paid': 'warning', Unpaid: 'danger' } as const;
+
+  const statementRows = inspectClient
+    ? (
+        [
+          ['August 2026', inspectClient.august],
+          ['September 2026', inspectClient.september],
+          ['October 2026', inspectClient.october],
+          ['November 2026', inspectClient.november],
+        ] as [string, MonthDebtorLedger | undefined][]
+      ).map(([label, l]) => {
+        const opening = l?.outstanding || 0;
+        const paid = l?.paymentCleared || 0;
+        const billed = l?.currentBilling || 0;
+        return { label, opening, paid, billed, closing: Math.max(0, opening - paid + billed) };
+      })
+    : [];
+
   return (
-    <div className="space-y-5">
-      {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E] pb-3">
-        <div>
-          <h1 className="text-[22px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
-            Debtors
-          </h1>
-          <p className="text-[13px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-            Client fee accounts, payment collections, and billing registers
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] hover:bg-[#F2F2F7] dark:hover:bg-[#3A3A3C] transition-colors"
-          >
-            <Download className="w-3.5 h-3.5 stroke-[1.5]" />
-            <span>Export Excel</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setQuickPayClientId(debtors[0]?.id || '');
-              setPaymentInput('');
-              setIsQuickPayOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[6px] transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[1.5]" />
-            <span>Record Payment</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Segmented Control - Month Tabs (macOS style) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#F2F2F7] dark:bg-[#1C1C1E] p-1 rounded-[8px]">
-        <div className="flex flex-wrap items-center gap-1">
-          {(['november', 'october', 'september', 'august'] as SelectedMonthKey[]).map((key) => {
-            const isActive = activeMonth === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setActiveMonth(key)}
-                className={`px-3 py-1 text-[13px] rounded-[6px] transition-all ${
-                  isActive
-                    ? 'bg-[#FFFFFF] dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold shadow-sm'
-                    : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
-                }`}
-              >
-                <span>{key.charAt(0).toUpperCase() + key.slice(1)} 2026</span>
-                {key === 'november' && (
-                  <span className="ml-1.5 font-tabular text-[10px] text-[#34C759]">Current</span>
-                )}
-              </button>
-            );
-          })}
-
-          <div className="h-4 w-[1px] bg-[#E5E5EA] dark:bg-[#2C2C2E] mx-1"></div>
-
-          <button
-            onClick={() => setActiveMonth('full-ledger')}
-            className={`px-3 py-1 text-[13px] rounded-[6px] transition-all ${
-              activeMonth === 'full-ledger'
-                ? 'bg-[#FFFFFF] dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold shadow-sm'
-                : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
-            }`}
-          >
-            4-Month Master
-          </button>
-
-          <button
-            onClick={() => setActiveMonth('billing-log')}
-            className={`px-3 py-1 text-[13px] rounded-[6px] transition-all ${
-              activeMonth === 'billing-log'
-                ? 'bg-[#FFFFFF] dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold shadow-sm'
-                : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
-            }`}
-          >
-            Office Billing
-          </button>
-        </div>
-
-        <div className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93] px-2 font-tabular">
-          {filteredDebtors.length} accounts
-        </div>
-      </div>
-
-      {/* KPI Summary for Single Month View */}
-      {activeMonth !== 'full-ledger' && activeMonth !== 'billing-log' && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[8px]">
-          <div>
-            <div className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">Opening Dues</div>
-            <div className="font-tabular text-[22px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] mt-0.5">
-              ₹{activeMonthTotals.opening.toLocaleString('en-IN')}
-            </div>
-            <div className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">Brought forward</div>
-          </div>
-
-          <div className="border-l border-[#E5E5EA] dark:border-[#2C2C2E] pl-4">
-            <div className="text-[12px] text-[#34C759]">Payments Cleared</div>
-            <div className="font-tabular text-[22px] font-semibold text-[#34C759] mt-0.5">
-              ₹{activeMonthTotals.paid.toLocaleString('en-IN')}
-            </div>
-            <div className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">Credited to firm</div>
-          </div>
-
-          <div className="border-l border-[#E5E5EA] dark:border-[#2C2C2E] pl-4">
-            <div className="text-[12px] text-[#0071E3] dark:text-[#2997FF]">New Billing</div>
-            <div className="font-tabular text-[22px] font-semibold text-[#0071E3] dark:text-[#2997FF] mt-0.5">
-              ₹{activeMonthTotals.billed.toLocaleString('en-IN')}
-            </div>
-            <div className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">Fees invoiced</div>
-          </div>
-
-          <div className="border-l border-[#E5E5EA] dark:border-[#2C2C2E] pl-4">
-            <div className="text-[12px] text-[#FF3B30]">Net Outstanding</div>
-            <div className="font-tabular text-[22px] font-semibold text-[#FF3B30] mt-0.5">
-              ₹{activeMonthTotals.closing.toLocaleString('en-IN')}
-            </div>
-            <div className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5 font-tabular">
-              {activeMonthTotals.pendingCount} clients due
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Search and Filters Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#FFFFFF] dark:bg-[#1C1C1E] p-3 border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[8px]">
-        <div className="flex items-center gap-2 flex-1 max-w-sm bg-[#F2F2F7] dark:bg-[#242426] px-2.5 py-1.5 rounded-[6px]">
-          <Search className="w-3.5 h-3.5 text-[#6E6E73] dark:text-[#8E8E93] shrink-0 stroke-[1.5]" />
-          <input
-            type="text"
-            placeholder="Search by client name, staff, or entity..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full text-[13px] bg-transparent focus:outline-none placeholder:text-[#86868B] text-[#1D1D1F] dark:text-[#F5F5F7]"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="text-[#6E6E73] hover:text-[#1D1D1F]">
-              <X className="w-3.5 h-3.5 stroke-[1.5]" />
-            </button>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-[13px]">
-          {activeMonth !== 'full-ledger' && activeMonth !== 'billing-log' && (
-            <div className="inline-flex rounded-[6px] bg-[#F2F2F7] dark:bg-[#242426] p-0.5">
-              <button
-                onClick={() => setBalanceFilter('all')}
-                className={`px-2.5 py-1 rounded-[5px] text-[12px] transition-colors ${
-                  balanceFilter === 'all'
-                    ? 'bg-[#FFFFFF] dark:bg-[#3A3A3C] text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold shadow-sm'
-                    : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setBalanceFilter('due')}
-                className={`px-2.5 py-1 rounded-[5px] text-[12px] transition-colors ${
-                  balanceFilter === 'due'
-                    ? 'bg-[#FFFFFF] dark:bg-[#3A3A3C] text-[#FF3B30] font-semibold shadow-sm'
-                    : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
-                }`}
-              >
-                Due Only
-              </button>
-              <button
-                onClick={() => setBalanceFilter('cleared')}
-                className={`px-2.5 py-1 rounded-[5px] text-[12px] transition-colors ${
-                  balanceFilter === 'cleared'
-                    ? 'bg-[#FFFFFF] dark:bg-[#3A3A3C] text-[#34C759] font-semibold shadow-sm'
-                    : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#1D1D1F]'
-                }`}
-              >
-                Cleared
-              </button>
-            </div>
-          )}
-
-          {!activeStaffMember && (
-            <select
-              value={staffFilter}
-              onChange={(e) => setStaffFilter(e.target.value)}
-              className="px-2.5 py-1 bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] text-[#1D1D1F] dark:text-[#F5F5F7] text-[12px] focus:outline-none"
+    <div className="space-y-4">
+      <PageHeader
+        title="Debtors"
+        description="Client fee ledgers, collections and the office billing register"
+        actions={
+          <>
+            <Button icon={Download} onClick={handleExportExcel}>
+              Export
+            </Button>
+            <Button
+              variant="primary"
+              icon={Plus}
+              onClick={() => {
+                setQuickPayClientId(debtors[0]?.id || '');
+                setPaymentInput('');
+                setIsQuickPayOpen(true);
+              }}
             >
-              <option value="all">All Staff</option>
-              {staffList.map((s) => (
-                <option key={s.id} value={s.name}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      </div>
+              Record Payment
+            </Button>
+          </>
+        }
+      />
 
-      {/* VIEW 1: MONTH-WISE TABLE */}
-      {activeMonth !== 'full-ledger' && activeMonth !== 'billing-log' && (
-        <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[8px] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13px] border-collapse">
-              <thead>
-                <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[11px] uppercase tracking-[0.04em] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-                  <th className="py-2 px-3.5 font-semibold text-center w-10">#</th>
-                  <th className="py-2 px-3.5 font-semibold min-w-[200px]">Client Account</th>
-                  <th className="py-2 px-3.5 font-semibold">Staff</th>
-                  <th className="py-2 px-3.5 font-semibold text-right">Opening Dues</th>
-                  <th className="py-2 px-3.5 font-semibold text-right">Cleared</th>
-                  <th className="py-2 px-3.5 font-semibold text-right">New Billing</th>
-                  <th className="py-2 px-3.5 font-semibold text-right">Closing Balance</th>
-                  <th className="py-2 px-3.5 font-semibold text-center">Status</th>
-                  <th className="py-2 px-3.5 font-semibold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">
-                {filteredDebtors.map((client, index) => {
-                  const { opening, paid, billed, closing, status } = getClientMonthData(client, activeMonth);
-                  const isPositiveBalance = closing > 0;
+      <Tabs
+        value={activeMonth}
+        onChange={setActiveMonth}
+        options={[
+          { value: 'november', label: 'November' },
+          { value: 'october', label: 'October' },
+          { value: 'september', label: 'September' },
+          { value: 'august', label: 'August' },
+          { value: 'full-ledger', label: 'Four-month ledger' },
+          { value: 'billing-log', label: 'Billing register' },
+        ]}
+      />
 
-                  return (
-                    <tr key={client.id} className="hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors">
-                      <td className="py-2.5 px-3.5 text-center font-mono tabular-nums text-[12px] text-[#86868B]">
-                        {client.sNo || index + 1}
-                      </td>
-
-                      <td className="py-2.5 px-3.5">
-                        <button
-                          onClick={() => setInspectClient(client)}
-                          className="font-medium text-[13.5px] text-[#1D1D1F] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left truncate block max-w-xs"
-                        >
-                          {client.clientName}
-                        </button>
-                        <div className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] mt-0.5">
-                          {client.entityType} • <span className="font-mono tabular-nums">{client.phone}</span>
-                        </div>
-                      </td>
-
-                      <td className="py-2.5 px-3.5 text-[#6E6E73] dark:text-[#8E8E93] text-[12.5px]">
-                        {client.assignedStaff}
-                      </td>
-
-                      <td className="py-2.5 px-3.5 text-right font-mono tabular-nums text-[12.5px] text-[#1D1D1F] dark:text-[#F5F5F7]">
-                        {opening > 0 ? `₹${opening.toLocaleString('en-IN')}` : '₹0'}
-                      </td>
-
-                      <td className="py-2.5 px-3.5 text-right font-mono tabular-nums text-[12.5px] text-[#1D1D1F] dark:text-[#F5F5F7]">
-                        {paid > 0 ? `₹${paid.toLocaleString('en-IN')}` : '—'}
-                      </td>
-
-                      <td className="py-2.5 px-3.5 text-right font-mono tabular-nums text-[12.5px] text-[#1D1D1F] dark:text-[#F5F5F7]">
-                        {billed > 0 ? `₹${billed.toLocaleString('en-IN')}` : '—'}
-                      </td>
-
-                      <td className="py-2.5 px-3.5 text-right font-mono tabular-nums text-[12.5px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
-                        ₹{closing.toLocaleString('en-IN')}
-                      </td>
-
-                      <td className="py-2.5 px-3.5 text-center">
-                        <span className={`inline-block text-[11px] font-medium px-2 py-0.5 rounded-[4px] ${
-                          status === 'Cleared'
-                            ? 'bg-[#16A34A]/10 text-[#16A34A] dark:text-[#34C759]'
-                            : status === 'Partially Paid'
-                            ? 'bg-[#D97706]/10 text-[#D97706] dark:text-[#FF9F0A]'
-                            : 'bg-[#DC2626]/10 text-[#DC2626]'
-                        }`}>
-                          {status}
-                        </span>
-                      </td>
-
-                      <td className="py-2.5 px-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {isPositiveBalance && (
-                            <button
-                              onClick={() => onOpenWhatsApp(client)}
-                              title="Send WhatsApp Reminder"
-                              className="h-7 px-2 border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-[5px] flex items-center gap-1 transition-colors text-[11px] font-medium"
-                            >
-                              <MessageSquare className="w-3 h-3 text-[#16A34A] dark:text-[#34C759]" strokeWidth={1.5} />
-                              <span className="hidden sm:inline">Notice</span>
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => {
-                              setPaymentModalRecord(client);
-                              setPaymentInput(closing > 0 ? closing.toString() : '');
-                            }}
-                            className="h-7 px-2 text-[11px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[5px] transition-colors"
-                          >
-                            Pay
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setBillingModalRecord(client);
-                              setBillingInput('');
-                            }}
-                            className="px-2 py-1 text-[11px] font-medium text-[#1D1D1F] dark:text-[#F5F5F7] bg-[#F2F2F7] dark:bg-[#2C2C2E] hover:bg-[#E5E5EA] dark:hover:bg-[#3A3A3C] rounded-[4px] transition-colors"
-                          >
-                            Bill
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {isMonthView && (
+        <MetricGrid className="grid-cols-2 lg:grid-cols-4">
+          <Metric label="Opening balance" value={formatINR(activeMonthTotals.opening)} hint={`Brought forward · ${monthLabels[activeMonth]?.label}`} />
+          <Metric label="Received" value={formatINR(activeMonthTotals.paid)} tone="success" hint="Collected this month" />
+          <Metric label="Billed" value={formatINR(activeMonthTotals.billed)} tone="info" hint="Fees invoiced" />
+          <Metric
+            label="Closing balance"
+            value={formatINR(activeMonthTotals.closing)}
+            tone={activeMonthTotals.closing > 0 ? 'danger' : 'success'}
+            hint={`${activeMonthTotals.pendingCount} ${activeMonthTotals.pendingCount === 1 ? 'client' : 'clients'} outstanding`}
+          />
+        </MetricGrid>
       )}
 
-      {/* VIEW 2: 4-MONTH MASTER SHEET */}
-      {activeMonth === 'full-ledger' && (
-        <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[8px] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[12px] border-collapse font-tabular">
-              <thead>
-                <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[11px] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-                  <th className="py-2 px-2 text-center w-8">#</th>
-                  <th className="py-2 px-3 min-w-[160px]">Client</th>
-                  <th className="py-2 px-2">Staff</th>
-                  <th className="py-2 px-2 text-right">Aug Out</th>
-                  <th className="py-2 px-2 text-right text-[#34C759]">Aug Clr</th>
-                  <th className="py-2 px-2 text-right">Sep Out</th>
-                  <th className="py-2 px-2 text-right text-[#34C759]">Sep Clr</th>
-                  <th className="py-2 px-2 text-right">Oct Out</th>
-                  <th className="py-2 px-2 text-right text-[#34C759]">Oct Clr</th>
-                  <th className="py-2 px-2 text-right font-semibold">Nov Out</th>
-                  <th className="py-2 px-2 text-right font-semibold text-[#34C759]">Nov Clr</th>
-                  <th className="py-2 px-2 text-right font-semibold text-[#0071E3]">Nov Bil</th>
-                  <th className="py-2 px-3 text-right font-semibold text-[#FF3B30]">Balance</th>
-                  <th className="py-2 px-2 text-center">Action</th>
+      <TableCard
+        toolbar={
+          <Toolbar className="justify-between">
+            <SearchInput
+              placeholder={activeMonth === 'billing-log' ? 'Client, service or staff' : 'Client, staff or entity'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              wrapperClassName="w-full sm:w-64"
+              className="h-7 text-xs"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              {isMonthView && (
+                <Segmented
+                  size="sm"
+                  value={balanceFilter}
+                  onChange={setBalanceFilter}
+                  options={[
+                    { value: 'all', label: 'All' },
+                    { value: 'due', label: 'Outstanding' },
+                    { value: 'cleared', label: 'Cleared' },
+                  ]}
+                />
+              )}
+              {!activeStaffMember && (
+                <Select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)} className="h-7 text-xs w-auto">
+                  <option value="all">All staff</option>
+                  {staffList.map((s) => (
+                    <option key={s.id} value={s.name}>
+                      {s.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </div>
+          </Toolbar>
+        }
+        footer={
+          <div className="flex items-center justify-between px-3 h-11 border-t border-line text-xs text-fg-subtle num">
+            {activeMonth === 'billing-log' ? (
+              <>
+                <span>{filteredBillings.length} entries</span>
+                <span>
+                  Professional fees <span className="text-fg font-medium">{formatINR(totalProfIncome)}</span>
+                  <span className="mx-2 text-fg-faint">·</span>
+                  Out-of-pocket <span className="text-fg font-medium">{formatINR(totalOOP)}</span>
+                </span>
+              </>
+            ) : (
+              <>
+                <span>{filteredDebtors.length} accounts</span>
+                <span>
+                  Total outstanding <span className="text-fg font-medium">{formatINR(grandClosingBalance)}</span>
+                </span>
+              </>
+            )}
+          </div>
+        }
+      >
+        {/* Month view */}
+        {isMonthView && (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="w-10 text-right">#</th>
+                <th className="min-w-[220px]">Client</th>
+                <th>Owner</th>
+                <th className="text-right">Opening</th>
+                <th className="text-right">Received</th>
+                <th className="text-right">Billed</th>
+                <th className="text-right">Closing</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDebtors.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="!h-auto">
+                    <EmptyState title="No accounts match these filters" />
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">
-                {filteredDebtors.map((client) => (
-                  <tr key={client.id} className="hover:bg-[#F2F2F7] dark:hover:bg-[#242426]">
-                    <td className="py-1.5 px-2 text-center text-[#86868B]">{client.sNo}</td>
-                    <td className="py-1.5 px-3 font-medium text-[#1D1D1F] dark:text-[#F5F5F7] truncate max-w-[160px]">
-                      {client.clientName}
-                    </td>
-                    <td className="py-1.5 px-2 text-[#6E6E73] dark:text-[#8E8E93]">{client.assignedStaff}</td>
-                    <td className="py-1.5 px-2 text-right text-[#86868B]">{client.august?.outstanding ? `₹${client.august.outstanding.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="py-1.5 px-2 text-right text-[#34C759]">{client.august?.paymentCleared ? `₹${client.august.paymentCleared.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="py-1.5 px-2 text-right text-[#86868B]">{client.september?.outstanding ? `₹${client.september.outstanding.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="py-1.5 px-2 text-right text-[#34C759]">{client.september?.paymentCleared ? `₹${client.september.paymentCleared.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="py-1.5 px-2 text-right text-[#86868B]">{client.october?.outstanding ? `₹${client.october.outstanding.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="py-1.5 px-2 text-right text-[#34C759]">{client.october?.paymentCleared ? `₹${client.october.paymentCleared.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="py-1.5 px-2 text-right font-medium">{client.november?.outstanding ? `₹${client.november.outstanding.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="py-1.5 px-2 text-right font-medium text-[#34C759]">{client.november?.paymentCleared ? `₹${client.november.paymentCleared.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="py-1.5 px-2 text-right font-medium text-[#0071E3]">{client.november?.currentBilling ? `₹${client.november.currentBilling.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="py-1.5 px-3 text-right font-semibold text-[#FF3B30]">₹{client.currentBalance.toLocaleString('en-IN')}</td>
-                    <td className="py-1.5 px-2 text-center">
-                      <button onClick={() => setInspectClient(client)} className="text-[11px] text-[#0071E3] hover:underline">
-                        View
+              )}
+              {filteredDebtors.map((client, index) => {
+                const { opening, paid, billed, closing, status } = getClientMonthData(client, activeMonth);
+                return (
+                  <tr key={client.id}>
+                    <td className="num text-right text-fg-faint text-xs">{client.sNo || index + 1}</td>
+                    <td className="py-2">
+                      <button
+                        onClick={() => setInspectClient(client)}
+                        className="block max-w-xs truncate text-left font-medium text-fg hover:underline underline-offset-2"
+                      >
+                        {client.clientName}
                       </button>
+                      <div className="text-xs text-fg-subtle mt-0.5">
+                        {client.entityType} · <span className="ident text-2xs">{client.phone}</span>
+                      </div>
+                    </td>
+                    <td className="text-fg-muted whitespace-nowrap">{client.assignedStaff}</td>
+                    <td className="num text-right text-fg-muted whitespace-nowrap">{formatINR(opening)}</td>
+                    <td className="num text-right text-success whitespace-nowrap">{amt(paid)}</td>
+                    <td className="num text-right text-fg-muted whitespace-nowrap">{amt(billed)}</td>
+                    <td className="num text-right font-medium text-fg whitespace-nowrap">{formatINR(closing)}</td>
+                    <td>
+                      <Badge tone={statusToneMap[status]} dot>
+                        {status}
+                      </Badge>
+                    </td>
+                    <td className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {closing > 0 && (
+                          <IconButton icon={MessageSquare} label="Send WhatsApp reminder" size="sm" onClick={() => onOpenWhatsApp(client)} />
+                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setBillingModalRecord(client);
+                            setBillingInput('');
+                          }}
+                        >
+                          Bill
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => {
+                            setPaymentModalRecord(client);
+                            setPaymentInput(closing > 0 ? closing.toString() : '');
+                          }}
+                        >
+                          Receive
+                        </Button>
+                      </div>
                     </td>
                   </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+
+        {/* Four-month ledger */}
+        {activeMonth === 'full-ledger' && (
+          <table className="data-table text-xs num [&_td]:!h-10 [&_td]:!px-2.5 [&_th]:!px-2.5">
+            <thead>
+              <tr>
+                <th rowSpan={2} className="w-8 text-right align-bottom">#</th>
+                <th rowSpan={2} className="min-w-[160px] align-bottom">Client</th>
+                <th rowSpan={2} className="align-bottom">Owner</th>
+                <th colSpan={2} className="text-center !border-l !border-line">Aug</th>
+                <th colSpan={2} className="text-center !border-l !border-line">Sep</th>
+                <th colSpan={2} className="text-center !border-l !border-line">Oct</th>
+                <th colSpan={3} className="text-center !border-l !border-line">Nov</th>
+                <th rowSpan={2} className="text-right align-bottom !border-l !border-line">Balance</th>
+                <th rowSpan={2} className="align-bottom" />
+              </tr>
+              <tr>
+                {['Due', 'Recd', 'Due', 'Recd', 'Due', 'Recd', 'Due', 'Recd', 'Billed'].map((h, i) => (
+                  <th key={i} className={cn('text-right', (i === 0 || i === 2 || i === 4 || i === 6) && '!border-l !border-line')}>
+                    {h}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 3: OFFICE BILLING REGISTER */}
-      {activeMonth === 'billing-log' && (
-        <div className="bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[8px] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[13px] border-collapse">
-              <thead>
-                <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[12px] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-                  <th className="py-2.5 px-3 font-semibold w-10 text-center">#</th>
-                  <th className="py-2.5 px-3 font-semibold">Date</th>
-                  <th className="py-2.5 px-3 font-semibold">Client Name</th>
-                  <th className="py-2.5 px-3 font-semibold">Service</th>
-                  <th className="py-2.5 px-3 font-semibold">Period</th>
-                  <th className="py-2.5 px-3 font-semibold text-right">Prof. Fee</th>
-                  <th className="py-2.5 px-3 font-semibold text-right">OOP</th>
-                  <th className="py-2.5 px-3 font-semibold text-right">Total</th>
-                  <th className="py-2.5 px-3 font-semibold">Auditor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDebtors.map((client) => (
+                <tr key={client.id}>
+                  <td className="text-right text-fg-faint">{client.sNo}</td>
+                  <td className="font-medium text-fg text-sm truncate max-w-[180px]">{client.clientName}</td>
+                  <td className="text-fg-muted">{client.assignedStaff}</td>
+                  <td className="text-right text-fg-muted border-l border-line">{amt(client.august?.outstanding)}</td>
+                  <td className="text-right text-success">{amt(client.august?.paymentCleared)}</td>
+                  <td className="text-right text-fg-muted border-l border-line">{amt(client.september?.outstanding)}</td>
+                  <td className="text-right text-success">{amt(client.september?.paymentCleared)}</td>
+                  <td className="text-right text-fg-muted border-l border-line">{amt(client.october?.outstanding)}</td>
+                  <td className="text-right text-success">{amt(client.october?.paymentCleared)}</td>
+                  <td className="text-right text-fg border-l border-line">{amt(client.november?.outstanding)}</td>
+                  <td className="text-right text-success">{amt(client.november?.paymentCleared)}</td>
+                  <td className="text-right text-fg-muted">{amt(client.november?.currentBilling)}</td>
+                  <td className="text-right font-semibold text-fg border-l border-line">{formatINR(client.currentBalance)}</td>
+                  <td className="text-right">
+                    <Button size="sm" variant="ghost" onClick={() => setInspectClient(client)}>
+                      View
+                    </Button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">
-                {filteredBillings.map((b) => {
-                  const prof = b.professionalIncome || 0;
-                  const oop = b.oopExpenses || 0;
-                  return (
-                    <tr key={`${b.serialNo}-${b.date}`} className="hover:bg-[#F2F2F7] dark:hover:bg-[#242426]">
-                      <td className="py-2 px-3 text-center text-[#86868B] font-tabular">{b.serialNo}</td>
-                      <td className="py-2 px-3 text-[#6E6E73] dark:text-[#8E8E93] font-tabular">{b.date}</td>
-                      <td className="py-2 px-3 font-medium text-[#1D1D1F] dark:text-[#F5F5F7]">{b.clientName}</td>
-                      <td className="py-2 px-3 text-[#6E6E73] dark:text-[#8E8E93]">{b.natureOfService}</td>
-                      <td className="py-2 px-3 text-[#6E6E73] dark:text-[#8E8E93] font-tabular">{b.filingMonth || '—'}</td>
-                      <td className="py-2 px-3 text-right font-tabular font-medium">₹{prof.toLocaleString('en-IN')}</td>
-                      <td className="py-2 px-3 text-right font-tabular text-[#86868B]">{oop > 0 ? `₹${oop.toLocaleString('en-IN')}` : '—'}</td>
-                      <td className="py-2 px-3 text-right font-tabular font-semibold text-[#0071E3]">₹{(prof + oop).toLocaleString('en-IN')}</td>
-                      <td className="py-2 px-3 text-[#1D1D1F] dark:text-[#F5F5F7]">{b.user}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-subtle font-medium [&_td]:h-10 [&_td]:px-2.5 [&_td]:border-t [&_td]:border-line">
+                <td />
+                <td className="text-fg">Total</td>
+                <td />
+                <td className="text-right text-fg-muted border-l border-line">{formatINR(totalAugOut)}</td>
+                <td className="text-right text-success">{formatINR(totalAugClr)}</td>
+                <td className="text-right text-fg-muted border-l border-line">{formatINR(totalSepOut)}</td>
+                <td className="text-right text-success">{formatINR(totalSepClr)}</td>
+                <td className="text-right text-fg-muted border-l border-line">{formatINR(totalOctOut)}</td>
+                <td className="text-right text-success">{formatINR(totalOctClr)}</td>
+                <td className="text-right text-fg border-l border-line">{formatINR(totalNovOut)}</td>
+                <td className="text-right text-success">{formatINR(totalNovClr)}</td>
+                <td className="text-right text-fg-muted">{formatINR(totalNovBil)}</td>
+                <td className="text-right font-semibold text-fg border-l border-line">{formatINR(grandClosingBalance)}</td>
+                <td />
+              </tr>
+            </tfoot>
+          </table>
+        )}
 
-      {/* CLIENT STATEMENT SHEET */}
-      {inspectClient && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-          <div 
-            className="w-full max-w-lg bg-[#FFFFFF] dark:bg-[#1C1C1E] rounded-[8px] border border-[#E5E5EA] dark:border-[#2C2C2E] shadow-2xl p-5 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-              <div>
-                <h3 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
-                  {inspectClient.clientName}
-                </h3>
-                <p className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">
-                  {inspectClient.entityType} • Assigned: {inspectClient.assignedStaff}
-                </p>
-              </div>
-              <button onClick={() => setInspectClient(null)} className="text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]">
-                <X className="w-4 h-4 stroke-[1.5]" />
-              </button>
-            </div>
+        {/* Billing register */}
+        {activeMonth === 'billing-log' && (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="w-10 text-right">#</th>
+                <th>Date</th>
+                <th>Client</th>
+                <th>Service</th>
+                <th>Period</th>
+                <th className="text-right">Professional fee</th>
+                <th className="text-right">OOP</th>
+                <th className="text-right">Total</th>
+                <th>Billed by</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredBillings.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="!h-auto">
+                    <EmptyState title="No billing entries found" />
+                  </td>
+                </tr>
+              )}
+              {filteredBillings.map((b) => {
+                const prof = b.professionalIncome || 0;
+                const oop = b.oopExpenses || 0;
+                return (
+                  <tr key={`${b.serialNo}-${b.date}`}>
+                    <td className="num text-right text-fg-faint text-xs">{b.serialNo}</td>
+                    <td className="num text-fg-muted whitespace-nowrap">{b.date}</td>
+                    <td className="font-medium text-fg">{b.clientName}</td>
+                    <td className="text-fg-muted">{b.natureOfService}</td>
+                    <td className="num text-fg-muted whitespace-nowrap">{b.filingMonth || '—'}</td>
+                    <td className="num text-right text-fg whitespace-nowrap">{formatINR(prof)}</td>
+                    <td className="num text-right text-fg-muted whitespace-nowrap">{amt(oop)}</td>
+                    <td className="num text-right font-medium text-fg whitespace-nowrap">{formatINR(prof + oop)}</td>
+                    <td className="text-fg-muted">{b.user}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </TableCard>
 
-            <div className="py-4 space-y-4">
-              <div className="p-3 bg-[#F2F2F7] dark:bg-[#242426] rounded-[6px] flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] block">Current Balance</span>
-                  <span className="text-[20px] font-semibold font-tabular text-[#FF3B30]">₹{inspectClient.currentBalance.toLocaleString('en-IN')}</span>
-                </div>
-                <button
-                  onClick={() => onOpenWhatsApp(inspectClient)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-white bg-[#34C759] hover:bg-[#30B753] rounded-[6px] transition-colors"
-                >
-                  <MessageSquare className="w-3.5 h-3.5 stroke-[1.5]" />
-                  WhatsApp
-                </button>
-              </div>
-
-              <div>
-                <div className="text-[12px] font-semibold text-[#6E6E73] dark:text-[#8E8E93] mb-2 uppercase tracking-wide">
-                  Month-by-Month Statement
-                </div>
-
-                <div className="border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] overflow-hidden">
-                  <table className="w-full text-[12px] font-tabular">
-                    <thead>
-                      <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-                        <th className="py-2 px-3 text-left">Month</th>
-                        <th className="py-2 px-2 text-right">Opening</th>
-                        <th className="py-2 px-2 text-right text-[#34C759]">Paid</th>
-                        <th className="py-2 px-2 text-right text-[#0071E3]">Billed</th>
-                        <th className="py-2 px-3 text-right font-semibold">Closing</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">
-                      <tr>
-                        <td className="py-2 px-3 font-sans">August 2026</td>
-                        <td className="py-2 px-2 text-right text-[#86868B]">₹{(inspectClient.august?.outstanding || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-2 text-right text-[#34C759]">₹{(inspectClient.august?.paymentCleared || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-2 text-right text-[#0071E3]">₹{(inspectClient.august?.currentBilling || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-3 text-right font-medium">
-                          ₹{Math.max(0, (inspectClient.august?.outstanding || 0) - (inspectClient.august?.paymentCleared || 0) + (inspectClient.august?.currentBilling || 0)).toLocaleString('en-IN')}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 px-3 font-sans">September 2026</td>
-                        <td className="py-2 px-2 text-right text-[#86868B]">₹{(inspectClient.september?.outstanding || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-2 text-right text-[#34C759]">₹{(inspectClient.september?.paymentCleared || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-2 text-right text-[#0071E3]">₹{(inspectClient.september?.currentBilling || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-3 text-right font-medium">
-                          ₹{Math.max(0, (inspectClient.september?.outstanding || 0) - (inspectClient.september?.paymentCleared || 0) + (inspectClient.september?.currentBilling || 0)).toLocaleString('en-IN')}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 px-3 font-sans">October 2026</td>
-                        <td className="py-2 px-2 text-right text-[#86868B]">₹{(inspectClient.october?.outstanding || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-2 text-right text-[#34C759]">₹{(inspectClient.october?.paymentCleared || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-2 text-right text-[#0071E3]">₹{(inspectClient.october?.currentBilling || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-3 text-right font-medium">
-                          ₹{Math.max(0, (inspectClient.october?.outstanding || 0) - (inspectClient.october?.paymentCleared || 0) + (inspectClient.october?.currentBilling || 0)).toLocaleString('en-IN')}
-                        </td>
-                      </tr>
-                      <tr className="bg-[#F2F2F7] dark:bg-[#242426] font-semibold">
-                        <td className="py-2 px-3 font-sans text-[#1D1D1F] dark:text-[#F5F5F7]">November 2026</td>
-                        <td className="py-2 px-2 text-right text-[#86868B]">₹{(inspectClient.november?.outstanding || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-2 text-right text-[#34C759]">₹{(inspectClient.november?.paymentCleared || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-2 text-right text-[#0071E3]">₹{(inspectClient.november?.currentBilling || 0).toLocaleString('en-IN')}</td>
-                        <td className="py-2 px-3 text-right text-[#FF3B30]">
-                          ₹{inspectClient.currentBalance.toLocaleString('en-IN')}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5EA] dark:border-[#2C2C2E]">
-              <button
-                onClick={() => setInspectClient(null)}
-                className="px-3 py-1.5 text-[13px] text-[#6E6E73] hover:text-[#1D1D1F]"
-              >
+      {/* Client statement */}
+      <Modal
+        isOpen={!!inspectClient}
+        onClose={() => setInspectClient(null)}
+        size="md"
+        title={inspectClient?.clientName}
+        description={inspectClient ? `${inspectClient.entityType} · Owner ${inspectClient.assignedStaff}` : undefined}
+        footer={
+          inspectClient && (
+            <>
+              <Button variant="ghost" icon={MessageSquare} onClick={() => onOpenWhatsApp(inspectClient)} className="mr-auto">
+                WhatsApp
+              </Button>
+              <Button variant="ghost" onClick={() => setInspectClient(null)}>
                 Close
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 onClick={() => {
                   const target = inspectClient;
                   setInspectClient(null);
                   setPaymentModalRecord(target);
                   setPaymentInput(target.currentBalance > 0 ? target.currentBalance.toString() : '');
                 }}
-                className="px-3 py-1.5 text-[13px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[6px] transition-colors"
               >
                 Record Payment
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* RECORD PAYMENT MODAL */}
-      {paymentModalRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-          <div 
-            className="w-full max-w-md bg-[#FFFFFF] dark:bg-[#1C1C1E] rounded-[8px] border border-[#E5E5EA] dark:border-[#2C2C2E] shadow-2xl p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
+              </Button>
+            </>
+          )
+        }
+      >
+        {inspectClient && (
+          <div className="space-y-5">
+            <div className="flex items-end justify-between">
               <div>
-                <h3 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
-                  Record Client Payment
-                </h3>
-                <p className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">
-                  Credit payment for {paymentModalRecord.clientName}
-                </p>
-              </div>
-              <button onClick={() => setPaymentModalRecord(null)} className="text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]">
-                <X className="w-4 h-4 stroke-[1.5]" />
-              </button>
-            </div>
-
-            <form onSubmit={handlePaymentSubmit} className="space-y-4 pt-4">
-              <div className="p-3 bg-[#F2F2F7] dark:bg-[#242426] rounded-[6px] text-[13px] space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-[#6E6E73] dark:text-[#8E8E93]">Current Balance:</span>
-                  <span className="font-tabular font-semibold text-[#FF3B30]">
-                    ₹{paymentModalRecord.currentBalance.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#6E6E73] dark:text-[#8E8E93]">Staff:</span>
-                  <span className="text-[#1D1D1F] dark:text-[#F5F5F7]">{paymentModalRecord.assignedStaff}</span>
+                <div className="eyebrow">Current balance</div>
+                <div className={cn('num text-2xl font-semibold mt-1', inspectClient.currentBalance > 0 ? 'text-fg' : 'text-success')}>
+                  {formatINR(inspectClient.currentBalance)}
                 </div>
               </div>
-
-              <div>
-                <label className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] mb-1">
-                  Amount Received (₹)
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  required
-                  autoFocus
-                  placeholder="e.g. 5000"
-                  value={paymentInput}
-                  onChange={(e) => setPaymentInput(e.target.value)}
-                  className="w-full px-3 py-1.5 text-[14px] font-tabular bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none focus:border-[#0071E3] text-[#1D1D1F] dark:text-[#F5F5F7]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] mb-1">
-                  Payment Mode
-                </label>
-                <select
-                  value={paymentMode}
-                  onChange={(e) => setPaymentMode(e.target.value)}
-                  className="w-full px-3 py-1.5 text-[13px] bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none text-[#1D1D1F] dark:text-[#F5F5F7]"
-                >
-                  <option value="Bank Transfer (NEFT/RTGS)">Bank Transfer (NEFT/RTGS)</option>
-                  <option value="UPI / QR Code">UPI / QR Code</option>
-                  <option value="Cheque Deposit">Cheque Deposit</option>
-                  <option value="Cash Receipt">Cash Receipt</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] mb-1">
-                  Reference Note (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. UTR #123456"
-                  value={paymentNote}
-                  onChange={(e) => setPaymentNote(e.target.value)}
-                  className="w-full px-3 py-1.5 text-[13px] bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none text-[#1D1D1F] dark:text-[#F5F5F7]"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E5E5EA] dark:border-[#2C2C2E]">
-                <button
-                  type="button"
-                  onClick={() => setPaymentModalRecord(null)}
-                  className="px-3 py-1.5 text-[13px] text-[#6E6E73] hover:text-[#1D1D1F]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 text-[13px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[6px] transition-colors"
-                >
-                  Save Payment
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* QUICK PAY MODAL */}
-      {isQuickPayOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-          <div 
-            className="w-full max-w-md bg-[#FFFFFF] dark:bg-[#1C1C1E] rounded-[8px] border border-[#E5E5EA] dark:border-[#2C2C2E] shadow-2xl p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-              <div>
-                <h3 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
-                  Record Client Payment
-                </h3>
-                <p className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">
-                  Select client and enter payment amount
-                </p>
-              </div>
-              <button onClick={() => setIsQuickPayOpen(false)} className="text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]">
-                <X className="w-4 h-4 stroke-[1.5]" />
-              </button>
+              <Badge tone={inspectClient.currentBalance > 0 ? 'danger' : 'success'} dot>
+                {inspectClient.currentBalance > 0 ? inspectClient.agingBucket || 'Outstanding' : 'Cleared'}
+              </Badge>
             </div>
-
-            <form onSubmit={handleQuickPaySubmit} className="space-y-4 pt-4">
-              <div>
-                <label className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] mb-1">
-                  Select Client
-                </label>
-                <select
-                  value={quickPayClientId}
-                  onChange={(e) => {
-                    setQuickPayClientId(e.target.value);
-                    const selected = debtors.find((d) => d.id === e.target.value);
-                    if (selected && selected.currentBalance > 0) {
-                      setPaymentInput(selected.currentBalance.toString());
-                    }
-                  }}
-                  className="w-full px-3 py-1.5 text-[13px] bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none text-[#1D1D1F] dark:text-[#F5F5F7]"
-                >
-                  {debtors.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.clientName} (Due: ₹{d.currentBalance.toLocaleString('en-IN')})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] mb-1">
-                  Amount Received (₹)
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  required
-                  placeholder="e.g. 10000"
-                  value={paymentInput}
-                  onChange={(e) => setPaymentInput(e.target.value)}
-                  className="w-full px-3 py-1.5 text-[14px] font-tabular bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none focus:border-[#0071E3] text-[#1D1D1F] dark:text-[#F5F5F7]"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E5E5EA] dark:border-[#2C2C2E]">
-                <button
-                  type="button"
-                  onClick={() => setIsQuickPayOpen(false)}
-                  className="px-3 py-1.5 text-[13px] text-[#6E6E73] hover:text-[#1D1D1F]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 text-[13px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[6px] transition-colors"
-                >
-                  Save Payment
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ADD BILLING MODAL */}
-      {billingModalRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-          <div 
-            className="w-full max-w-md bg-[#FFFFFF] dark:bg-[#1C1C1E] rounded-[8px] border border-[#E5E5EA] dark:border-[#2C2C2E] shadow-2xl p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-              <div>
-                <h3 className="text-[15px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
-                  Add Billing Entry
-                </h3>
-                <p className="text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">
-                  Debit fee to {billingModalRecord.clientName}
-                </p>
-              </div>
-              <button onClick={() => setBillingModalRecord(null)} className="text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]">
-                <X className="w-4 h-4 stroke-[1.5]" />
-              </button>
+            <div className="border border-line rounded-lg overflow-hidden">
+              <table className="data-table num">
+                <thead>
+                  <tr>
+                    <th>Month</th>
+                    <th className="text-right">Opening</th>
+                    <th className="text-right">Received</th>
+                    <th className="text-right">Billed</th>
+                    <th className="text-right">Closing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {statementRows.map((r, i) => {
+                    const isCurrent = i === statementRows.length - 1;
+                    return (
+                      <tr key={r.label} className={cn(isCurrent && 'bg-subtle font-medium')}>
+                        <td className="text-fg">{r.label}</td>
+                        <td className="text-right text-fg-muted">{formatINR(r.opening)}</td>
+                        <td className="text-right text-success">{amt(r.paid)}</td>
+                        <td className="text-right text-fg-muted">{amt(r.billed)}</td>
+                        <td className="text-right text-fg">{formatINR(isCurrent ? inspectClient.currentBalance : r.closing)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-
-            <form onSubmit={handleBillingSubmit} className="space-y-4 pt-4">
-              <div>
-                <label className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] mb-1">
-                  Billing Amount (₹)
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  required
-                  autoFocus
-                  placeholder="Enter fee amount"
-                  value={billingInput}
-                  onChange={(e) => setBillingInput(e.target.value)}
-                  className="w-full px-3 py-1.5 text-[14px] font-tabular bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none focus:border-[#0071E3] text-[#1D1D1F] dark:text-[#F5F5F7]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-medium text-[#6E6E73] dark:text-[#8E8E93] mb-1">
-                  Service Description
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={billingService}
-                  onChange={(e) => setBillingService(e.target.value)}
-                  className="w-full px-3 py-1.5 text-[13px] bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#3A3A3C] rounded-[6px] focus:outline-none text-[#1D1D1F] dark:text-[#F5F5F7]"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E5E5EA] dark:border-[#2C2C2E]">
-                <button
-                  type="button"
-                  onClick={() => setBillingModalRecord(null)}
-                  className="px-3 py-1.5 text-[13px] text-[#6E6E73] hover:text-[#1D1D1F]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 text-[13px] font-medium text-white bg-[#0071E3] hover:bg-[#0077ED] rounded-[6px] transition-colors"
-                >
-                  Post Billing
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
+
+      {/* Record payment (row) */}
+      <Modal
+        isOpen={!!paymentModalRecord}
+        onClose={() => setPaymentModalRecord(null)}
+        size="sm"
+        title="Record Client Payment"
+        description={paymentModalRecord ? `Credit a receipt to ${paymentModalRecord.clientName}` : undefined}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPaymentModalRecord(null)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" form="debtor-payment-form">
+              Save Payment
+            </Button>
+          </>
+        }
+      >
+        {paymentModalRecord && (
+          <form id="debtor-payment-form" onSubmit={handlePaymentSubmit} className="space-y-4">
+            <div className="flex items-center justify-between h-10 px-3 rounded-md border border-line bg-subtle text-sm">
+              <span className="text-fg-subtle">Outstanding · {paymentModalRecord.assignedStaff}</span>
+              <span className="num font-medium text-fg">{formatINR(paymentModalRecord.currentBalance)}</span>
+            </div>
+            <Field label="Amount received (₹)" required>
+              <Input type="number" step="any" required autoFocus placeholder="5000" value={paymentInput} onChange={(e) => setPaymentInput(e.target.value)} className="num" />
+            </Field>
+            <Field label="Payment mode">
+              <Select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
+                <option value="Bank Transfer (NEFT/RTGS)">Bank transfer (NEFT/RTGS)</option>
+                <option value="UPI / QR Code">UPI</option>
+                <option value="Cheque Deposit">Cheque</option>
+                <option value="Cash Receipt">Cash</option>
+              </Select>
+            </Field>
+            <Field label="Reference" hint="Optional — UTR, cheque number or note.">
+              <Input placeholder="UTR 123456" value={paymentNote} onChange={(e) => setPaymentNote(e.target.value)} />
+            </Field>
+          </form>
+        )}
+      </Modal>
+
+      {/* Record payment (header) */}
+      <Modal
+        isOpen={isQuickPayOpen}
+        onClose={() => setIsQuickPayOpen(false)}
+        size="sm"
+        title="Record Client Payment"
+        description="Select the client and enter the amount received."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setIsQuickPayOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" form="debtor-quickpay-form">
+              Save Payment
+            </Button>
+          </>
+        }
+      >
+        <form id="debtor-quickpay-form" onSubmit={handleQuickPaySubmit} className="space-y-4">
+          <Field label="Client">
+            <Select
+              value={quickPayClientId}
+              onChange={(e) => {
+                setQuickPayClientId(e.target.value);
+                const selected = debtors.find((d) => d.id === e.target.value);
+                if (selected && selected.currentBalance > 0) setPaymentInput(selected.currentBalance.toString());
+              }}
+            >
+              {debtors.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.clientName} — {formatINR(d.currentBalance)} due
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Amount received (₹)" required>
+            <Input type="number" step="any" required placeholder="10000" value={paymentInput} onChange={(e) => setPaymentInput(e.target.value)} className="num" />
+          </Field>
+        </form>
+      </Modal>
+
+      {/* Add billing */}
+      <Modal
+        isOpen={!!billingModalRecord}
+        onClose={() => setBillingModalRecord(null)}
+        size="sm"
+        title="Add billing entry"
+        description={billingModalRecord ? `Debit a fee to ${billingModalRecord.clientName}` : undefined}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setBillingModalRecord(null)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" form="debtor-billing-form">
+              Post Entry
+            </Button>
+          </>
+        }
+      >
+        <form id="debtor-billing-form" onSubmit={handleBillingSubmit} className="space-y-4">
+          <Field label="Amount (₹)" required>
+            <Input type="number" step="any" required autoFocus placeholder="3000" value={billingInput} onChange={(e) => setBillingInput(e.target.value)} className="num" />
+          </Field>
+          <Field label="Service" required>
+            <Input required value={billingService} onChange={(e) => setBillingService(e.target.value)} />
+          </Field>
+        </form>
+      </Modal>
     </div>
   );
 };

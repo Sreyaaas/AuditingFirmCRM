@@ -4,12 +4,12 @@ import {
   ChevronLeft, 
   ChevronRight, 
   ArrowUpRight, 
-  Search, 
   Copy, 
   Check, 
   ChevronDown 
 } from 'lucide-react';
 import { MonthlyTask, StaffMember, FilingStatus } from '../types/crm';
+import { Avatar, Badge, Button, EmptyState, IconButton, Menu, PageHeader, Pagination, SearchInput, Select, TableCard, Tabs, Tone, cn } from './ui';
 
 interface ComplianceTaskManagerProps {
   tasks: MonthlyTask[];
@@ -157,455 +157,242 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
     return dateStr;
   };
 
-  const getStatusBadge = (status: FilingStatus) => {
-    switch (status) {
-      case 'Filed':
-        return (
-          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium text-[#16A34A] dark:text-[#34C759] bg-[#16A34A]/10 rounded-[4px]">
-            Filed
-          </span>
-        );
-      case 'Draft Ready':
-        return (
-          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium text-[#0071E3] dark:text-[#2997FF] bg-[#0071E3]/10 rounded-[4px]">
-            Draft Ready
-          </span>
-        );
-      case 'In Progress':
-        return (
-          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium text-[#6E6E73] dark:text-[#8E8E93] bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-[4px]">
-            In Progress
-          </span>
-        );
-      case 'Docs Pending':
-        return (
-          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium text-[#D97706] dark:text-[#FF9F0A] bg-[#D97706]/10 rounded-[4px]">
-            Docs Pending
-          </span>
-        );
-      case 'Overdue':
-        return (
-          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium text-[#DC2626] bg-[#DC2626]/10 rounded-[4px]">
-            Overdue
-          </span>
-        );
-    }
+  const statusBadgeTone: Record<FilingStatus, Tone> = {
+    Filed: 'success',
+    'Draft Ready': 'info',
+    'In Progress': 'neutral',
+    'Docs Pending': 'warning',
+    Overdue: 'danger',
   };
 
   const renderDueDateCell = (task: MonthlyTask) => {
     const formatted = formatHumanReadableDate(task.dueDate);
-
-    if (task.status === 'Filed') {
-      return (
-        <span className="text-[13px] font-medium text-[#8E8E93] dark:text-[#6E6E73]">
-          {formatted}
-        </span>
-      );
+    let rel: React.ReactNode = null;
+    if (task.status !== 'Filed') {
+      if (task.daysRemaining < 0) rel = <span className="text-danger">{Math.abs(task.daysRemaining)}d late</span>;
+      else if (task.daysRemaining <= 5) rel = <span className="text-warning">{task.daysRemaining === 0 ? 'Today' : `In ${task.daysRemaining}d`}</span>;
+      else rel = <span className="text-fg-subtle">In {task.daysRemaining}d</span>;
     }
-
-    if (task.daysRemaining < 0) {
-      return (
-        <div className="flex items-center gap-1.5">
-          <span className="text-[13px] font-medium text-[#18181B] dark:text-[#F5F5F7]">
-            {formatted}
-          </span>
-          <span className="font-mono tabular-nums text-[11px] font-medium px-1.5 py-0.2 rounded-[4px] bg-[#DC2626]/10 text-[#DC2626]">
-            {Math.abs(task.daysRemaining)}d late
-          </span>
-        </div>
-      );
-    }
-
-    if (task.daysRemaining <= 5) {
-      return (
-        <div className="flex items-center gap-1.5">
-          <span className="text-[13px] font-medium text-[#18181B] dark:text-[#F5F5F7]">
-            {formatted}
-          </span>
-          <span className="font-mono tabular-nums text-[11px] font-medium px-1.5 py-0.2 rounded-[4px] bg-[#D97706]/10 text-[#D97706] dark:text-[#FF9F0A]">
-            Due in {task.daysRemaining}d
-          </span>
-        </div>
-      );
-    }
-
     return (
-      <div className="flex items-center gap-1.5">
-        <span className="text-[13px] font-medium text-[#18181B] dark:text-[#F5F5F7]">
-          {formatted}
-        </span>
-        <span className="font-mono tabular-nums text-[11px] text-[#6E6E73] dark:text-[#8E8E93]">
-          In {task.daysRemaining}d
-        </span>
+      <div className="num">
+        <div className={cn('text-sm', task.status === 'Filed' ? 'text-fg-subtle' : 'text-fg')}>{formatted}</div>
+        {rel && <div className="text-xs font-medium">{rel}</div>}
       </div>
     );
   };
 
+  const periodIdx = periods.indexOf(selectedPeriod);
+
   return (
-    <div className="space-y-3">
-      {/* 1. Direct Page Header (Starts directly with GST & Audit, no outer wrapper) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-        <div>
-          <h1 className="text-[18px] font-semibold text-[#09090B] dark:text-[#F5F5F7] tracking-tight">
-            GST &amp; Audit
-          </h1>
-          <p className="text-[12.5px] text-[#4B5563] dark:text-[#8E8E93] mt-0.5">
-            {tasks.length} clients • Monthly GST and TDS filings
-          </p>
-        </div>
-
-        {/* Top-Right: Compact Period Switcher & Clean Staff Dropdown */}
-        <div className="flex items-center gap-2">
-          {/* Period Switcher */}
-          <div className="flex items-center border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] bg-white dark:bg-[#1C1C1E] h-8 px-1 text-[12px]">
-            <button
-              onClick={handlePeriodPrev}
-              disabled={periods.indexOf(selectedPeriod) === 0}
-              className="p-1 text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              title="Previous period"
-            >
-              <ChevronLeft className="w-3.5 h-3.5 stroke-[1.5]" />
-            </button>
-            <span className="font-mono tabular-nums px-2 font-medium text-[#09090B] dark:text-[#F5F5F7]">
-              {selectedPeriod}
-            </span>
-            <button
-              onClick={handlePeriodNext}
-              disabled={periods.indexOf(selectedPeriod) === periods.length - 1}
-              className="p-1 text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              title="Next period"
-            >
-              <ChevronRight className="w-3.5 h-3.5 stroke-[1.5]" />
-            </button>
-          </div>
-
-          {/* Clean Staff Dropdown: "All Staff", "Susmi", "Ameen" */}
-          {!selectedStaffId && (
-            <select
-              value={staffFilterState}
-              onChange={(e) => {
-                setStaffFilterState(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="h-8 px-2.5 bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[6px] text-[#09090B] dark:text-[#F5F5F7] text-[12px] font-medium focus:outline-none"
-            >
-              <option value="all">All Staff</option>
-              {staffList.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      </div>
-
-      {/* Bulk Action Strip (Appears when checkboxes are selected) */}
-      {selectedTaskIds.length > 0 && (
-        <div className="px-3.5 py-2 rounded-[6px] bg-[#F2F2F7] dark:bg-[#242426] border border-[#E5E5EA] dark:border-[#2C2C2E] flex items-center justify-between text-[12px] animate-in fade-in duration-100">
-          <span className="font-medium text-[#09090B] dark:text-[#F5F5F7]">
-            {selectedTaskIds.length} {selectedTaskIds.length === 1 ? 'task' : 'tasks'} selected
-          </span>
-          <div className="flex items-center gap-2">
-            <span className="text-[#6E6E73] dark:text-[#8E8E93]">Mark selected as:</span>
-            <button
-              onClick={() => handleBulkStatusUpdate('Draft Ready')}
-              className="px-2 py-1 text-[11px] font-medium bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[4px] hover:bg-[#E5E5EA] dark:hover:bg-[#3A3A3C] transition-colors"
-            >
-              Draft Ready
-            </button>
-            <button
-              onClick={() => handleBulkStatusUpdate('Filed')}
-              className="px-2 py-1 text-[11px] font-medium bg-[#0071E3] hover:bg-[#0077ED] text-white rounded-[4px] transition-colors"
-            >
-              Filed
-            </button>
-            <button
-              onClick={() => setSelectedTaskIds([])}
-              className="px-2 py-1 text-[11px] text-[#6E6E73] hover:text-[#09090B] dark:hover:text-[#F5F5F7]"
-            >
-              Deselect
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 2 & 6. Flush Toolbar & Table Container */}
-      <div className="bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[8px] overflow-hidden shadow-sm">
-        {/* Flush Toolbar inside Card Header */}
-        <div className="px-3.5 pt-2 flex flex-col lg:flex-row lg:items-center justify-between gap-2 border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-          {/* Underline Tabs */}
-          <div className="flex items-center gap-5 text-[13px] overflow-x-auto -mb-[1px]">
-            {tabs.map((tab) => {
-              const isActive = statusFilter === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setStatusFilter(tab.id);
-                    setCurrentPage(1);
-                  }}
-                  className={`pb-2.5 font-medium transition-colors border-b-2 flex items-center gap-1.5 whitespace-nowrap ${
-                    isActive
-                      ? 'border-[#09090B] dark:border-[#F5F5F7] text-[#09090B] dark:text-[#F5F5F7]'
-                      : 'border-transparent text-[#6E6E73] hover:text-[#09090B] dark:hover:text-[#F5F5F7]'
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                  <span className="font-mono tabular-nums text-[11px] px-1.5 py-0.2 rounded-[4px] bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#6E6E73] dark:text-[#8E8E93]">
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Search & Filing Type Filter */}
-          <div className="flex items-center gap-2 pb-2 lg:pb-0">
-            <select
-              value={filingTypeFilter}
-              onChange={(e) => {
-                setFilingTypeFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="h-7 px-2 bg-white dark:bg-[#1C1C1E] border border-[#E5E5EA] dark:border-[#2C2C2E] rounded-[5px] text-[#18181B] dark:text-[#F5F5F7] text-[11.5px] font-medium focus:outline-none"
-            >
-              <option value="all">All Returns</option>
-              {filingTypes.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-
-            <div className="relative flex items-center">
-              <Search className="w-3.5 h-3.5 absolute left-2 text-[#86868B] stroke-[1.5]" />
-              <input
-                type="text"
-                placeholder="Search clients..."
-                value={searchQuery}
+    <div className="space-y-4">
+      <PageHeader
+        title="GST & Audit"
+        description={`${tasks.length} engagements · Monthly GST, TDS and payroll returns`}
+        actions={
+          <>
+            <div className="flex items-center h-8 rounded-md border border-line bg-surface shadow-xs">
+              <IconButton icon={ChevronLeft} label="Previous period" size="sm" onClick={handlePeriodPrev} disabled={periodIdx === 0} />
+              <span className="num w-[72px] text-center text-sm font-medium text-fg">{selectedPeriod}</span>
+              <IconButton icon={ChevronRight} label="Next period" size="sm" onClick={handlePeriodNext} disabled={periodIdx === periods.length - 1} />
+            </div>
+            {!selectedStaffId && (
+              <Select
+                value={staffFilterState}
                 onChange={(e) => {
-                  setSearchQuery(e.target.value);
+                  setStaffFilterState(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="h-7 pl-7 pr-2.5 text-[11.5px] bg-[#F2F2F7] dark:bg-[#242426] border border-transparent focus:border-[#0071E3] rounded-[5px] text-[#09090B] dark:text-[#F5F5F7] placeholder-[#86868B] focus:outline-none w-32 sm:w-40 font-medium"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Table View */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-[13px] border-collapse">
-            <thead>
-              <tr className="bg-[#FBFBFD] dark:bg-[#161618] text-[#6E6E73] dark:text-[#8E8E93] text-[11px] uppercase tracking-[0.04em] border-b border-[#E5E5EA] dark:border-[#2C2C2E]">
-                <th className="py-2 pl-3.5 pr-2 w-8 text-center">
-                  <input
-                    type="checkbox"
-                    checked={allCurrentSelected}
-                    onChange={toggleSelectAll}
-                    className="h-4 w-4 rounded-[4px] border border-[#D1D1D6] bg-white accent-[#0071E3] cursor-pointer focus:ring-0"
-                  />
-                </th>
-                <th className="py-2 px-3.5 font-semibold min-w-[200px]">Client / GSTIN</th>
-                <th className="py-2 px-3.5 font-semibold">Return Type</th>
-                <th className="py-2 px-3.5 font-semibold">Staff</th>
-                <th className="py-2 px-3.5 font-semibold">Due Date</th>
-                <th className="py-2 px-3.5 font-semibold">Status</th>
-                <th className="py-2 px-3.5 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E5EA] dark:divide-[#2C2C2E]">
-              {paginatedTasks.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-[#6E6E73] dark:text-[#8E8E93] text-[13px]">
-                    No monthly tasks match the current filter.
-                  </td>
-                </tr>
-              ) : (
-                paginatedTasks.map((task) => {
-                  const staff = getStaff(task.assignedStaffId);
-                  const isSelected = selectedTaskIds.includes(task.id);
-                  const isFiled = task.status === 'Filed';
-
-                  return (
-                    <tr 
-                      key={task.id} 
-                      className={`hover:bg-[#F2F2F7] dark:hover:bg-[#242426] transition-colors group ${
-                        isSelected ? 'bg-[#0071E3]/5 dark:bg-[#0071E3]/10' : ''
-                      }`}
-                    >
-                      {/* 3. Explicit Checkbox styling (clean white with grey border, accent blue) */}
-                      <td className="py-2 pl-3.5 pr-2 text-center align-middle">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectRow(task.id)}
-                          className="h-4 w-4 rounded-[4px] border border-[#D1D1D6] bg-white accent-[#0071E3] cursor-pointer focus:ring-0"
-                        />
-                      </td>
-
-                      {/* 5. Calibrated Client Name & GSTIN Typography */}
-                      <td className="py-2 px-3.5 align-middle">
-                        <button
-                          onClick={() => onSelectClient(task.clientId)}
-                          className="font-semibold text-[13.5px] text-[#09090B] dark:text-[#F5F5F7] hover:text-[#0071E3] dark:hover:text-[#2997FF] hover:underline text-left block truncate max-w-xs"
-                        >
-                          {task.tradeName}
-                        </button>
-                        <div className="font-mono text-[11.5px] text-[#6E6E73] dark:text-[#8E8E93] tracking-tight mt-0.5">
-                          {task.gstin}
-                        </div>
-                      </td>
-
-                      {/* 4. Return Type Only (No duplicate "October 2026") */}
-                      <td className="py-2 px-3.5 align-middle">
-                        <span className="text-[13px] font-medium text-[#18181B] dark:text-[#F5F5F7]">
-                          {task.filingType}
-                        </span>
-                      </td>
-
-                      {/* Staff */}
-                      <td className="py-2 px-3.5 align-middle text-[12.5px] font-medium text-[#18181B] dark:text-[#F5F5F7]">
-                        {staff?.name || 'Unassigned'}
-                      </td>
-
-                      {/* 5. Human-readable Due Date (e.g. 20 Nov 2026, muted if filed) */}
-                      <td className="py-2 px-3.5 align-middle">
-                        {renderDueDateCell(task)}
-                      </td>
-
-                      {/* Status & Portal ARN */}
-                      <td className="py-2 px-3.5 align-middle">
-                        <div className="flex flex-wrap items-center gap-1.5 relative">
-                          {/* Inline Clickable Status Badge */}
-                          <div className="relative">
-                            <button
-                              type="button"
-                              onClick={() => setOpenStatusMenuId(openStatusMenuId === task.id ? null : task.id)}
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                              title="Click to update status"
-                            >
-                              {getStatusBadge(task.status)}
-                              <ChevronDown className="w-2.5 h-2.5 text-[#86868B] opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-
-                            {/* Compact Popover */}
-                            {openStatusMenuId === task.id && (
-                              <>
-                                <div 
-                                  className="fixed inset-0 z-30" 
-                                  onClick={() => setOpenStatusMenuId(null)}
-                                />
-                                <div className="absolute left-0 mt-1 w-32 bg-white dark:bg-[#1C1C1E] rounded-[6px] border border-[#E5E5EA] dark:border-[#2C2C2E] shadow-xl z-40 p-1 text-[11.5px] animate-in fade-in duration-75">
-                                  {ALL_STATUSES.map((st) => (
-                                    <button
-                                      key={st}
-                                      onClick={() => {
-                                        onUpdateStatus(task.id, st);
-                                        setOpenStatusMenuId(null);
-                                      }}
-                                      className={`w-full text-left px-2 py-1 rounded-[4px] transition-colors flex items-center justify-between ${
-                                        task.status === st 
-                                          ? 'bg-[#F2F2F7] dark:bg-[#2C2C2E] font-semibold text-[#09090B] dark:text-[#F5F5F7]' 
-                                          : 'text-[#6E6E73] dark:text-[#8E8E93] hover:text-[#09090B] dark:hover:text-[#F5F5F7] hover:bg-[#F2F2F7] dark:hover:bg-[#242426]'
-                                      }`}
-                                    >
-                                      <span>{st}</span>
-                                      {task.status === st && <Check className="w-3 h-3 text-[#0071E3]" />}
-                                    </button>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </div>
-
-                          {/* Portal ARN Badge */}
-                          {task.arnNumber && (
-                            <div 
-                              onClick={(e) => handleCopyArn(task.arnNumber!, e)}
-                              className="group/arn inline-flex items-center gap-1 font-mono tabular-nums text-[11px] text-[#6E6E73] dark:text-[#8E8E93] bg-[#F2F2F7] dark:bg-[#2C2C2E] px-1.5 py-0.5 rounded-[4px] cursor-pointer hover:text-[#09090B] dark:hover:text-[#F5F5F7] transition-colors"
-                              title={`Click to copy: ${task.arnNumber}`}
-                            >
-                              <span>ARN: {task.arnNumber.slice(-8)}</span>
-                              {copiedArn === task.arnNumber ? (
-                                <Check className="w-3 h-3 text-[#16A34A]" />
-                              ) : (
-                                <Copy className="w-3 h-3 opacity-0 group-hover/arn:opacity-100 transition-opacity" />
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Contextual Row Actions */}
-                      <td className="py-2 px-3.5 align-middle text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => onOpenWhatsApp(task)}
-                            className="h-7 px-2 border border-[#E5E5EA] dark:border-[#2C2C2E] bg-white dark:bg-[#1C1C1E] hover:bg-[#F2F2F7] dark:hover:bg-[#242426] text-[#18181B] dark:text-[#F5F5F7] rounded-[5px] flex items-center gap-1 transition-colors text-[11px] font-medium"
-                            title={isFiled ? 'Share filing acknowledgment via WhatsApp' : 'Send WhatsApp reminder'}
-                          >
-                            <MessageSquare className="w-3 h-3 text-[#16A34A] dark:text-[#34C759]" strokeWidth={1.5} />
-                            <span>{isFiled ? 'Send Receipt' : 'Remind'}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => onSelectClient(task.clientId)}
-                            className="p-1 text-[#6E6E73] hover:text-[#0071E3] dark:hover:text-[#2997FF] rounded transition-colors"
-                            title="View client account"
-                          >
-                            <ArrowUpRight className="w-3.5 h-3.5 stroke-[1.5]" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Bar */}
-        <div className="px-3.5 py-2 border-t border-[#E5E5EA] dark:border-[#2C2C2E] bg-[#FBFBFD] dark:bg-[#161618] flex items-center justify-between text-[12px] text-[#6E6E73] dark:text-[#8E8E93]">
-          <span className="font-mono tabular-nums">
-            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredTasks.length)} of {filteredTasks.length}
-          </span>
-
-          <div className="flex items-center gap-1 font-mono tabular-nums">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="p-1 border border-[#E5E5EA] dark:border-[#2C2C2E] rounded hover:bg-white dark:hover:bg-[#2C2C2E] disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-3.5 h-3.5 stroke-[1.5]" />
-            </button>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`w-5 h-5 rounded text-[11px] font-medium ${
-                  currentPage === page
-                    ? 'bg-[#0071E3] text-white'
-                    : 'text-[#6E6E73] dark:text-[#8E8E93] hover:bg-white dark:hover:bg-[#2C2C2E]'
-                }`}
+                className="w-auto min-w-[128px]"
               >
-                {page}
-              </button>
-            ))}
+                <option value="all">All Staff</option>
+                {staffList.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </>
+        }
+      />
 
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="p-1 border border-[#E5E5EA] dark:border-[#2C2C2E] rounded hover:bg-white dark:hover:bg-[#2C2C2E] disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-3.5 h-3.5 stroke-[1.5]" />
-            </button>
-          </div>
-        </div>
-      </div>
+      <TableCard
+        toolbar={
+          <>
+            <div className="px-3 pt-1 flex flex-col lg:flex-row lg:items-end justify-between gap-2 border-b border-line">
+              <Tabs
+                className="border-b-0 -mb-px"
+                value={statusFilter}
+                onChange={(v) => {
+                  setStatusFilter(v);
+                  setCurrentPage(1);
+                }}
+                options={tabs.map((t) => ({ value: t.id, label: t.label, count: t.count }))}
+              />
+              <div className="flex items-center gap-2 pb-2">
+                <Select
+                  value={filingTypeFilter}
+                  onChange={(e) => {
+                    setFilingTypeFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="h-7 text-xs w-auto"
+                >
+                  <option value="all">All returns</option>
+                  {filingTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </Select>
+                <SearchInput
+                  placeholder="Search clients…"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  wrapperClassName="w-40 sm:w-52"
+                  className="h-7 text-xs"
+                />
+              </div>
+            </div>
+            {selectedTaskIds.length > 0 && (
+              <div className="flex items-center justify-between gap-3 px-3 h-10 bg-subtle border-b border-line text-xs animate-fade-in">
+                <span className="font-medium text-fg num">{selectedTaskIds.length} selected</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-fg-subtle mr-1">Mark as</span>
+                  <Button size="sm" onClick={() => handleBulkStatusUpdate('Draft Ready')}>
+                    Draft Ready
+                  </Button>
+                  <Button size="sm" variant="primary" onClick={() => handleBulkStatusUpdate('Filed')}>
+                    Filed
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedTaskIds([])}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        }
+        footer={
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredTasks.length}
+            pageSize={itemsPerPage}
+            onChange={setCurrentPage}
+            noun="tasks"
+          />
+        }
+      >
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th className="w-10 !pr-0">
+                <input type="checkbox" aria-label="Select all" checked={allCurrentSelected} onChange={toggleSelectAll} className="h-3.5 w-3.5 cursor-pointer align-middle" />
+              </th>
+              <th className="min-w-[220px]">Client</th>
+              <th>Return</th>
+              <th>Owner</th>
+              <th>Due</th>
+              <th>Status</th>
+              <th className="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedTasks.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="!h-auto">
+                  <EmptyState title="No tasks match these filters" description="Try another status, return type or search term." />
+                </td>
+              </tr>
+            ) : (
+              paginatedTasks.map((task) => {
+                const staff = getStaff(task.assignedStaffId);
+                const isSelected = selectedTaskIds.includes(task.id);
+                const isFiled = task.status === 'Filed';
+
+                return (
+                  <tr key={task.id} className={cn('group', isSelected && '!bg-accent/[0.04]')}>
+                    <td className="!pr-0">
+                      <input type="checkbox" aria-label={`Select ${task.tradeName}`} checked={isSelected} onChange={() => toggleSelectRow(task.id)} className="h-3.5 w-3.5 cursor-pointer align-middle" />
+                    </td>
+                    <td className="py-2">
+                      <button onClick={() => onSelectClient(task.clientId)} className="block max-w-xs truncate text-left font-medium text-fg hover:underline underline-offset-2">
+                        {task.tradeName}
+                      </button>
+                      <div className="ident text-fg-subtle mt-0.5">{task.gstin}</div>
+                    </td>
+                    <td className="text-fg whitespace-nowrap">{task.filingType}</td>
+                    <td>
+                      <div className="flex items-center gap-2 whitespace-nowrap">
+                        {staff && <Avatar initials={staff.initials} size="xs" />}
+                        <span className={staff ? 'text-fg' : 'text-fg-faint'}>{staff?.name || 'Unassigned'}</span>
+                      </div>
+                    </td>
+                    <td className="py-2 whitespace-nowrap">{renderDueDateCell(task)}</td>
+                    <td>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setOpenStatusMenuId(openStatusMenuId === task.id ? null : task.id)}
+                            className="inline-flex items-center gap-0.5 rounded-sm focus-visible:ring-2 focus-visible:ring-accent/40"
+                            title="Click to update status"
+                          >
+                            <Badge tone={statusBadgeTone[task.status]} dot>
+                              {task.status}
+                            </Badge>
+                            <ChevronDown className="w-3 h-3 text-fg-faint opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                          <Menu
+                            open={openStatusMenuId === task.id}
+                            onClose={() => setOpenStatusMenuId(null)}
+                            title="Set status"
+                            items={ALL_STATUSES.map((st) => ({ value: st, label: st, selected: task.status === st }))}
+                            onSelect={(v) => onUpdateStatus(task.id, v as FilingStatus)}
+                          />
+                        </div>
+
+                        {task.arnNumber && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleCopyArn(task.arnNumber!, e)}
+                            className="group/arn inline-flex items-center gap-1 h-5 px-1.5 rounded-sm border border-line ident text-2xs text-fg-subtle hover:text-fg transition-colors"
+                            title={`Copy ARN ${task.arnNumber}`}
+                          >
+                            {task.arnNumber}
+                            {copiedArn === task.arnNumber ? (
+                              <Check className="w-3 h-3 text-success" />
+                            ) : (
+                              <Copy className="w-3 h-3 opacity-0 group-hover/arn:opacity-100 transition-opacity" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          icon={MessageSquare}
+                          onClick={() => onOpenWhatsApp(task)}
+                          title={isFiled ? 'Share filing acknowledgment via WhatsApp' : 'Send WhatsApp reminder'}
+                        >
+                          {isFiled ? 'Send Receipt' : 'Remind'}
+                        </Button>
+                        <IconButton icon={ArrowUpRight} label="View client account" size="sm" onClick={() => onSelectClient(task.clientId)} />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </TableCard>
     </div>
   );
 };
