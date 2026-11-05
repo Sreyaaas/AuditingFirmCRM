@@ -86,7 +86,7 @@ export interface MonthlyTask {
   clientName: string;
   tradeName: string;
   gstin: string;
-  filingType: 'GSTR-1' | 'GSTR-3B' | 'Statutory Audit' | 'TDS Payment' | 'PF/ESI';
+  filingType: 'GSTR-1' | 'GSTR-3B' | 'CMP-08' | 'Statutory Audit' | 'TDS Payment' | 'PF/ESI' | string;
   period: string; // e.g. "October 2026"
   assignedStaffId: string;
   status: FilingStatus;
@@ -179,7 +179,7 @@ export interface GSTComplianceItem {
   dueDate: string;
   daysRemaining: number;
   priorityLevel: GSTPriorityLevel;
-  filingStatus: 'Overdue' | 'Due Soon' | 'In Progress' | 'Docs Pending' | 'Filed';
+  filingStatus: 'Overdue' | 'Due Soon' | 'In Progress' | 'Docs Pending' | 'Filed' | 'Draft Ready';
   assignedStaff: string; // Ameen, Susmi
   arnNumber?: string;
   filedDate?: string;

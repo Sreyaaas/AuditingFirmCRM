@@ -780,10 +780,10 @@ export const SAMPLE_TICKETS: StaffTicket[] = [
     tradeName: "Malabar Spices",
     callerName: "Faisal Rahman",
     callerPhone: "+91 98471 99882",
-    callType: "Client WhatsApp Message",
+    callType: "WhatsApp Query",
     subject: "Intimation u/s 143(1) for AY 2025-26 refund mismatch",
     description: "Client received CPC intimation with ₹4,500 demand instead of refund due to TDS 26AS mismatch. Needs rectification request filing.",
-    category: "Income Tax & CPC",
+    category: "Income Tax Notice",
     priority: "Urgent",
     status: "In Progress",
     loggedByStaffId: "staff-susmi",
@@ -818,7 +818,7 @@ export const SAMPLE_TICKETS: StaffTicket[] = [
     tradeName: "Spanish Absolute",
     callerName: "Sujith Kumar",
     callerPhone: "+91 98472 88771",
-    callType: "Client WhatsApp Message",
+    callType: "WhatsApp Query",
     subject: "QRMP scheme quarterly return query",
     description: "Confirming whether CMP-08 was filed and acknowledgment receipt was received.",
     category: "GST & Return Query",
@@ -836,35 +836,50 @@ export const SAMPLE_ACTIVITY_LOGS: ActivityLog[] = [
     id: "log-1",
     timestamp: "Today, 11:30 AM",
     userName: "Susmi",
+    userRole: "employee",
     action: "Assigned Ticket TK-1083 (Malabar Spices LLP) to Susmi",
-    category: "tickets"
+    details: "Assigned call ticket for rectification request follow-up",
+    clientName: "Malabar Spices LLP",
+    category: "Task"
   },
   {
     id: "log-2",
     timestamp: "Today, 10:15 AM",
     userName: "Ameen",
+    userRole: "admin",
     action: "Recorded payment of ₹7,500 for Malabar Spices LLP via NEFT",
-    category: "financial"
+    details: "Applied receipt towards outstanding professional fees balance",
+    clientName: "Malabar Spices LLP",
+    category: "Payment"
   },
   {
     id: "log-3",
     timestamp: "Yesterday, 04:45 PM",
     userName: "Shameer",
+    userRole: "admin",
     action: "Approved draft computation for Havos (P) Ltd (ITR-6)",
-    category: "filings"
+    details: "Verified tax liability computation and 26AS reconciliation",
+    clientName: "Havos (P) Ltd",
+    category: "Filing"
   },
   {
     id: "log-4",
     timestamp: "Yesterday, 02:20 PM",
     userName: "Susmi",
+    userRole: "employee",
     action: "Dispatched WhatsApp filing reminder to Rafeek & Sons Trading",
-    category: "filings"
+    details: "Reminded client regarding purchase invoice records for GSTR-3B",
+    clientName: "Rafeek & Sons Trading",
+    category: "Filing"
   },
   {
     id: "log-5",
     timestamp: "Yesterday, 11:00 AM",
     userName: "Ameen",
+    userRole: "admin",
     action: "Generated CMP-08 draft challan for Spanish Absolute Parlour",
-    category: "filings"
+    details: "Draft challan prepared for Q3 2026 composition turnover",
+    clientName: "Spanish Absolute Parlour",
+    category: "Filing"
   }
 ];

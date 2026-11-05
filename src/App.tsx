@@ -130,6 +130,13 @@ export function App() {
   }, [theme]);
   const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
 
+  // -------------------------------------------------------------- palette
+  const [palette, setPalette] = useState<string>(() => localStorage.getItem('crm-palette') || 'zinc');
+  useEffect(() => {
+    document.documentElement.setAttribute('data-palette', palette);
+    localStorage.setItem('crm-palette', palette);
+  }, [palette]);
+
   // ------------------------------------------------------- command palette
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   useEffect(() => {
@@ -946,6 +953,8 @@ export function App() {
                     onSaveFirmProfile={handleSaveFirmProfile}
                     whatsappTemplates={templates}
                     onSaveWhatsAppTemplates={handleSaveTemplates}
+                    palette={palette}
+                    onSelectPalette={setPalette}
                     clients={clients}
                     monthlyTasks={monthlyTasks}
                     itrFilings={itrFilings}

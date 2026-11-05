@@ -23,6 +23,8 @@ interface PracticeConfigManagerProps {
   onSaveFirmProfile: (profile: FirmProfileSettings) => Promise<SaveResult>;
   whatsappTemplates: WhatsAppTemplateSettings;
   onSaveWhatsAppTemplates: (templates: WhatsAppTemplateSettings) => Promise<SaveResult>;
+  palette?: string;
+  onSelectPalette?: (palette: string) => void;
   clients?: Client[];
   monthlyTasks?: MonthlyTask[];
   itrFilings?: ITRFiling[];
@@ -65,6 +67,70 @@ const useFeedback = () => {
   return [msg, show] as const;
 };
 
+interface PaletteOption {
+  id: string;
+  name: string;
+  tag: string;
+  description: string;
+  accentLight: string;
+  accentDark: string;
+  canvasLight: string;
+  canvasDark: string;
+}
+
+const PALETTES: PaletteOption[] = [
+  {
+    id: 'zinc',
+    name: 'Zinc Minimal',
+    tag: 'Neutral',
+    description: 'Clean monochrome greyscale with classic enterprise blue accent.',
+    accentLight: '#0066D6',
+    accentDark: '#4D9AFF',
+    canvasLight: '#F8F8F9',
+    canvasDark: '#0C0C0E',
+  },
+  {
+    id: 'signature',
+    name: 'Firm Signature',
+    tag: 'Navy · Official Logo Hue',
+    description: 'Deep royal navy accents inspired by the Shameer & Associates brand identity.',
+    accentLight: '#1D4ED8',
+    accentDark: '#60A5FA',
+    canvasLight: '#F7F9FC',
+    canvasDark: '#0B0F19',
+  },
+  {
+    id: 'sage',
+    name: 'Nordic Sage',
+    tag: 'Audit Forest',
+    description: 'Restrained spruce and pine green tones optimized for long audit sessions.',
+    accentLight: '#0F766E',
+    accentDark: '#2DD4BF',
+    canvasLight: '#F6F8F7',
+    canvasDark: '#0C1412',
+  },
+  {
+    id: 'linen',
+    name: 'Warm Linen',
+    tag: 'Parchment & Amber',
+    description: 'Warm parchment and bronze amber for a gentle, glare-free aesthetic.',
+    accentLight: '#B45309',
+    accentDark: '#FBBF24',
+    canvasLight: '#FBFBF9',
+    canvasDark: '#141210',
+  },
+  {
+    id: 'obsidian',
+    name: 'Pitch Obsidian',
+    tag: 'Pure Dark & Cyan',
+    description: 'True OLED pitch canvas paired with sharp electric cyan accents.',
+    accentLight: '#0284C7',
+    accentDark: '#38BDF8',
+    canvasLight: '#F5F5F7',
+    canvasDark: '#000000',
+  },
+];
+
 export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
   configs,
   onAddOption,
@@ -75,6 +141,8 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
   onSaveFirmProfile,
   whatsappTemplates,
   onSaveWhatsAppTemplates,
+  palette = 'zinc',
+  onSelectPalette,
   clients = [],
   monthlyTasks = [],
   itrFilings = [],
@@ -249,7 +317,7 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
   };
 
   const sections: { key: Section; label: string; icon: typeof Settings2 }[] = [
-    { key: 'general', label: 'General', icon: Settings2 },
+    { key: 'general', label: 'Preferences', icon: Settings2 },
     { key: 'security', label: 'Access & security', icon: ShieldCheck },
     { key: 'firm', label: 'Firm & banking', icon: Building2 },
     { key: 'templates', label: 'Message templates', icon: MessageSquare },
@@ -281,44 +349,118 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
 
       <div className="min-w-0">
         {section === 'general' && (
-          <Card>
-            <CardHeader title="General" description="Applies to everyone" />
-            <div className="divide-y divide-line">
-              <Row title="Financial year" description="Shown on the Overview and used as the default assessment year for new ITR returns.">
-                <Input value={prefs.financialYear} onChange={(e) => setPrefs({ ...prefs, financialYear: e.target.value })} placeholder="2026-27" className="num w-28" />
-              </Row>
-              <Row title="GST & TDS due-soon window" description="Unfiled monthly tasks and GST returns due within this many days are highlighted.">
-                {numberField('dueSoonDays', 1, 30, 'days')}
-              </Row>
-              <Row title="ITR due-soon window" description="Income tax returns due within this many days are highlighted.">
-                {numberField('itrDueSoonDays', 1, 60, 'days')}
-              </Row>
-              <Row title="WhatsApp country code" description="Added to 10-digit mobile numbers when opening WhatsApp.">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm text-fg-subtle">+</span>
-                  <Input
-                    value={prefs.whatsappCountryCode}
-                    onChange={(e) => setPrefs({ ...prefs, whatsappCountryCode: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-                    className="num w-20"
-                  />
+          <div className="space-y-6">
+            <Card>
+              <CardHeader
+                title="Appearance & theme"
+                description="Select a token-driven enterprise palette tailored for accounting and audit workflows."
+              />
+              <div className="p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {PALETTES.map((p) => {
+                    const isSelected = (palette || 'zinc') === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => onSelectPalette?.(p.id)}
+                        className={cn(
+                          'group relative text-left p-3.5 rounded-lg border transition-all flex flex-col justify-between gap-3',
+                          isSelected
+                            ? 'border-accent bg-accent/5 ring-1 ring-accent shadow-xs'
+                            : 'border-line bg-surface hover:border-line-strong hover:bg-hover'
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-sm font-medium text-fg">{p.name}</span>
+                              {isSelected && (
+                                <span className="inline-flex items-center gap-0.5 text-2xs font-semibold text-accent uppercase tracking-wider">
+                                  <Check className="w-3 h-3" strokeWidth={2.5} />
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-2xs text-fg-subtle mt-0.5 font-medium">{p.tag}</div>
+                          </div>
+
+                          {/* Swatches preview */}
+                          <div
+                            className="flex items-center gap-1.5 p-1 rounded-md border border-line bg-subtle shrink-0"
+                            title="Light & dark preview swatches (canvas & accent)"
+                          >
+                            <div className="flex items-center gap-1" title="Light preview">
+                              <span
+                                className="w-3.5 h-3.5 rounded-[3px] border border-black/10 shrink-0"
+                                style={{ backgroundColor: p.canvasLight }}
+                              />
+                              <span
+                                className="w-3.5 h-3.5 rounded-[3px] shrink-0"
+                                style={{ backgroundColor: p.accentLight }}
+                              />
+                            </div>
+                            <span className="w-px h-3 bg-line shrink-0" />
+                            <div className="flex items-center gap-1" title="Dark preview">
+                              <span
+                                className="w-3.5 h-3.5 rounded-[3px] border border-white/10 shrink-0"
+                                style={{ backgroundColor: p.canvasDark }}
+                              />
+                              <span
+                                className="w-3.5 h-3.5 rounded-[3px] shrink-0"
+                                style={{ backgroundColor: p.accentDark }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-fg-muted leading-relaxed">{p.description}</p>
+                      </button>
+                    );
+                  })}
                 </div>
-              </Row>
-              <Row title="Invoice numbering" description={`Next invoice: ${prefs.invoicePrefix}${String(prefs.nextInvoiceNumber).padStart(4, '0')}`}>
-                <div className="flex items-center gap-2">
-                  <Input value={prefs.invoicePrefix} onChange={(e) => setPrefs({ ...prefs, invoicePrefix: e.target.value })} placeholder="SA/" className="font-mono w-24" aria-label="Invoice prefix" />
-                  <Input
-                    type="number"
-                    min={1}
-                    value={prefs.nextInvoiceNumber}
-                    onChange={(e) => setPrefs({ ...prefs, nextInvoiceNumber: Math.max(1, Number(e.target.value) || 1) })}
-                    className="num w-24 text-right"
-                    aria-label="Next invoice number"
-                  />
-                </div>
-              </Row>
-            </div>
-            {prefsFooter}
-          </Card>
+              </div>
+            </Card>
+
+            <Card>
+              <CardHeader title="General" description="Applies to everyone" />
+              <div className="divide-y divide-line">
+                <Row title="Financial year" description="Shown on the Overview and used as the default assessment year for new ITR returns.">
+                  <Input value={prefs.financialYear} onChange={(e) => setPrefs({ ...prefs, financialYear: e.target.value })} placeholder="2026-27" className="num w-28" />
+                </Row>
+                <Row title="GST & TDS due-soon window" description="Unfiled monthly tasks and GST returns due within this many days are highlighted.">
+                  {numberField('dueSoonDays', 1, 30, 'days')}
+                </Row>
+                <Row title="ITR due-soon window" description="Income tax returns due within this many days are highlighted.">
+                  {numberField('itrDueSoonDays', 1, 60, 'days')}
+                </Row>
+                <Row title="WhatsApp country code" description="Added to 10-digit mobile numbers when opening WhatsApp.">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm text-fg-subtle">+</span>
+                    <Input
+                      value={prefs.whatsappCountryCode}
+                      onChange={(e) => setPrefs({ ...prefs, whatsappCountryCode: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                      className="num w-20"
+                    />
+                  </div>
+                </Row>
+                <Row title="Invoice numbering" description={`Next invoice: ${prefs.invoicePrefix}${String(prefs.nextInvoiceNumber).padStart(4, '0')}`}>
+                  <div className="flex items-center gap-2">
+                    <Input value={prefs.invoicePrefix} onChange={(e) => setPrefs({ ...prefs, invoicePrefix: e.target.value })} placeholder="SA/" className="font-mono w-24" aria-label="Invoice prefix" />
+                    <Input
+                      type="number"
+                      min={1}
+                      value={prefs.nextInvoiceNumber}
+                      onChange={(e) => setPrefs({ ...prefs, nextInvoiceNumber: Math.max(1, Number(e.target.value) || 1) })}
+                      className="num w-24 text-right"
+                      aria-label="Next invoice number"
+                    />
+                  </div>
+                </Row>
+              </div>
+              {prefsFooter}
+            </Card>
+          </div>
         )}
 
         {section === 'security' && (

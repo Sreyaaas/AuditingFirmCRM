@@ -186,3 +186,4 @@ Dropdown lists remain in `practice_configs`.
 * Fixed table cell dropdown clipping in `Menu` primitive using React `createPortal` with viewport-aware dynamic positioning, preventing clipping by table containers or row boundaries.
 * Added `vercel.json` SPA rewrite rule to ensure client-side routing resolves properly on Vercel deployments.
 * Refined WhatsApp messaging workflow: table rows trigger centered preview modal directly; modal footer includes dual-action "Send to Group" and "Send to Owner" along with direct text copy.
+* Added 5 token-driven enterprise theme palettes in Settings & Preferences (Zinc Minimal, Firm Signature Navy, Nordic Sage, Warm Linen, Pitch Obsidian) with live swatches, localStorage persistence, and zero-flash head script.
