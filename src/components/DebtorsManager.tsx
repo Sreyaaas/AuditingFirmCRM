@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Download, MessageSquare, Plus, Upload, FileSpreadsheet, AlertTriangle } from 'lucide-react';
-import { DebtorRecord, GSTComplianceItem, OfficeBillingEntry, StaffMember } from '../types/crm';
+import { Download, MessageSquare, Plus, Upload, FileSpreadsheet, AlertTriangle, UserPlus } from 'lucide-react';
+import { DebtorRecord, GSTComplianceItem, OfficeBillingEntry, StaffMember, Client, EntityType, DebtorMonth } from '../types/crm';
 import { exportDebtorsAndGSTWorkbook } from '../utils/excelExport';
 import { closingOf, collectMonths, monthLabel, monthOf } from '../utils/debtors';
 import { DebtorWorkbookResult, parseDebtorWorkbookFile } from '../utils/debtorWorkbook';
@@ -33,6 +33,7 @@ interface DebtorsManagerProps {
   billings: OfficeBillingEntry[];
   staffList: StaffMember[];
   selectedStaffId: string | null;
+  clients?: Client[];
   /** May record payments and bills. */
   canEdit: boolean;
   /** May replace data from an Excel workbook (admins). */
@@ -41,6 +42,7 @@ interface DebtorsManagerProps {
   onOpenWhatsApp: (debtor: DebtorRecord) => void;
   onRecordPayment: (debtorId: string, amountCleared: number) => void;
   onAddBilling?: (debtorId: string, billingAmount: number, description: string) => void;
+  onAddAccount?: (newDebtor: DebtorRecord) => void;
   onImport: (result: DebtorWorkbookResult) => Promise<{ error?: string }>;
   /** Administrators only: permanently delete a fee account. */
   onDelete?: (debtorId: string) => void;
@@ -73,12 +75,14 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   billings,
   staffList,
   selectedStaffId,
+  clients = [],
   canEdit,
   canImport,
   gstCompliance,
   onOpenWhatsApp,
   onRecordPayment,
   onAddBilling,
+  onAddAccount,
   onImport,
   onDelete,
 }) => {
@@ -99,6 +103,15 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   const [paymentRef, setPaymentRef] = useState('');
   const [billingFor, setBillingFor] = useState<DebtorRecord | null>(null);
   const [billingService, setBillingService] = useState('GST filing');
+
+  // Add Account
+  const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState('custom');
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('+91 ');
+  const [newEntityType, setNewEntityType] = useState<EntityType | ''>('Private Limited');
+  const [newAssignedStaff, setNewAssignedStaff] = useState('');
+  const [newOpeningBalance, setNewOpeningBalance] = useState('');
 
   // Import
   const fileRef = useRef<HTMLInputElement>(null);
@@ -185,6 +198,44 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
     setAmountInput('');
   };
 
+  const submitAddAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newClientName.trim();
+    if (!name || !onAddAccount) return;
+
+    const openingAmt = Number(newOpeningBalance) || 0;
+    const activeMonths = months.length > 0 ? months : ['2026-08', '2026-09', '2026-10', '2026-11'];
+    const debtorMonths: DebtorMonth[] = activeMonths.map((m, idx) => {
+      const isLatest = idx === activeMonths.length - 1;
+      return {
+        month: m,
+        opening: isLatest ? openingAmt : 0,
+        received: 0,
+        billed: 0,
+      };
+    });
+
+    const newRecord: DebtorRecord = {
+      sNo: debtors.length + 1,
+      id: `deb-${Date.now()}`,
+      clientName: name,
+      phone: newClientPhone.trim(),
+      entityType: newEntityType || 'Proprietorship',
+      assignedStaff: newAssignedStaff || (staffList[0]?.name || 'Susmi'),
+      currentBalance: openingAmt,
+      status: openingAmt > 0 ? 'Pending' : 'Cleared',
+      agingBucket: '0-30 Days',
+      months: debtorMonths,
+    };
+
+    onAddAccount(newRecord);
+    setIsAddAccountOpen(false);
+    setNewClientName('');
+    setNewClientPhone('+91 ');
+    setNewOpeningBalance('');
+    setSelectedClientId('custom');
+  };
+
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
     setImportError(null);
@@ -225,6 +276,11 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
         description={latestMonth ? `Fees owed by clients, month by month · up to ${monthLabel(latestMonth)}` : 'Fees owed by clients, month by month'}
         actions={
           <>
+            {canEdit && onAddAccount && (
+              <Button icon={Plus} onClick={() => setIsAddAccountOpen(true)}>
+                Add Account
+              </Button>
+            )}
             {canImport && (
               <>
                 <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
@@ -803,6 +859,118 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
             )}
           </div>
         )}
+      </Modal>
+
+      {/* Add Account Modal */}
+      <Modal
+        isOpen={isAddAccountOpen}
+        onClose={() => setIsAddAccountOpen(false)}
+        size="md"
+        title="Add debtor account"
+        description="Add a client to the rolling fee ledger with their opening balance"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setIsAddAccountOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" form="add-debtor-account-form">
+              Add Account
+            </Button>
+          </>
+        }
+      >
+        <form id="add-debtor-account-form" onSubmit={submitAddAccount} className="space-y-4">
+          {clients && clients.length > 0 && (
+            <Field label="Choose from Client Directory (optional)" hint="Select an existing client to prefill details">
+              <Select
+                value={selectedClientId}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedClientId(val);
+                  if (val !== 'custom') {
+                    const found = clients.find((c) => c.id === val);
+                    if (found) {
+                      setNewClientName(found.name);
+                      setNewClientPhone(found.phone || '+91 ');
+                      setNewEntityType(found.entityType);
+                      const staff = staffList.find((s) => s.id === found.assignedStaffId);
+                      if (staff) setNewAssignedStaff(staff.name);
+                    }
+                  }
+                }}
+              >
+                <option value="custom">— New or Unregistered Client —</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.entityType})
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
+
+          <Field label="Client Name" required>
+            <Input
+              required
+              autoFocus
+              value={newClientName}
+              onChange={(e) => setNewClientName(e.target.value)}
+              placeholder="e.g. Malabar Spices LLP"
+            />
+          </Field>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Phone Number">
+              <Input
+                value={newClientPhone}
+                onChange={(e) => setNewClientPhone(e.target.value)}
+                placeholder="+91 98470 12345"
+                className="ident"
+              />
+            </Field>
+
+            <Field label="Business Type">
+              <Select
+                value={newEntityType}
+                onChange={(e) => setNewEntityType(e.target.value as any)}
+              >
+                <option value="Private Limited">Private Limited</option>
+                <option value="Partnership">Partnership</option>
+                <option value="LLP">LLP</option>
+                <option value="Proprietorship">Proprietorship</option>
+                <option value="Individual">Individual</option>
+              </Select>
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Handled By">
+              <Select
+                value={newAssignedStaff}
+                onChange={(e) => setNewAssignedStaff(e.target.value)}
+              >
+                <option value="">Select staff</option>
+                {staffList.map((s) => (
+                  <option key={s.id} value={s.name}>
+                    {s.name} ({s.role})
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label="Opening Balance (₹)" hint="Starting balance brought forward">
+              <Input
+                type="number"
+                step="any"
+                min="0"
+                value={newOpeningBalance}
+                onChange={(e) => setNewOpeningBalance(e.target.value)}
+                placeholder="0"
+                className="num font-mono tabular-nums"
+              />
+            </Field>
+          </div>
+        </form>
       </Modal>
 
       <ConfirmDialog

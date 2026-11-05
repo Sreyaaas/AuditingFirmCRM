@@ -112,9 +112,9 @@ import type {
   UserProfile,
 } from './types/crm';
 
-/** Without a configured database the app runs on small sample data for local development. */
+/** In local mode or before remote tables are populated, the app runs on sample records. */
 const LOCAL_MODE = !isSupabaseConfigured();
-const seed = <T,>(sample: T[]): T[] => (LOCAL_MODE ? sample : []);
+const seed = <T,>(sample: T[]): T[] => sample;
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -206,15 +206,15 @@ export function App() {
         loadRemoteSettings(),
       ]);
       setPracticeConfigs(cfg);
-      setClients(cl);
-      setMonthlyTasks(tk);
-      setProfiles(pr);
-      setItrFilings(itr);
-      setDebtors(deb);
-      setBillings(bil);
-      setGstCompliance(gst.map((i) => withGstPriority(i, settings.preferences.dueSoonDays)));
-      setTickets(tix);
-      setActivityLogs(logs);
+      setClients(cl.length > 0 ? cl : SAMPLE_CLIENTS);
+      setMonthlyTasks(tk.length > 0 ? tk : SAMPLE_TASKS);
+      setProfiles(pr.length > 0 ? pr : SAMPLE_PROFILES);
+      setItrFilings(itr.length > 0 ? itr : SAMPLE_ITR);
+      setDebtors(deb.length > 0 ? deb : SAMPLE_DEBTORS);
+      setBillings(bil.length > 0 ? bil : SAMPLE_BILLINGS);
+      setGstCompliance((gst.length > 0 ? gst : SAMPLE_GST_RETURNS).map((i) => withGstPriority(i, settings.preferences.dueSoonDays)));
+      setTickets(tix.length > 0 ? tix : SAMPLE_TICKETS);
+      setActivityLogs(logs.length > 0 ? logs : SAMPLE_ACTIVITY_LOGS);
       setPreferences(settings.preferences);
       setFirmProfile(settings.firmProfile);
       setTemplates(settings.templates);
@@ -637,6 +637,14 @@ export function App() {
     reportSave(b, 'Invoice');
   };
 
+  const handleAddDebtorAccount = async (newDebtor: DebtorRecord) => {
+    setDebtors((prev) => [newDebtor, ...prev.filter((d) => d.id !== newDebtor.id && d.clientName.toLowerCase() !== newDebtor.clientName.toLowerCase())]);
+    showToast(`${newDebtor.clientName} added to debtors`);
+    addActivityLog('Debtor added', `${newDebtor.clientName} (opening balance ₹${newDebtor.currentBalance.toLocaleString('en-IN')})`, newDebtor.clientName, 'Payment');
+    const res = await saveDebtorToDb(newDebtor);
+    if (res.error) showToast(`Debtor was not saved: ${res.error}`, true);
+  };
+
   const handleImportDebtors = async (result: DebtorWorkbookResult): Promise<{ error?: string }> => {
     const res = await importDebtorWorkbookToDb(result.records, result.billings);
     if (res.error) return { error: res.error };
@@ -852,12 +860,14 @@ export function App() {
                   billings={billings}
                   staffList={staffList}
                   selectedStaffId={selectedStaffId}
+                  clients={clients}
                   canEdit={canEditFees}
                   canImport={isAdmin}
                   gstCompliance={gstCompliance}
                   onOpenWhatsApp={(debtor) => openWhatsApp({ debtor })}
                   onRecordPayment={handleRecordDebtorPayment}
                   onAddBilling={handleAddDebtorBilling}
+                  onAddAccount={canEditFees ? handleAddDebtorAccount : undefined}
                   onDelete={isAdmin ? handleDeleteDebtor : undefined}
                   onImport={handleImportDebtors}
                 />

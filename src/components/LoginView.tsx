@@ -136,8 +136,6 @@ export const LoginView: React.FC<{ theme: 'light' | 'dark'; onToggleTheme: () =>
           </form>
         )}
       </Card>
-
-      <p className="mt-6 text-xs text-fg-subtle text-center">New staff accounts are created by Shameer or Ameen.</p>
     </AuthShell>
   );
 };

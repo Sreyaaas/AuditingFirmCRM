@@ -31,6 +31,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
   currentUser,
   totalClients,
   monthlyTasks,
+  itrFilings = [],
   debtors = [],
   staffList,
   onNavigateTab,
@@ -53,6 +54,13 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
     ? debtors
     : debtors.filter((d) => d.assignedStaff === currentUser.name);
 
+  const relevantItr = isAdmin
+    ? itrFilings
+    : itrFilings.filter((i) => {
+        const staff = staffList.find((s) => s.name === currentUser.name);
+        return staff ? i.assignedStaffId === staff.id : true;
+      });
+
   // Metric tallies
   const recurringTotal = relevantTasks.length;
   const filedCount = relevantTasks.filter((t) => t.status === 'Filed').length;
@@ -60,6 +68,10 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
   const docsPendingCount = docsPendingTasks.length;
   const overdueTasks = relevantTasks.filter((t) => t.status === 'Overdue');
   const overdueCount = overdueTasks.length;
+
+  const itrTotal = relevantItr.length;
+  const itrFiledCount = relevantItr.filter((i) => i.status === 'Filed & e-Verified').length;
+  const itrPendingCount = itrTotal - itrFiledCount;
 
   // Fee Receivables
   const totalReceivables = relevantDebtors.reduce((acc, d) => acc + (d.currentBalance || 0), 0);
@@ -103,7 +115,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
   );
 
   const attentionCount =
-    immediateRisks.length + (docsPendingCount > 0 ? 1 : 0) + (showFees && overdueDebtorsCount > 0 ? 1 : 0);
+    immediateRisks.length + (docsPendingCount > 0 ? 1 : 0) + (showFees && overdueDebtorsCount > 0 ? 1 : 0) + (itrPendingCount > 0 ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -117,7 +129,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
       />
 
       {/* KPI strip */}
-      <MetricGrid className={cn('grid-cols-2', showFees ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
+      <MetricGrid className={cn('grid-cols-2', showFees ? 'lg:grid-cols-5' : 'lg:grid-cols-4')}>
         {showFees && (
         <Metric
           label="Fee receivables"
@@ -131,6 +143,12 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
           value={recurringTotal}
           hint={`${filedCount} of ${recurringTotal} filed`}
           onClick={() => onNavigateTab('monthly')}
+        />
+        <Metric
+          label="ITR returns"
+          value={itrTotal}
+          hint={`${itrFiledCount} filed · ${itrPendingCount} pending`}
+          onClick={() => onNavigateTab('itr')}
         />
         <Metric
           label="Overdue filings"
@@ -200,6 +218,17 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
               meta={`₹${totalReceivables.toLocaleString('en-IN')} · ${overdueDebtors.map((d) => d.clientName).slice(0, 3).join(', ')}`}
               action="View debtors"
               onClick={() => onNavigateTab('debtors')}
+            />
+          )}
+
+          {itrPendingCount > 0 && (
+            <AttentionRow
+              tone="warning"
+              title={`${itrPendingCount} ${itrPendingCount === 1 ? 'annual ITR filing' : 'annual ITR filings'} pending`}
+              tag={<Badge tone="warning">ITR</Badge>}
+              meta={`${relevantItr.filter((i) => i.status !== 'Filed & e-Verified').map((i) => i.clientName).slice(0, 3).join(', ')}${relevantItr.filter((i) => i.status !== 'Filed & e-Verified').length > 3 ? '…' : ''} · AY ${financialYear || '2026-27'}`}
+              action="Open ITR"
+              onClick={() => onNavigateTab('itr')}
             />
           )}
         </div>

@@ -2,7 +2,8 @@
  * Shared UI primitives.
  * All styling resolves to theme tokens (see tailwind.config.js / index.css).
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { X, Search, type LucideIcon } from 'lucide-react';
@@ -613,7 +614,7 @@ export interface MenuItem {
   icon?: LucideIcon;
 }
 
-/** Lightweight anchored popover list. Render inside a `relative` wrapper. */
+/** Lightweight anchored popover list. Render inside a `relative` wrapper. Uses React Portal to prevent overflow clipping. */
 export const Menu: React.FC<{
   open: boolean;
   onClose: () => void;
@@ -623,47 +624,106 @@ export const Menu: React.FC<{
   width?: string;
   title?: React.ReactNode;
 }> = ({ open, onClose, items, onSelect, align = 'left', width = 'w-44', title }) => {
+  const anchorRef = useRef<HTMLSpanElement | null>(null);
+  const [positionStyle, setPositionStyle] = useState<React.CSSProperties | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPositionStyle(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      const anchor = anchorRef.current;
+      if (!anchor) return;
+      const trigger = (anchor.previousElementSibling as HTMLElement) || anchor.parentElement;
+      if (!trigger) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      // Flip upwards if space below is tight (< 220px) and there is more room above
+      const placeTop = spaceBelow < 220 && spaceAbove > spaceBelow;
+
+      const style: React.CSSProperties = {
+        position: 'fixed',
+      };
+
+      if (placeTop) {
+        style.bottom = `${Math.max(8, window.innerHeight - rect.top + 4)}px`;
+      } else {
+        style.top = `${Math.max(8, rect.bottom + 4)}px`;
+      }
+
+      if (align === 'right') {
+        const rightVal = Math.max(8, window.innerWidth - rect.right);
+        style.right = `${rightVal}px`;
+      } else {
+        const leftVal = Math.max(8, Math.min(rect.left, window.innerWidth - 180));
+        style.left = `${leftVal}px`;
+      }
+
+      setPositionStyle(style);
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [open, align]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
-  if (!open) return null;
+
   return (
     <>
-      <div className="fixed inset-0 z-30" onClick={onClose} />
-      <div
-        className={cn(
-          'absolute top-full mt-1 z-40 bg-surface rounded-lg shadow-pop p-1 animate-pop-in',
-          align === 'left' ? 'left-0' : 'right-0',
-          width
-        )}
-      >
-        {title && <div className="eyebrow px-2 pt-1.5 pb-1">{title}</div>}
-        {items.map((it) => {
-          const Icon = it.icon;
-          return (
-            <button
-              key={it.value}
-              type="button"
-              onClick={() => {
-                onSelect(it.value);
-                onClose();
-              }}
+      <span ref={anchorRef} className="hidden" aria-hidden="true" />
+      {open &&
+        positionStyle &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-[60]" onClick={onClose} />
+            <div
+              style={positionStyle}
               className={cn(
-                'w-full h-7 flex items-center gap-2 px-2 rounded-[4px] text-sm text-left transition-colors',
-                it.danger ? 'text-danger hover:bg-danger/5' : 'text-fg-muted hover:text-fg hover:bg-hover',
-                it.selected && 'text-fg font-medium'
+                'fixed z-[70] bg-surface rounded-lg shadow-pop p-1 animate-pop-in max-h-[min(320px,calc(100vh-16px))] overflow-y-auto',
+                width
               )}
             >
-              {Icon && <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />}
-              <span className="flex-1 truncate">{it.label}</span>
-              {it.selected && <span className="w-1.5 h-1.5 rounded-full bg-fg shrink-0" />}
-            </button>
-          );
-        })}
-      </div>
+              {title && <div className="eyebrow px-2 pt-1.5 pb-1">{title}</div>}
+              {items.map((it) => {
+                const Icon = it.icon;
+                return (
+                  <button
+                    key={it.value}
+                    type="button"
+                    onClick={() => {
+                      onSelect(it.value);
+                      onClose();
+                    }}
+                    className={cn(
+                      'w-full h-7 flex items-center gap-2 px-2 rounded-[4px] text-sm text-left transition-colors',
+                      it.danger ? 'text-danger hover:bg-danger/5' : 'text-fg-muted hover:text-fg hover:bg-hover',
+                      it.selected && 'text-fg font-medium'
+                    )}
+                  >
+                    {Icon && <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />}
+                    <span className="flex-1 truncate">{it.label}</span>
+                    {it.selected && <span className="w-1.5 h-1.5 rounded-full bg-fg shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </>,
+          document.body
+        )}
     </>
   );
 };

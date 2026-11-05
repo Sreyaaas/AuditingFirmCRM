@@ -127,8 +127,9 @@ agingBucket     // consecutive recent months carrying a balance with no payment
 * "FY 26-27" anywhere in the first rows sets the year (Apr–Dec → 2026, Jan–Mar → 2027).
 * Accounts match on client name (case-insensitive); billing rows on `external_id`, so
   re-importing an updated file updates rather than duplicates.
-* Verified against the office file of 4 Nov 2026: 60 accounts, 180 billing rows, Aug–Nov 2026,
-  ₹2,75,356 outstanding, one flagged row (Sadik K M, October opening).
+* Verified against the office workbook: month blocks, billing sheets and balances parse correctly.
+  Rows whose opening balance does not match the previous month's closing are listed as warnings
+  in the import preview.
 
 ### Settings (`app_settings` table, keys)
 `preferences` (`AppPreferences`: financial year, due-soon windows, WhatsApp country code, invoice
@@ -179,3 +180,7 @@ Dropdown lists remain in `practice_configs`.
 ## 8. Earlier changes (v2 UI)
 * `48db237` — token-based design system, shared primitives, full page restyle.
 * `3a7dd6e` — calmer badges, tags and KPI tiles.
+* Resilient sample fallback (`readLocalListOrSeed`) across all database sync routines so Overview, GST & Audit, and ITR Returns properly display records even on initial unseeded/empty database setups.
+* Added ITR returns KPI metric and attention items to Overview dashboard.
+* Added `+ Add Account` modal dialog to Debtors view matching Apple/Vercel design system.
+* Fixed table cell dropdown clipping in `Menu` primitive using React `createPortal` with viewport-aware dynamic positioning, preventing clipping by table containers or row boundaries.
