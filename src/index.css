@@ -45,6 +45,61 @@
   color-scheme: light;
 }
 
+/* 1. Classic White (Default - already in :root) */
+[data-palette='classic'] {
+  --c-canvas: 248 248 249;     /* #F8F8F9 */
+  --c-surface: 255 255 255;    /* pure white */
+  --c-subtle: 244 244 246;
+  --c-hover: 239 239 242;
+  --c-line: 230 230 234;
+  --c-accent: 0 102 214;       /* classic blue */
+  --c-accent-hover: 0 88 186;
+}
+
+/* 2. Firm Navy (Official Logo) */
+[data-palette='navy'] {
+  --c-canvas: 246 248 252;     /* soft slate tint */
+  --c-surface: 255 255 255;    /* pure white */
+  --c-subtle: 238 242 248;
+  --c-hover: 230 236 245;
+  --c-line: 224 231 240;
+  --c-accent: 30 64 175;       /* Firm logo navy */
+  --c-accent-hover: 29 78 216;
+}
+
+/* 3. Warm Paper */
+[data-palette='paper'] {
+  --c-canvas: 252 250 246;     /* soft warm ivory */
+  --c-surface: 255 255 255;    /* pure white */
+  --c-subtle: 245 242 235;
+  --c-hover: 238 234 225;
+  --c-line: 232 227 217;
+  --c-accent: 180 83 9;        /* warm bronze */
+  --c-accent-hover: 146 64 14;
+}
+
+/* 4. Cool Slate */
+[data-palette='slate'] {
+  --c-canvas: 244 246 248;     /* cool grey */
+  --c-surface: 255 255 255;    /* pure white */
+  --c-subtle: 235 238 242;
+  --c-hover: 228 232 237;
+  --c-line: 220 225 232;
+  --c-accent: 14 116 144;      /* steel blue */
+  --c-accent-hover: 8 145 178;
+}
+
+/* 5. Fresh Mint */
+[data-palette='mint'] {
+  --c-canvas: 245 248 246;     /* faint sage tint */
+  --c-surface: 255 255 255;    /* pure white */
+  --c-subtle: 236 242 238;
+  --c-hover: 227 235 230;
+  --c-line: 220 229 224;
+  --c-accent: 21 128 61;       /* calm forest green */
+  --c-accent-hover: 22 101 52;
+}
+
 [data-theme='dark'],
 html.dark {
   --c-canvas: 12 12 14;         /* #0C0C0E */
@@ -74,128 +129,6 @@ html.dark {
 
   --scrollbar: 255 255 255;
   color-scheme: dark;
-}
-
-/* ==========================================================================
-   Enterprise Theme Palettes
-   --------------------------------------------------------------------------
-   Token-driven palettes selectable in Settings > Preferences.
-   Overwrites surface, line, and accent channels while preserving semantic status.
-   ========================================================================== */
-
-/* --- Palette 1: Zinc Minimal (Neutral) --- */
-[data-palette='zinc'] {
-  --c-canvas: 248 248 249;
-  --c-surface: 255 255 255;
-  --c-subtle: 244 244 246;
-  --c-hover: 239 239 242;
-  --c-line: 230 230 234;
-  --c-line-strong: 212 212 218;
-  --c-accent: 0 102 214;
-  --c-accent-hover: 0 88 186;
-}
-[data-palette='zinc'][data-theme='dark'],
-html.dark[data-palette='zinc'] {
-  --c-canvas: 12 12 14;
-  --c-surface: 22 22 25;
-  --c-subtle: 29 29 33;
-  --c-hover: 36 36 41;
-  --c-line: 39 39 44;
-  --c-line-strong: 58 58 66;
-  --c-accent: 77 154 255;
-  --c-accent-hover: 110 172 255;
-}
-
-/* --- Palette 2: Firm Signature (Navy / Shameer & Associates Logo) --- */
-[data-palette='signature'] {
-  --c-canvas: 247 249 252;
-  --c-surface: 255 255 255;
-  --c-subtle: 239 242 248;
-  --c-hover: 232 237 245;
-  --c-line: 226 232 240;
-  --c-line-strong: 203 213 225;
-  --c-accent: 29 78 216;        /* Deep Royal Navy */
-  --c-accent-hover: 30 64 175;
-}
-[data-palette='signature'][data-theme='dark'],
-html.dark[data-palette='signature'] {
-  --c-canvas: 11 15 25;         /* Deep Midnight */
-  --c-surface: 17 24 39;
-  --c-subtle: 24 33 54;
-  --c-hover: 30 41 59;
-  --c-line: 30 41 59;
-  --c-line-strong: 51 65 85;
-  --c-accent: 96 165 250;
-  --c-accent-hover: 147 197 253;
-}
-
-/* --- Palette 3: Nordic Sage (Audit Green) --- */
-[data-palette='sage'] {
-  --c-canvas: 246 248 247;
-  --c-surface: 255 255 255;
-  --c-subtle: 238 242 240;
-  --c-hover: 229 235 232;
-  --c-line: 224 231 228;
-  --c-line-strong: 204 214 209;
-  --c-accent: 15 118 110;       /* Forest Pine */
-  --c-accent-hover: 17 94 89;
-}
-[data-palette='sage'][data-theme='dark'],
-html.dark[data-palette='sage'] {
-  --c-canvas: 12 20 18;
-  --c-surface: 19 28 26;
-  --c-subtle: 25 38 35;
-  --c-hover: 33 48 44;
-  --c-line: 33 48 44;
-  --c-line-strong: 47 68 62;
-  --c-accent: 45 212 191;
-  --c-accent-hover: 94 234 212;
-}
-
-/* --- Palette 4: Warm Linen (Parchment & Amber) --- */
-[data-palette='linen'] {
-  --c-canvas: 251 251 249;
-  --c-surface: 255 255 255;
-  --c-subtle: 245 244 240;
-  --c-hover: 238 236 230;
-  --c-line: 235 233 226;
-  --c-line-strong: 217 214 204;
-  --c-accent: 180 83 9;         /* Warm Bronze */
-  --c-accent-hover: 146 64 14;
-}
-[data-palette='linen'][data-theme='dark'],
-html.dark[data-palette='linen'] {
-  --c-canvas: 20 18 16;
-  --c-surface: 28 25 23;
-  --c-subtle: 38 34 31;
-  --c-hover: 46 41 37;
-  --c-line: 46 41 37;
-  --c-line-strong: 68 64 60;
-  --c-accent: 251 191 36;
-  --c-accent-hover: 252 211 77;
-}
-
-/* --- Palette 5: Pure Obsidian (OLED High Contrast) --- */
-[data-palette='obsidian'] {
-  --c-canvas: 245 245 247;
-  --c-surface: 255 255 255;
-  --c-subtle: 238 238 240;
-  --c-hover: 230 230 232;
-  --c-line: 226 226 228;
-  --c-line-strong: 200 200 204;
-  --c-accent: 2 132 199;
-  --c-accent-hover: 3 105 161;
-}
-[data-palette='obsidian'][data-theme='dark'],
-html.dark[data-palette='obsidian'] {
-  --c-canvas: 0 0 0;            /* True OLED 000000 */
-  --c-surface: 17 17 19;
-  --c-subtle: 25 25 28;
-  --c-hover: 34 34 38;
-  --c-line: 34 34 38;
-  --c-line-strong: 50 50 56;
-  --c-accent: 56 189 248;
-  --c-accent-hover: 125 211 252;
 }
 
 @layer base {

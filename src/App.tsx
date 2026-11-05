@@ -131,7 +131,7 @@ export function App() {
   const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
 
   // -------------------------------------------------------------- palette
-  const [palette, setPalette] = useState<string>(() => localStorage.getItem('crm-palette') || 'zinc');
+  const [palette, setPalette] = useState(() => localStorage.getItem('crm-palette') || 'classic');
   useEffect(() => {
     document.documentElement.setAttribute('data-palette', palette);
     localStorage.setItem('crm-palette', palette);
