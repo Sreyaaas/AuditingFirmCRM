@@ -160,12 +160,13 @@ export const SearchInput: React.FC<SearchInputProps> = ({ wrapperClassName, clas
 
 export type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
-const toneBadge: Record<Tone, string> = {
-  neutral: 'text-fg-muted bg-subtle border-line',
-  success: 'text-success bg-success/[0.08] border-success/20',
-  warning: 'text-warning bg-warning/[0.08] border-warning/20',
-  danger: 'text-danger bg-danger/[0.07] border-danger/20',
-  info: 'text-accent bg-accent/[0.07] border-accent/20',
+/** Text colour for tags. Info stays neutral — blue is reserved for focus and links. */
+const toneText: Record<Tone, string> = {
+  neutral: 'text-fg-muted',
+  info: 'text-fg-muted',
+  success: 'text-success',
+  warning: 'text-warning',
+  danger: 'text-danger',
 };
 
 const toneDot: Record<Tone, string> = {
@@ -181,19 +182,29 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   dot?: boolean;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ tone = 'neutral', dot, className, children, ...rest }) => (
-  <span
-    className={cn(
-      'inline-flex items-center gap-1.5 h-5 px-1.5 rounded-sm border text-2xs font-medium whitespace-nowrap leading-none',
-      toneBadge[tone],
-      className
-    )}
-    {...rest}
-  >
-    {dot && <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', toneDot[tone])} />}
-    {children}
-  </span>
-);
+/**
+ * Two forms:
+ * - `dot` → a status: plain text beside a small coloured dot. No fill, no border.
+ * - no dot → a tag: hairline outline, no tint; tone only affects the text colour.
+ */
+export const Badge: React.FC<BadgeProps> = ({ tone = 'neutral', dot, className, children, ...rest }) =>
+  dot ? (
+    <span className={cn('inline-flex items-center gap-2 text-xs text-fg whitespace-nowrap leading-none', className)} {...rest}>
+      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', toneDot[tone])} />
+      {children}
+    </span>
+  ) : (
+    <span
+      className={cn(
+        'inline-flex items-center h-5 px-1.5 rounded-[4px] border border-line text-2xs font-medium whitespace-nowrap leading-none',
+        toneText[tone],
+        className
+      )}
+      {...rest}
+    >
+      {children}
+    </span>
+  );
 
 export const StatusDot: React.FC<{ tone?: Tone; className?: string; title?: string }> = ({ tone = 'neutral', className, title }) => (
   <span title={title} className={cn('inline-block w-1.5 h-1.5 rounded-full shrink-0', toneDot[tone], className)} />
@@ -308,12 +319,11 @@ export const Metric: React.FC<MetricProps> = ({ label, value, hint, tone, onClic
         className
       )}
     >
-      <div className="eyebrow flex items-center gap-1.5">
-        {tone && tone !== 'neutral' && <StatusDot tone={tone} />}
-        {label}
-      </div>
-      <div className="mt-1.5 text-2xl font-semibold text-fg num tracking-tight leading-none">{value}</div>
-      {hint && <div className="mt-1.5 text-xs text-fg-subtle truncate">{hint}</div>}
+      <div className="text-xs font-medium text-fg-subtle truncate">{label}</div>
+      <div className="mt-2 text-[22px] font-semibold text-fg num tracking-[-0.02em] leading-none">{value}</div>
+      {hint && (
+        <div className={cn('mt-2 text-xs truncate', tone === 'danger' || tone === 'warning' ? toneText[tone] : 'text-fg-subtle')}>{hint}</div>
+      )}
     </Comp>
   );
 };

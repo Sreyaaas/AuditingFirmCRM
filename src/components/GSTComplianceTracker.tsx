@@ -97,7 +97,7 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
     if (item.priorityLevel === 'due-2-days')
       return <Badge tone="warning" dot className="num">{item.daysRemaining === 1 ? 'Tomorrow' : `In ${item.daysRemaining}d`}</Badge>;
     if (item.priorityLevel === 'filed')
-      return <Badge tone="success" dot className="num">Filed{item.filedDate ? ` · ${item.filedDate}` : ''}</Badge>;
+      return <Badge tone="success" dot className="num">Filed{item.filedDate ? ` ${formatDate(item.filedDate)}` : ''}</Badge>;
     return <span className="num text-xs text-fg-subtle">In {item.daysRemaining}d</span>;
   };
 
