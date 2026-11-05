@@ -7,13 +7,12 @@ interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   clients: Client[];
-  profiles: UserProfile[];
   currentUser: UserProfile;
+  canViewFees?: boolean;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onNavigateTab: (tab: string) => void;
   onSelectClient: (clientId: string) => void;
-  onSwitchUser: (userId: string) => void;
   onOpenNewTask: () => void;
   onOpenNewTicket: () => void;
   onOpenQuickPayment?: () => void;
@@ -23,13 +22,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
   onClose,
   clients,
-  profiles,
   currentUser,
+  canViewFees = true,
   theme,
   onToggleTheme,
   onNavigateTab,
   onSelectClient,
-  onSwitchUser,
   onOpenNewTask,
   onOpenNewTicket,
   onOpenQuickPayment,
@@ -63,7 +61,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     { id: 'nav-monthly', label: 'GST & Audit', category: 'Go to', icon: ListChecks, action: () => onNavigateTab('monthly') },
     { id: 'nav-itr', label: 'ITR Returns', category: 'Go to', icon: FileText, action: () => onNavigateTab('itr') },
     { id: 'nav-clients', label: 'Clients', category: 'Go to', icon: Building2, action: () => onNavigateTab('clients') },
-    { id: 'nav-debtors', label: 'Debtors', category: 'Go to', icon: Wallet, action: () => onNavigateTab('debtors') },
+    ...(canViewFees ? [{ id: 'nav-debtors', label: 'Debtors', category: 'Go to', icon: Wallet, action: () => onNavigateTab('debtors') }] : []),
     { id: 'nav-calls', label: 'Calls & Tickets', category: 'Go to', icon: PhoneCall, action: () => onNavigateTab('staff') },
   ];
 

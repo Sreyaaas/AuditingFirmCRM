@@ -1,5 +1,5 @@
 /**
- * v2 "Ledger" UI primitives.
+ * Shared UI primitives.
  * All styling resolves to theme tokens (see tailwind.config.js / index.css).
  */
 import React, { useEffect, useRef } from 'react';
@@ -184,13 +184,12 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 /**
  * Two forms:
- * - `dot` → a status: plain text beside a small coloured dot. No fill, no border.
+ * - `dot` → a status: plain medium-weight text in the tone colour. No dot, fill or border.
  * - no dot → a tag: hairline outline, no tint; tone only affects the text colour.
  */
 export const Badge: React.FC<BadgeProps> = ({ tone = 'neutral', dot, className, children, ...rest }) =>
   dot ? (
-    <span className={cn('inline-flex items-center gap-2 text-xs text-fg whitespace-nowrap leading-none', className)} {...rest}>
-      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', toneDot[tone])} />
+    <span className={cn('inline-flex items-center text-xs font-medium whitespace-nowrap leading-none', toneText[tone], tone === 'info' && 'text-fg', className)} {...rest}>
       {children}
     </span>
   ) : (
@@ -697,3 +696,41 @@ export const formatDate = (dateStr?: string | null) => {
 };
 
 export const formatINR = (n?: number | null) => `₹${(n || 0).toLocaleString('en-IN')}`;
+
+/* ------------------------------------------------------ ConfirmDialog */
+
+export const ConfirmDialog: React.FC<{
+  isOpen: boolean;
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  confirmLabel?: string;
+  danger?: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}> = ({ isOpen, title, description, confirmLabel = 'Confirm', danger, onConfirm, onClose }) => (
+  <Modal
+    isOpen={isOpen}
+    onClose={onClose}
+    size="sm"
+    title={title}
+    footer={
+      <>
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          variant={danger ? 'danger' : 'primary'}
+          className={danger ? '!bg-danger !text-white !border-danger hover:!bg-danger/90' : undefined}
+          onClick={() => {
+            onConfirm();
+            onClose();
+          }}
+        >
+          {confirmLabel}
+        </Button>
+      </>
+    }
+  >
+    {description && <p className="text-sm text-fg-muted">{description}</p>}
+  </Modal>
+);

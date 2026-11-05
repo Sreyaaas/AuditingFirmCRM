@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 
-// v2 "Ledger" design system.
+// Design tokens.
 // Every colour resolves to a CSS variable defined in src/index.css, so a single
 // class (e.g. `bg-surface`, `text-fg-muted`) is correct in both light and dark
 // themes — no `dark:` pairs required.

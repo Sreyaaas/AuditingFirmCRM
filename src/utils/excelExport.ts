@@ -1,288 +1,106 @@
 import * as XLSX from 'xlsx';
-import { DebtorRecord, OfficeBillingEntry, GSTComplianceItem } from '../types/crm';
+import { DebtorRecord, GSTComplianceItem, OfficeBillingEntry } from '../types/crm';
+import { collectMonths, monthLabel, monthOf } from './debtors';
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** "2026-27" style label for the financial year containing a 'YYYY-MM' month. */
+const fyLabelFor = (key: string) => {
+  const [y, m] = key.split('-').map(Number);
+  const start = m >= 4 ? y : y - 1;
+  return `FY ${String(start % 100).padStart(2, '0')}-${String((start + 1) % 100).padStart(2, '0')}`;
+};
 
 /**
- * Generates and downloads an Excel workbook matching the exact format of
- * Shameer and Associates - Accountants and Practitioners.
+ * Downloads the debtors, billing register and GST calendar as one workbook.
+ * The layout matches the office's own Excel file, so the export can be edited
+ * and imported back through Debtors → Import.
  */
-export function exportDebtorsAndGSTWorkbook(
-  debtorRecords: DebtorRecord[],
-  billingEntries: OfficeBillingEntry[],
-  gstCompliance: GSTComplianceItem[]
-) {
+export function exportDebtorsAndGSTWorkbook(debtors: DebtorRecord[], billings: OfficeBillingEntry[], gstReturns: GSTComplianceItem[]) {
   const wb = XLSX.utils.book_new();
+  const months = collectMonths(debtors);
+  const fy = months.length ? fyLabelFor(months[months.length - 1]) : fyLabelFor(`${new Date().getFullYear()}-${new Date().getMonth() + 1}`);
 
-  // ==========================================
-  // SHEET 1: DEBTORS RECONCILIATION STATEMENT
-  // ==========================================
-  const debtorsData: (string | number)[][] = [
-    ['SHAMEER AND ASSOCIATES - ACCOUNTANTS AND PRACTITIONERS'],
-    ['DEBTORS RECONCILIATION MASTER STATEMENT (FY 2026-27)'],
-    ['Generated on:', new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })],
-    [], // empty line
-    [
-      'S.No',
-      'Name of the Client',
-      'Assigned Staff',
-      // August
-      'Aug - Outstanding',
-      'Aug - Cleared',
-      'Aug - Current Billing',
-      // September
-      'Sep - Outstanding',
-      'Sep - Cleared',
-      'Sep - Current Billing',
-      // October
-      'Oct - Outstanding',
-      'Oct - Cleared',
-      'Oct - Current Billing',
-      // November
-      'Nov - Outstanding',
-      'Nov - Cleared',
-      'Nov - Current Billing',
-      // Closing
-      'Current Balance',
-      'Aging Bucket',
-      'Status'
-    ]
-  ];
+  // ---------------------------------------------------- billing sheets, one per month
+  const periods = Array.from(new Set(billings.map((b) => b.period).filter(Boolean) as string[])).sort();
+  for (const period of periods) {
+    const rows = billings.filter((b) => b.period === period).sort((a, b) => a.serialNo - b.serialNo);
+    const aoa: (string | number)[][] = [
+      ['', '', 'Office Billing'],
+      ['', '', fy],
+      [],
+      [],
+      ['Serial No.', 'Date', 'Name of Client', 'Nature of service', 'Filing Month', 'Professional income', 'Rcm', 'Tax Amount', 'OOP expenses', 'Billing status', 'User', 'Invoice number'],
+      ...rows.map((b) => [
+        b.serialNo,
+        b.date,
+        b.clientName,
+        b.natureOfService,
+        b.filingMonth || '',
+        b.professionalIncome || '',
+        b.rcm || '',
+        b.taxAmount || '',
+        b.oopExpenses || '',
+        b.billingStatus || '',
+        b.user,
+        b.invoiceNumber || '',
+      ]),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{ wch: 9 }, { wch: 12 }, { wch: 32 }, { wch: 24 }, { wch: 12 }, { wch: 18 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 16 }];
+    const [, m] = period.split('-').map(Number);
+    XLSX.utils.book_append_sheet(wb, ws, MONTH_NAMES[m - 1] || period);
+  }
 
-  // Calculate Column Totals
-  const totalAugOut = debtorRecords.reduce((acc, d) => acc + (d.august?.outstanding || 0), 0);
-  const totalAugClr = debtorRecords.reduce((acc, d) => acc + (d.august?.paymentCleared || 0), 0);
-  const totalAugBil = debtorRecords.reduce((acc, d) => acc + (d.august?.currentBilling || 0), 0);
+  // ---------------------------------------------------- debtors sheet
+  const monthRow: (string | number)[] = ['', '', ''];
+  const headerRow: (string | number)[] = ['', 'S.No', 'Client Name'];
+  const totalsRow: (string | number)[] = ['', '', 'Total'];
+  for (const key of months) {
+    monthRow.push(MONTH_NAMES[Number(key.split('-')[1]) - 1], '', '');
+    headerRow.push('Outstanding Amount', 'Payment cleared', 'Current billing');
+    const sum = (f: 'opening' | 'received' | 'billed') => debtors.reduce((a, d) => a + (monthOf(d, key)?.[f] || 0), 0);
+    totalsRow.push(sum('opening'), sum('received'), sum('billed'));
+  }
+  headerRow.push('Balance');
+  totalsRow.push(debtors.reduce((a, d) => a + d.currentBalance, 0));
 
-  const totalSepOut = debtorRecords.reduce((acc, d) => acc + (d.september?.outstanding || 0), 0);
-  const totalSepClr = debtorRecords.reduce((acc, d) => acc + (d.september?.paymentCleared || 0), 0);
-  const totalSepBil = debtorRecords.reduce((acc, d) => acc + (d.september?.currentBilling || 0), 0);
+  const debtorRows = debtors.map((d) => {
+    const row: (string | number)[] = ['', d.sNo, d.clientName];
+    for (const key of months) {
+      const m = monthOf(d, key);
+      row.push(m?.opening || 0, m?.received || '', m?.billed || '');
+    }
+    row.push(d.currentBalance);
+    return row;
+  });
 
-  const totalOctOut = debtorRecords.reduce((acc, d) => acc + (d.october?.outstanding || 0), 0);
-  const totalOctClr = debtorRecords.reduce((acc, d) => acc + (d.october?.paymentCleared || 0), 0);
-  const totalOctBil = debtorRecords.reduce((acc, d) => acc + (d.october?.currentBilling || 0), 0);
+  const wsDebtors = XLSX.utils.aoa_to_sheet([['', '', 'Debtors'], ['', '', fy], totalsRow, monthRow, headerRow, ...debtorRows]);
+  wsDebtors['!cols'] = [{ wch: 2 }, { wch: 6 }, { wch: 32 }, ...months.flatMap(() => [{ wch: 16 }, { wch: 15 }, { wch: 15 }]), { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, wsDebtors, 'Debtors');
 
-  const totalNovOut = debtorRecords.reduce((acc, d) => acc + (d.november?.outstanding || 0), 0);
-  const totalNovClr = debtorRecords.reduce((acc, d) => acc + (d.november?.paymentCleared || 0), 0);
-  const totalNovBil = debtorRecords.reduce((acc, d) => acc + (d.november?.currentBilling || 0), 0);
-
-  const totalBalance = debtorRecords.reduce((acc, d) => acc + (d.currentBalance || 0), 0);
-
-  // Totals row at the top (exact practice from Shameer & Associates excel sheet)
-  debtorsData.push([
-    '',
-    'TOTAL',
-    '',
-    totalAugOut,
-    totalAugClr,
-    totalAugBil,
-    totalSepOut,
-    totalSepClr,
-    totalSepBil,
-    totalOctOut,
-    totalOctClr,
-    totalOctBil,
-    totalNovOut,
-    totalNovClr,
-    totalNovBil,
-    totalBalance,
-    '',
-    ''
-  ]);
-
-  // Client rows
-  debtorRecords.forEach((d) => {
-    debtorsData.push([
-      d.sNo,
-      d.clientName,
-      d.assignedStaff,
-      d.august?.outstanding || 0,
-      d.august?.paymentCleared || 0,
-      d.august?.currentBilling || 0,
-      d.september?.outstanding || 0,
-      d.september?.paymentCleared || 0,
-      d.september?.currentBilling || 0,
-      d.october?.outstanding || 0,
-      d.october?.paymentCleared || 0,
-      d.october?.currentBilling || 0,
-      d.november?.outstanding || 0,
-      d.november?.paymentCleared || 0,
-      d.november?.currentBilling || 0,
-      d.currentBalance,
-      d.agingBucket,
-      d.status
+  // ---------------------------------------------------- GST calendar
+  if (gstReturns.length) {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['Client', 'GSTIN', 'Return', 'Period', 'Due date', 'Status', 'Owner', 'Tax payable', 'ARN', 'Filed on'],
+      ...gstReturns.map((g) => [
+        g.clientName,
+        g.gstin,
+        g.returnType,
+        g.filingMonth,
+        g.dueDate,
+        g.priorityLevel === 'filed' ? 'Filed' : g.priorityLevel === 'overdue' ? 'Overdue' : 'Pending',
+        g.assignedStaff,
+        g.taxPayable || 0,
+        g.arnNumber || '',
+        g.filedDate || '',
+      ]),
     ]);
-  });
+    ws['!cols'] = [{ wch: 30 }, { wch: 18 }, { wch: 10 }, { wch: 16 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'GST Returns');
+  }
 
-  const wsDebtors = XLSX.utils.aoa_to_sheet(debtorsData);
-
-  // Set column widths
-  wsDebtors['!cols'] = [
-    { wch: 6 },  // S.No
-    { wch: 32 }, // Client Name
-    { wch: 14 }, // Staff
-    { wch: 15 }, // Aug Out
-    { wch: 14 }, // Aug Clr
-    { wch: 15 }, // Aug Bil
-    { wch: 15 }, // Sep Out
-    { wch: 14 }, // Sep Clr
-    { wch: 15 }, // Sep Bil
-    { wch: 15 }, // Oct Out
-    { wch: 14 }, // Oct Clr
-    { wch: 15 }, // Oct Bil
-    { wch: 15 }, // Nov Out
-    { wch: 14 }, // Nov Clr
-    { wch: 15 }, // Nov Bil
-    { wch: 16 }, // Current Balance
-    { wch: 14 }, // Aging
-    { wch: 12 }, // Status
-  ];
-
-  XLSX.utils.book_append_sheet(wb, wsDebtors, 'Debtors FY 26-27');
-
-  // ==========================================
-  // SHEET 2: OFFICE BILLING LOG
-  // ==========================================
-  const billingData: (string | number)[][] = [
-    ['SHAMEER AND ASSOCIATES - OFFICE BILLING REGISTER'],
-    ['Period: July 2026 - October 2026'],
-    [],
-    [
-      'Sl No',
-      'Date',
-      'Name of the Client',
-      'Nature of Service',
-      'Filing Month',
-      'Professional Income (₹)',
-      'OOP Expenses (₹)',
-      'Total Amount (₹)',
-      'Staff User'
-    ]
-  ];
-
-  let totalProfIncome = 0;
-  let totalOop = 0;
-
-  billingEntries.forEach((b) => {
-    const prof = b.professionalIncome || 0;
-    const oop = b.oopExpenses || 0;
-    totalProfIncome += prof;
-    totalOop += oop;
-
-    billingData.push([
-      b.serialNo,
-      b.date,
-      b.clientName,
-      b.natureOfService,
-      b.filingMonth || '-',
-      prof,
-      oop,
-      prof + oop,
-      b.user
-    ]);
-  });
-
-  // Summary Row for Billing
-  billingData.push([
-    '',
-    'TOTAL',
-    '',
-    '',
-    '',
-    totalProfIncome,
-    totalOop,
-    totalProfIncome + totalOop,
-    ''
-  ]);
-
-  const wsBilling = XLSX.utils.aoa_to_sheet(billingData);
-  wsBilling['!cols'] = [
-    { wch: 8 },  // Sl No
-    { wch: 14 }, // Date
-    { wch: 32 }, // Client Name
-    { wch: 28 }, // Service
-    { wch: 16 }, // Month
-    { wch: 22 }, // Prof Income
-    { wch: 18 }, // OOP
-    { wch: 18 }, // Total
-    { wch: 14 }, // Staff
-  ];
-  XLSX.utils.book_append_sheet(wb, wsBilling, 'Office Billing Register');
-
-  // ==========================================
-  // SHEET 3: GST COMPLIANCE & FILING TRACKER
-  // ==========================================
-  const gstData: (string | number)[][] = [
-    ['SHAMEER AND ASSOCIATES - GST COMPLIANCE & FILING REGISTER'],
-    ['Prioritised Compliance Deadlines - Generated on ' + new Date().toLocaleDateString('en-IN')],
-    [],
-    [
-      'Priority Level',
-      'Client Name',
-      'GSTIN',
-      'Return Type',
-      'Filing Period',
-      'Due Date',
-      'Filing Status',
-      'Assigned Staff',
-      'Tax Payable (₹)',
-      'ARN Reference',
-      'Filing Date'
-    ]
-  ];
-
-  // Sort by priority strictly: overdue -> due-2-days -> upcoming -> filed
-  const priorityOrder: Record<string, number> = {
-    'overdue': 1,
-    'due-2-days': 2,
-    'upcoming': 3,
-    'filed': 4
-  };
-
-  const sortedGST = [...gstCompliance].sort((a, b) => {
-    const pA = priorityOrder[a.priorityLevel] || 99;
-    const pB = priorityOrder[b.priorityLevel] || 99;
-    if (pA !== pB) return pA - pB;
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-  });
-
-  sortedGST.forEach((g) => {
-    let priorityLabel = 'Upcoming';
-    if (g.priorityLevel === 'overdue') priorityLabel = '🚨 OVERDUE';
-    else if (g.priorityLevel === 'due-2-days') priorityLabel = '⚠️ DUE IN 2 DAYS';
-    else if (g.priorityLevel === 'filed') priorityLabel = '✅ FILED';
-
-    gstData.push([
-      priorityLabel,
-      g.clientName,
-      g.gstin,
-      g.returnType,
-      g.filingMonth,
-      g.dueDate,
-      g.filingStatus,
-      g.assignedStaff,
-      g.taxPayable || 0,
-      g.arnNumber || '-',
-      g.filedDate || '-'
-    ]);
-  });
-
-  const wsGST = XLSX.utils.aoa_to_sheet(gstData);
-  wsGST['!cols'] = [
-    { wch: 18 }, // Priority
-    { wch: 30 }, // Client Name
-    { wch: 18 }, // GSTIN
-    { wch: 14 }, // Return Type
-    { wch: 16 }, // Month
-    { wch: 14 }, // Due Date
-    { wch: 14 }, // Status
-    { wch: 14 }, // Staff
-    { wch: 16 }, // Tax
-    { wch: 20 }, // ARN
-    { wch: 14 }, // Filed Date
-  ];
-  XLSX.utils.book_append_sheet(wb, wsGST, 'GST Compliance Register');
-
-  // Trigger File Download
-  const filename = `Shameer_Associates_Audit_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
-  XLSX.writeFile(wb, filename);
+  const latest = months[months.length - 1];
+  XLSX.writeFile(wb, `Debtors ${latest ? monthLabel(latest) : fy}.xlsx`);
 }
 

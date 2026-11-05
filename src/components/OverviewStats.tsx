@@ -9,7 +9,7 @@ import {
 import { 
   ArrowRight
 } from 'lucide-react';
-import { Avatar, Badge, Button, Card, CardHeader, Metric, MetricGrid, PageHeader, Progress, StatusDot, Tone, cn, formatDate } from './ui';
+import { Avatar, Badge, Button, Card, CardHeader, Metric, MetricGrid, PageHeader, Progress, Tone, cn, formatDate } from './ui';
 
 interface OverviewStatsProps {
   currentUser: UserProfile;
@@ -20,6 +20,11 @@ interface OverviewStatsProps {
   staffList: StaffMember[];
   onNavigateTab: (tab: string, filter?: string) => void;
   onFilterStaff: (staffId: string | null) => void;
+  /** Hide fee figures from users without fee access. */
+  showFees?: boolean;
+  financialYear?: string;
+  /** Tasks due within this many days are flagged. */
+  dueSoonDays?: number;
 }
 
 export const OverviewStats: React.FC<OverviewStatsProps> = ({
@@ -30,6 +35,9 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
   staffList,
   onNavigateTab,
   onFilterStaff,
+  showFees = true,
+  financialYear = '',
+  dueSoonDays = 3,
 }) => {
   const isAdmin = currentUser.role === 'admin';
 
@@ -66,41 +74,18 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
     year: 'numeric'
   });
 
-  // Statutory Cutoffs Countdown with Live Client Completion
+  // Monthly statutory due dates for returns covering the previous month.
+  const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const prevLabel = prevMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const thisMonthLabel = today.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const due = (day: number) => new Date(today.getFullYear(), today.getMonth(), day);
+  const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const statutoryDeadlines = [
-    {
-      code: 'TDS Payment',
-      title: 'TDS Payment',
-      targetDate: new Date(2026, 10, 7),
-      formattedCutoff: '07 Nov 2026',
-      period: 'October 2026 Deductions',
-      returnTypeFilter: 'TDS Payment',
-    },
-    {
-      code: 'GSTR-1',
-      title: 'GSTR-1 (Sales Return)',
-      targetDate: new Date(2026, 10, 11),
-      formattedCutoff: '11 Nov 2026',
-      period: 'October 2026 Invoices',
-      returnTypeFilter: 'GSTR-1 (Sales)',
-    },
-    {
-      code: 'PF & ESI',
-      title: 'PF & ESI',
-      targetDate: new Date(2026, 10, 15),
-      formattedCutoff: '15 Nov 2026',
-      period: 'October 2026 Payroll',
-      returnTypeFilter: 'PF & ESI',
-    },
-    {
-      code: 'GSTR-3B',
-      title: 'Monthly Summary & Tax Payment',
-      targetDate: new Date(2026, 10, 20),
-      formattedCutoff: '20 Nov 2026',
-      period: 'October 2026 Summary',
-      returnTypeFilter: 'GSTR-3B (Summary)',
-    },
-  ];
+    { title: 'TDS payment', targetDate: due(7), period: `${prevLabel} deductions`, returnTypeFilter: 'TDS Payment' },
+    { title: 'GSTR-1', targetDate: due(11), period: `${prevLabel} outward supplies`, returnTypeFilter: 'GSTR-1' },
+    { title: 'PF & ESI', targetDate: due(15), period: `${prevLabel} payroll`, returnTypeFilter: 'PF & ESI' },
+    { title: 'GSTR-3B', targetDate: due(20), period: `${prevLabel} summary and tax payment`, returnTypeFilter: 'GSTR-3B' },
+  ].map((d) => ({ ...d, formattedCutoff: fmt(d.targetDate) }));
 
   // Helper to calculate live filed vs total for each deadline type
   const getDeadlineCompletion = (filingType: string) => {
@@ -114,31 +99,33 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
 
   // Immediate Statutory Risks (< 3 days and not filed)
   const immediateRisks = relevantTasks.filter(
-    (t) => t.status !== 'Filed' && t.daysRemaining <= 3
+    (t) => t.status !== 'Filed' && t.daysRemaining <= dueSoonDays
   );
 
   const attentionCount =
-    immediateRisks.length + (docsPendingCount > 0 ? 1 : 0) + (overdueDebtorsCount > 0 ? 1 : 0);
+    immediateRisks.length + (docsPendingCount > 0 ? 1 : 0) + (showFees && overdueDebtorsCount > 0 ? 1 : 0);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={isAdmin ? 'Practice overview' : `Good day, ${currentUser.name}`}
+        title={isAdmin ? 'Overview' : `Good day, ${currentUser.name}`}
         description={
           <span className="num">
-            {formattedToday} · Q3 FY 2026–27 · {totalClients} active clients
+            {formattedToday}{financialYear ? ` · FY ${financialYear}` : ''} · {totalClients} active clients
           </span>
         }
       />
 
       {/* KPI strip */}
-      <MetricGrid className="grid-cols-2 lg:grid-cols-4">
+      <MetricGrid className={cn('grid-cols-2', showFees ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
+        {showFees && (
         <Metric
           label="Fee receivables"
           value={`₹${totalReceivables.toLocaleString('en-IN')}`}
           hint={`${overdueDebtorsCount} ${overdueDebtorsCount === 1 ? 'account' : 'accounts'} outstanding`}
           onClick={() => onNavigateTab('debtors')}
         />
+        )}
         <Metric
           label="Monthly returns"
           value={recurringTotal}
@@ -188,7 +175,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
             <AttentionRow
               tone="success"
               title="Filings on schedule"
-              meta="Nothing due in the next 48 hours."
+              meta={`Nothing due in the next ${dueSoonDays} days.`}
               action="Open queue"
               onClick={() => onNavigateTab('monthly')}
             />
@@ -199,13 +186,13 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
               tone="neutral"
               title={docsPendingTasks.map((t) => t.tradeName).join(', ')}
               tag={<Badge>Documents pending</Badge>}
-              meta="October 2026 sales and purchase bills required for GSTR-1 and GSTR-3B."
+              meta={`${prevLabel} sales and purchase bills needed for GSTR-1 and GSTR-3B.`}
               action="Send reminder"
               onClick={() => onNavigateTab('monthly', 'Docs Pending')}
             />
           )}
 
-          {overdueDebtorsCount > 0 && (
+          {showFees && overdueDebtorsCount > 0 && (
             <AttentionRow
               tone="danger"
               title={`${overdueDebtorsCount} ${overdueDebtorsCount === 1 ? 'account' : 'accounts'} with outstanding fees`}
@@ -222,8 +209,8 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
         {/* Statutory calendar */}
         <Card className="overflow-hidden">
           <CardHeader
-            title="Statutory calendar"
-            description="November 2026"
+            title="Due dates"
+            description={thisMonthLabel}
             actions={
               <Button size="sm" variant="ghost" onClick={() => onNavigateTab('gst-tracker')}>
                 Full Schedule
@@ -271,7 +258,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
         <Card className="overflow-hidden flex flex-col">
           <CardHeader
             title="Team progress"
-            description="October filings"
+            description={`${prevLabel} returns`}
             actions={
               <Button size="sm" variant="ghost" onClick={() => onNavigateTab('staff')}>
                 Reassign Work
@@ -352,8 +339,7 @@ const AttentionRow: React.FC<{
     onClick={onClick}
     className="group w-full text-left px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-subtle transition-colors"
   >
-    <div className="min-w-0 flex items-start gap-3">
-      <StatusDot tone={tone} className="mt-[7px]" />
+    <div className="min-w-0 flex items-start gap-3" data-tone={tone}>
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-fg">{title}</span>

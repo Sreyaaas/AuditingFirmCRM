@@ -1,13 +1,14 @@
 # Shameer & Associates — Agent Design & Engineering Guidelines
 
 > **CRITICAL DIRECTIVE FOR ALL AI AGENTS & CODING ASSISTANTS:**
-> This repository is a production practice-management CRM for **Shameer & Associates (Accountants and Practitioners)**.
+> This repository is the production CRM for **Shameer & Associates (Accountants and Practitioners)**.
+> **Read `docs/CHANGES.md` first** — it describes the architecture, authentication, database security and data model.
 > All UI, component development, styling, and data modeling MUST adhere strictly to the **Apple & Vercel minimal enterprise aesthetic**.
 > **NEVER generate generic "AI slop"** (no 3D glossy bubbles/spheres, no rainbow/mesh gradients, no neon borders, no glassmorphism gimmicks, no cartoon bubbly cards, and no off-canvas right drawers).
 
 ---
 
-## 1. Practice Identity & Domain Accuracy
+## 1. Firm Identity & Domain Accuracy
 
 * **Firm Legal Identity:** `Shameer & Associates | Accountants and Practitioners` (based in Kerala, India).
 * **Firm Leadership:**
@@ -15,14 +16,10 @@
   * **Ameen** — *Partner & Senior Practitioner* (Admin)
   * **Susmi** — *Audit & Tax Executive* (Staff Employee)
 * **NEVER USE "CA Shameer":** The firm practitioners are Accountants and Tax Practitioners, NOT Chartered Accountants. Do not prefix "CA" to any name.
-* **Authentic Master Clients (6 Real Entities):**
-  1. `Havos (P) Ltd` (`Private Limited` • ITR-6 • Assigned: Ameen)
-  2. `KM Traders` (`Partnership` • ITR-5 • Assigned: Susmi)
-  3. `Semicolon Innovations` (`LLP` • ITR-5 • Assigned: Ameen)
-  4. `Rafeek` (`Proprietorship` • ITR-3 • Assigned: Susmi)
-  5. `Jinu & Family` (`Individual` • ITR-2 • Assigned: Ameen)
-  6. `Spanish Absolute Parlour` (`Proprietorship` • ITR-4 • Assigned: Susmi)
-* **No Cluttered Mock Data:** Do not generate or hardcode fake batches of 120 or 50 items. All counts and metrics must be calculated dynamically (`${clients.length}`).
+* **Real data lives in Supabase.** Production screens read only from the database. Never hard-code client records, balances, ARNs, acknowledgement numbers, invoice numbers, GSTINs or bank details in code.
+* **Sample data:** `src/data/sampleData.ts` holds at most four rows per section and is shown only when no database is configured (local development, e2e tests). Do not grow it.
+* **Debtors are real accounts** imported from the office Excel workbook (Debtors → Import Excel). Keep `utils/debtorWorkbook.ts` compatible with that layout.
+* All counts and metrics are calculated from data (`${clients.length}`), never typed in.
 
 ---
 
@@ -33,7 +30,8 @@ The UI is built for senior accountants and tax practitioners working with compli
 ### 🚫 Explicit Ban List ("AI Slop" Anti-Patterns)
 1. **NO 3D Glossy / Gradient Spheres or Orbs:**
    * Never use glossy, shaded, or spherically gradient dots (e.g. pink, green, or orange shaded 3D balls).
-   * Status indicators must be flat, clean, 1.5px/2px hairline badges or subtle flat solid dots (`<StatusDot tone="success" />`).
+   * No status dots of any kind. Status is plain coloured text (`<Badge tone="success" dot>Filed</Badge>` — the `dot` prop renders text only).
+   * No connection / "sync" indicators in the interface.
 2. **NO Mesh or Rainbow Gradients:**
    * Avoid multi-color gradients (purple-to-pink, cyan-to-purple, orange-to-magenta).
    * Keep background surfaces calm, solid, and monochromatic.
@@ -49,7 +47,7 @@ The UI is built for senior accountants and tax practitioners working with compli
 
 ---
 
-## 3. Design Tokens & Styling Rules (v2 "Ledger")
+## 3. Design Tokens & Styling Rules
 
 All colour is token-driven. Tokens live as RGB channels in `src/index.css` and map to Tailwind utilities in `tailwind.config.js`. A single class is correct in both themes — **never write `dark:` colour pairs or raw hex classes** (`bg-[#…]`, `text-[#…]`). Only the logo swap uses `dark:`.
 
@@ -72,10 +70,10 @@ All colour is token-driven. Tokens live as RGB channels in `src/index.css` and m
 
 ### Restrained Semantic Status (Flat, Never 3D)
 `success` `#15803D`/`#4AC978` · `warning` `#B45309`/`#F0A83C` · `danger` `#C81E1E`/`#F86460`.
-Express status only through the `Badge` (tone + optional dot) and `StatusDot` primitives — tinted at 7–8% fill with a 20% border. Never colour whole rows or KPI numbers.
+Status is plain medium-weight text in the tone colour (`<Badge tone dot>`). Tags are `<Badge>` without `dot`: hairline outline, no tint. Never colour whole rows or KPI numbers.
 
 ### Shared Primitives (`src/components/ui`)
-Use these instead of hand-rolled markup: `Button` (primary · secondary · ghost · danger · accent; sm h-7 / md h-8 / lg h-9), `IconButton`, `Input`, `Select`, `Textarea`, `Field`, `SearchInput`, `Badge`, `StatusDot`, `Avatar`, `Kbd`, `Card`/`CardHeader`, `PageHeader`, `Metric`/`MetricGrid`, `Segmented`, `Tabs`, `Toolbar`, `TableCard`, `Pagination`, `Menu`, `Modal`, `DescriptionList`, `Progress`, `EmptyState`; helpers `cn`, `formatINR`, `formatDate`, `statusTone`.
+Use these instead of hand-rolled markup: `Button` (primary · secondary · ghost · danger · accent; sm h-7 / md h-8 / lg h-9), `IconButton`, `Input`, `Select`, `Textarea`, `Field`, `SearchInput`, `Badge`, `Avatar`, `Kbd`, `Card`/`CardHeader`, `PageHeader`, `Metric`/`MetricGrid`, `Segmented`, `Tabs`, `Toolbar`, `TableCard`, `Pagination`, `Menu`, `Modal`, `DescriptionList`, `Progress`, `EmptyState`; helpers `cn`, `formatINR`, `formatDate`, `statusTone`.
 Tables use the `.data-table` class (36px head, 44px rows). Copy: sentence case for headings and labels, Title Case for button labels.
 
 ---
@@ -145,10 +143,18 @@ The CRM strictly supports 2 themes via `data-theme`:
 
 ---
 
-## 8. Verification Checklist Before Any Commit
-- [ ] No "CA Shameer" anywhere (use "Shameer").
-- [ ] No fake 120/50 client clutter; all modules use the 6 authentic clients.
-- [ ] No 3D gradient spheres or shiny orbs; all status dots are flat and subtle.
-- [ ] Modals are centered (not side drawers).
-- [ ] TypeScript compiles cleanly with zero errors (`npm run build`).
+## 8. Wording
+* Plain business language. Avoid "practice", "ledger", "engagement", "seamless", "immutable", "cloud sync" and similar filler in the interface.
+* Sentence case for headings and labels; Title Case for button labels.
 
+---
+
+## 9. Verification Checklist Before Any Commit
+- [ ] No "CA Shameer" anywhere (use "Shameer").
+- [ ] No hard-coded client data, amounts or identifiers outside `src/data/sampleData.ts`.
+- [ ] No status dots, tinted pills, gradients or sync indicators.
+- [ ] Modals are centered (not side drawers).
+- [ ] New tables have Row Level Security policies (see `supabase/migrations`); nothing is granted to `anon`.
+- [ ] Passwords are only ever handled by Supabase Auth (never stored, logged or compared in app code).
+- [ ] TypeScript compiles cleanly with zero errors (`npm run build`).
+- [ ] `docs/CHANGES.md` updated for any behaviour, schema or setup change.

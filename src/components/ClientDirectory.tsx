@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { MessageSquare, Plus } from 'lucide-react';
+import { MessageSquare, MoreHorizontal, Plus } from 'lucide-react';
 import { Client, StaffMember } from '../types/crm';
 import { NewClientModal } from './NewClientModal';
-import { Avatar, Badge, Button, EmptyState, IconButton, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, formatINR } from './ui';
+import { Avatar, Badge, Button, ConfirmDialog, EmptyState, IconButton, Menu, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, formatINR } from './ui';
 
 interface ClientDirectoryProps {
   clients: Client[];
@@ -12,6 +12,10 @@ interface ClientDirectoryProps {
   onSelectClient: (clientId: string) => void;
   onOpenWhatsAppForClient: (client: Client) => void;
   onAddClient?: (newClient: Client) => Promise<void>;
+  /** Administrators only: hide or restore a client. */
+  onArchive?: (clientId: string, archived: boolean) => void;
+  /** Administrators only: permanently delete a client with its tasks and returns. */
+  onDelete?: (clientId: string) => void;
 }
 
 export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
@@ -22,18 +26,24 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
   onSelectClient,
   onOpenWhatsAppForClient,
   onAddClient,
+  onArchive,
+  onDelete,
 }) => {
   const [search, setSearch] = useState('');
   const [entityFilter, setEntityFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Client | null>(null);
   const itemsPerPage = 12;
 
   // Auto-generate next sequential code e.g. C-007
   const nextClientCode = `C-00${clients.length + 1}`;
 
   const filteredClients = clients.filter((c) => {
+    const archived = c.status === 'Archived';
+    if (typeFilter === 'archived' ? !archived : archived) return false;
     if (entityFilter !== 'all' && c.entityType !== entityFilter) return false;
     if (typeFilter === 'recurring' && !c.isRecurringGST) return false;
     if (typeFilter === 'itr-only' && c.isRecurringGST) return false;
@@ -59,14 +69,16 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
 
   const getStaff = (id: string) => staffList.find((s) => s.id === id);
 
-  const recurringCount = clients.filter((c) => c.isRecurringGST || c.isRecurringStatutory).length;
-  const itrOnlyCount = clients.filter((c) => !c.isRecurringGST && !c.isRecurringStatutory).length;
+  const activeList = clients.filter((c) => c.status !== 'Archived');
+  const archivedCount = clients.length - activeList.length;
+  const recurringCount = activeList.filter((c) => c.isRecurringGST || c.isRecurringStatutory).length;
+  const itrOnlyCount = activeList.filter((c) => !c.isRecurringGST && !c.isRecurringStatutory).length;
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="Clients"
-        description={`${clients.length} companies, firms and individuals under engagement`}
+        description={`${clients.length} companies, firms and individuals`}
         actions={
           isAdmin &&
           onAddClient && (
@@ -88,9 +100,10 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                 setCurrentPage(1);
               }}
               options={[
-                { value: 'all', label: 'All', count: clients.length },
-                { value: 'recurring', label: 'Monthly retainer', count: recurringCount },
+                { value: 'all', label: 'All', count: activeList.length },
+                { value: 'recurring', label: 'Monthly GST', count: recurringCount },
                 { value: 'itr-only', label: 'Annual ITR only', count: itrOnlyCount },
+                ...(onArchive && archivedCount > 0 ? [{ value: 'archived', label: 'Archived', count: archivedCount }] : []),
               ]}
             />
             <div className="flex items-center gap-2">
@@ -140,7 +153,7 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
               <th>Entity</th>
               <th>GSTIN / PAN</th>
               <th>Owner</th>
-              <th>Engagement</th>
+              <th>Work</th>
               <th className="text-right">Monthly fee</th>
               <th className="text-right">Actions</th>
             </tr>
@@ -194,6 +207,24 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                       <Button size="sm" onClick={() => onSelectClient(client.id)}>
                         View Account
                       </Button>
+                      {(onArchive || onDelete) && (
+                        <div className="relative">
+                          <IconButton icon={MoreHorizontal} label={`More actions for ${client.tradeName}`} size="sm" onClick={() => setMenuFor(menuFor === client.id ? null : client.id)} />
+                          <Menu
+                            open={menuFor === client.id}
+                            onClose={() => setMenuFor(null)}
+                            align="right"
+                            items={[
+                              ...(onArchive ? [{ value: 'archive', label: client.status === 'Archived' ? 'Restore client' : 'Archive client' }] : []),
+                              ...(onDelete ? [{ value: 'delete', label: 'Delete…', danger: true }] : []),
+                            ]}
+                            onSelect={(v) => {
+                              if (v === 'archive') onArchive?.(client.id, client.status !== 'Archived');
+                              if (v === 'delete') setConfirmDelete(client);
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -202,6 +233,16 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
           </tbody>
         </table>
       </TableCard>
+
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        title={`Delete ${confirmDelete?.tradeName ?? 'client'}?`}
+        description="This permanently deletes the client together with its monthly tasks and ITR returns. Fee accounts in Debtors are kept. If the client has simply left, archive them instead."
+        confirmLabel="Delete Client"
+        danger
+        onConfirm={() => confirmDelete && onDelete?.(confirmDelete.id)}
+      />
 
       {isAdmin && onAddClient && (
         <NewClientModal

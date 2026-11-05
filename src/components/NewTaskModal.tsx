@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { ListChecks } from 'lucide-react';
 import { Button, Field, Input, Modal, Select } from './ui';
-import { MonthlyTask, StaffMember, FilingStatus } from '../types/crm';
+import { Client, MonthlyTask, StaffMember, FilingStatus } from '../types/crm';
 
 interface NewTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   staffList: StaffMember[];
+  clients: Client[];
   filingTypes?: string[];
   onAddTask: (task: MonthlyTask) => void;
 }
@@ -15,38 +16,57 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
   isOpen,
   onClose,
   staffList,
+  clients,
   filingTypes = ['GSTR-1 (Sales)', 'GSTR-3B (Summary)', 'Statutory Audit', 'TDS Payment', 'PF & ESI', 'CMP-08', 'IFF'],
   onAddTask,
 }) => {
-  const [tradeName, setTradeName] = useState('');
-  const [gstin, setGstin] = useState('27AABCZ1234F1Z5');
-  const [filingType, setFilingType] = useState<MonthlyTask['filingType']>('GSTR-1');
-  const [period, setPeriod] = useState('October 2026');
+  const today = new Date();
+  const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const [clientId, setClientId] = useState('');
+  const [gstin, setGstin] = useState('');
+  const [filingType, setFilingType] = useState<MonthlyTask['filingType']>((filingTypes[0] as MonthlyTask['filingType']) || 'GSTR-1');
+  const [period, setPeriod] = useState(prevMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }));
   const [assignedStaffId, setAssignedStaffId] = useState(staffList[0]?.id || '');
-  const [dueDate, setDueDate] = useState('2026-11-11');
-  const [phone, setPhone] = useState('+91 98200 12345');
+  const [dueDate, setDueDate] = useState(iso(new Date(today.getFullYear(), today.getMonth(), 20)));
+  const [phone, setPhone] = useState('');
+
+  const chooseClient = (id: string) => {
+    setClientId(id);
+    const c = clients.find((x) => x.id === id);
+    if (c) {
+      setGstin(c.gstin || '');
+      setPhone(c.phone || '');
+      if (c.assignedStaffId) setAssignedStaffId(c.assignedStaffId);
+    }
+  };
   const [status, setStatus] = useState<FilingStatus>('In Progress');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tradeName.trim()) return;
+    const client = clients.find((c) => c.id === clientId);
+    if (!client) return;
+    const [y, m, d] = dueDate.split('-').map(Number);
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const daysRemaining = Math.round((new Date(y, m - 1, d).getTime() - startOfToday.getTime()) / 86400000);
 
     const newTask: MonthlyTask = {
       id: `task-custom-${Date.now()}`,
-      clientId: `client-custom-${Date.now()}`,
-      clientName: tradeName,
-      tradeName,
+      clientId: client.id,
+      clientName: client.name,
+      tradeName: client.tradeName,
       gstin: gstin.toUpperCase(),
       filingType,
       period,
       assignedStaffId,
       status,
       dueDate,
-      daysRemaining: 4,
+      daysRemaining,
       phone,
       lastUpdated: 'Just now',
       docsReceived: status !== 'Docs Pending',
-      taxPayable: 18500,
+      taxPayable: 0,
     };
 
     onAddTask(newTask);
@@ -73,8 +93,15 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
       }
     >
       <form id="new-task-form" onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Client" required>
-          <Input required autoFocus placeholder="Trade name" value={tradeName} onChange={(e) => setTradeName(e.target.value)} />
+        <Field label="Client" required hint={clients.length === 0 ? 'Add the client on the Clients page first.' : undefined}>
+          <Select required autoFocus value={clientId} onChange={(e) => chooseClient(e.target.value)}>
+            <option value="">Select a client…</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.tradeName} · {c.clientCode}
+              </option>
+            ))}
+          </Select>
         </Field>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="GSTIN" required>

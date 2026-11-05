@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, MessageSquare, Check, PhoneCall } from 'lucide-react';
+import { Plus, MessageSquare, Check, PhoneCall, Trash2 } from 'lucide-react';
 import { StaffTicket, StaffMember, TicketStatus, TicketPriority } from '../types/crm';
-import { Avatar, Badge, Button, Card, EmptyState, IconButton, Metric, MetricGrid, PageHeader, SearchInput, Segmented, Select, Textarea, Toolbar, Tone } from './ui';
+import { Avatar, Badge, Button, Card, ConfirmDialog, EmptyState, IconButton, Metric, MetricGrid, PageHeader, SearchInput, Segmented, Select, Textarea, Toolbar, Tone } from './ui';
 
 interface StaffTicketDeskProps {
   tickets: StaffTicket[];
@@ -9,6 +9,8 @@ interface StaffTicketDeskProps {
   selectedStaffId: string | null;
   onAssignToStaff: (ticketId: string, staffId: string) => void;
   onUpdateStatus: (ticketId: string, newStatus: TicketStatus, notes?: string) => void;
+  /** Administrators only. */
+  onDelete?: (ticketId: string) => void;
   onOpenNewTicketModal: () => void;
   onOpenWhatsAppForTicket: (ticket: StaffTicket) => void;
   onSelectClient: (clientId: string) => void;
@@ -20,6 +22,7 @@ export const StaffTicketDesk: React.FC<StaffTicketDeskProps> = ({
   selectedStaffId,
   onAssignToStaff,
   onUpdateStatus,
+  onDelete,
   onOpenNewTicketModal,
   onOpenWhatsAppForTicket,
   onSelectClient,
@@ -29,6 +32,7 @@ export const StaffTicketDesk: React.FC<StaffTicketDeskProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [resolvingTicketId, setResolvingTicketId] = useState<string | null>(null);
   const [resolutionInput, setResolutionInput] = useState<string>('');
+  const [confirmDelete, setConfirmDelete] = useState<StaffTicket | null>(null);
 
   const activeStaff = selectedStaffId ? staffList.find((s) => s.id === selectedStaffId) : null;
 
@@ -240,6 +244,7 @@ export const StaffTicketDesk: React.FC<StaffTicketDeskProps> = ({
                         </Button>
                       )}
                       <IconButton icon={MessageSquare} label="Send WhatsApp update" size="sm" onClick={() => onOpenWhatsAppForTicket(ticket)} />
+                      {onDelete && <IconButton icon={Trash2} label="Delete call" size="sm" className="hover:text-danger" onClick={() => setConfirmDelete(ticket)} />}
                     </div>
                   </div>
                 </li>
@@ -248,6 +253,16 @@ export const StaffTicketDesk: React.FC<StaffTicketDeskProps> = ({
           </ul>
         )}
       </Card>
+
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        title="Delete this call?"
+        description="This permanently removes the call and its notes."
+        confirmLabel="Delete Call"
+        danger
+        onConfirm={() => confirmDelete && onDelete?.(confirmDelete.id)}
+      />
     </div>
   );
 };

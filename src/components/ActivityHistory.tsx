@@ -35,7 +35,7 @@ export const ActivityHistory: React.FC<ActivityHistoryProps> = ({ logs }) => {
     <div className="space-y-4">
       <PageHeader
         title="Audit Trail"
-        description="Immutable record of filings, payments and staff activity"
+        description="Every filing, payment and account change, with who made it and when"
       />
 
       <TableCard

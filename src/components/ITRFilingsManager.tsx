@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { MessageSquare, ArrowUpRight, Plus, RefreshCw, FileCheck } from 'lucide-react';
+import { MessageSquare, ArrowUpRight, Plus, FileCheck, Trash2 } from 'lucide-react';
 import { ITRFiling, StaffMember, ITRStatus, EntityType, Client } from '../types/crm';
-import { Avatar, Button, EmptyState, Field, IconButton, Input, Label, Metric, MetricGrid, Modal, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, cn, formatINR } from './ui';
+import { Avatar, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Label, Metric, MetricGrid, Modal, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, cn, formatINR } from './ui';
 
 interface ITRFilingsManagerProps {
   itrFilings: ITRFiling[];
@@ -12,7 +12,12 @@ interface ITRFilingsManagerProps {
   onSelectClient: (clientId: string) => void;
   onUpdateITRStatus: (id: string, newStatus: ITRStatus, ackNo?: string) => void;
   onAddITR?: (newITR: Omit<ITRFiling, 'id' | 'lastActivity'>) => void;
-  onResetToDefault?: () => void;
+  /** Administrators only. */
+  onDelete?: (id: string) => void;
+  /** e.g. "AY 2026-27" — default for new returns. */
+  assessmentYear?: string;
+  /** Returns due within this many days are flagged. */
+  dueSoonDays?: number;
 }
 
 export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
@@ -23,23 +28,27 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
   onOpenWhatsApp,
   onSelectClient,
   onUpdateITRStatus,
+  onDelete,
   onAddITR,
-  onResetToDefault,
+  assessmentYear = 'AY 2026-27',
+  dueSoonDays = 10,
 }) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<ITRFiling | null>(null);
   const [ackModalItem, setAckModalItem] = useState<ITRFiling | null>(null);
   const [ackInput, setAckInput] = useState('');
 
   // Add Form State
+  const [formClientId, setFormClientId] = useState('');
   const [formClientName, setFormClientName] = useState('');
   const [formPAN, setFormPAN] = useState('');
   const [formEntityType, setFormEntityType] = useState<EntityType>('Private Limited');
   const [formITRForm, setFormITRForm] = useState<'ITR-1' | 'ITR-2' | 'ITR-3' | 'ITR-4' | 'ITR-5' | 'ITR-6'>('ITR-6');
-  const [formAY, setFormAY] = useState('AY 2026-27');
+  const [formAY, setFormAY] = useState(assessmentYear);
   const [formDueDate, setFormDueDate] = useState('2026-11-16');
   const [formIsRefund, setFormIsRefund] = useState(false);
   const [formTaxAmount, setFormTaxAmount] = useState('25000');
@@ -82,7 +91,7 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
         };
       }
 
-      if (diffDays <= 10) {
+      if (diffDays <= dueSoonDays) {
         return {
           daysLeft: diffDays,
           level: 'urgent' as const,
@@ -171,6 +180,7 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
   // Handle Quick Client Autocomplete in Add Form
   const handleSelectPredefinedClient = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = e.target.value;
+    setFormClientId(selectedId);
     if (!selectedId) return;
     const client = clients.find((c) => c.id === selectedId);
     if (client) {
@@ -187,13 +197,13 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
   // Submit New ITR Entry
   const handleSubmitAddITR = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formClientName.trim()) return;
+    if (!formClientId || !formClientName.trim()) return;
 
     const taxAmountNumber = parseFloat(formTaxAmount) || 0;
     const finalTaxPosition = formIsRefund ? -Math.abs(taxAmountNumber) : Math.abs(taxAmountNumber);
 
     const newRecord: Omit<ITRFiling, 'id' | 'lastActivity'> = {
-      clientId: `client-${Date.now()}`,
+      clientId: formClientId,
       clientName: formClientName.trim(),
       pan: formPAN.trim().toUpperCase() || 'AABCA0000A',
       entityType: formEntityType,
@@ -215,6 +225,7 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
 
     setIsAddModalOpen(false);
     setFormClientName('');
+    setFormClientId('');
     setFormPAN('');
     setFormTaxAmount('25000');
     setFormDueDate('2026-11-16');
@@ -242,14 +253,9 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
     <div className="space-y-4">
       <PageHeader
         title="ITR Returns"
-        description="Assessment Year 2026–27 · Annual income tax filings ordered by statutory urgency"
+        description={`${assessmentYear} · Income tax returns, most urgent first`}
         actions={
           <>
-            {onResetToDefault && (
-              <Button icon={RefreshCw} onClick={onResetToDefault} title="Restore the 6 master client returns">
-                Reset
-              </Button>
-            )}
             <Button variant="primary" icon={Plus} onClick={() => setIsAddModalOpen(true)}>
               Add Return
             </Button>
@@ -418,7 +424,7 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                           const newSt = e.target.value as ITRStatus;
                           if (newSt === 'Filed & e-Verified') {
                             setAckModalItem(itr);
-                            setAckInput(itr.acknowledgmentNo || `ACK982${Math.floor(100000000 + Math.random() * 900000000)}`);
+                            setAckInput(itr.acknowledgmentNo || '');
                           } else {
                             onUpdateITRStatus(itr.id, newSt);
                           }
@@ -447,6 +453,7 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                           Remind
                         </Button>
                         <IconButton icon={ArrowUpRight} label="View client account" size="sm" onClick={() => onSelectClient(itr.clientId)} />
+                        {onDelete && <IconButton icon={Trash2} label="Delete return" size="sm" className="hover:text-danger" onClick={() => setConfirmDelete(itr)} />}
                       </div>
                     </td>
                   </tr>
@@ -477,8 +484,8 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
       >
         <form id="itr-add-form" onSubmit={handleSubmitAddITR} className="space-y-4">
           {clients.length > 0 && (
-            <Field label="Existing client" hint="Optional — fills PAN, entity and phone.">
-              <Select onChange={handleSelectPredefinedClient} defaultValue="">
+            <Field label="Client" required hint="PAN, entity and phone are filled from the client record.">
+              <Select required onChange={handleSelectPredefinedClient} value={formClientId}>
                 <option value="">Select a client…</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -527,8 +534,14 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
             </Field>
             <Field label="Assessment year">
               <Select value={formAY} onChange={(e) => setFormAY(e.target.value)}>
-                <option value="AY 2026-27">AY 2026-27</option>
-                <option value="AY 2027-28">AY 2027-28</option>
+                {[assessmentYear, ...[-1, 1].map((d) => {
+                  const y = Number(assessmentYear.slice(3, 7)) + d;
+                  return `AY ${y}-${String((y + 1) % 100).padStart(2, '0')}`;
+                })].sort().map((ay) => (
+                  <option key={ay} value={ay}>
+                    {ay}
+                  </option>
+                ))}
               </Select>
             </Field>
           </div>
@@ -621,6 +634,16 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
           </Field>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        title="Delete this return?"
+        description="This permanently removes the ITR return and its status history."
+        confirmLabel="Delete Return"
+        danger
+        onConfirm={() => confirmDelete && onDelete?.(confirmDelete.id)}
+      />
     </div>
   );
 };

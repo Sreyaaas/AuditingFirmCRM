@@ -10,12 +10,11 @@ import {
   Users,
   History,
   Settings2,
-  Database,
   X,
   type LucideIcon,
 } from 'lucide-react';
 import { StaffMember, UserProfile } from '../types/crm';
-import { cn, StatusDot } from './ui';
+import { cn } from './ui';
 
 interface SidebarProps {
   activeTab: string;
@@ -30,7 +29,8 @@ interface SidebarProps {
   debtorsCount: number;
   gstOverdueCount?: number;
   unassignedTicketsCount?: number;
-  onOpenIntegrations: () => void;
+  /** Admins, and staff granted fee access, see Debtors. */
+  canViewFees?: boolean;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
 }
@@ -54,7 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   debtorsCount,
   gstOverdueCount = 0,
   unassignedTicketsCount = 0,
-  onOpenIntegrations,
+  canViewFees = true,
   isMobileOpen = false,
   onCloseMobile,
 }) => {
@@ -69,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const relationships: NavItem[] = [
     { id: 'clients', label: 'Clients', icon: Building2, count: totalClientsCount },
-    { id: 'debtors', label: 'Debtors', icon: Wallet, count: debtorsCount },
+    ...(canViewFees ? [{ id: 'debtors', label: 'Debtors', icon: Wallet, count: debtorsCount }] : []),
     { id: 'staff', label: 'Calls & Tickets', icon: PhoneCall, alert: unassignedTicketsCount || null },
   ];
 
@@ -103,10 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
         <span className="flex-1 truncate text-left">{item.label}</span>
         {item.alert ? (
-          <span className="num inline-flex items-center gap-1 text-2xs font-medium text-danger">
-            <StatusDot tone="danger" />
-            {item.alert}
-          </span>
+          <span className="num text-2xs font-semibold text-danger">{item.alert}</span>
         ) : item.count !== undefined && item.count !== null ? (
           <span className={cn('num text-2xs', active ? 'text-fg-muted' : 'text-fg-faint')}>{item.count}</span>
         ) : null}
@@ -143,27 +140,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
         {section('Workspace', workspace)}
         {section('Relationships', relationships)}
-        {isAdmin && section('Practice', admin)}
+        {isAdmin && section('Admin', admin)}
       </nav>
 
-      <div className="px-3 py-3 border-t border-line shrink-0">
-        {isAdmin ? (
-          <button
-            onClick={onOpenIntegrations}
-            className="w-full h-8 flex items-center gap-2.5 px-2.5 rounded-md text-xs text-fg-subtle hover:text-fg hover:bg-hover transition-colors"
-          >
-            <Database className="w-3.5 h-3.5" strokeWidth={1.75} />
-            <span className="flex-1 text-left">Cloud sync</span>
-            <StatusDot tone="success" title="Connected" />
-          </button>
-        ) : (
-          <div className="h-8 flex items-center gap-2.5 px-2.5 text-xs text-fg-subtle">
-            <StatusDot tone="success" />
-            <span className="flex-1">Connected</span>
-            <span className="ident text-2xs text-fg-faint">v2.0</span>
-          </div>
-        )}
-      </div>
     </div>
   );
 

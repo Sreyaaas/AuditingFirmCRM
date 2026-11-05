@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Plus, Sun, Moon, Check, ChevronDown, Menu, LogOut } from 'lucide-react';
+import { Search, Plus, Sun, Moon, ChevronDown, Menu, LogOut, KeyRound } from 'lucide-react';
 import { UserProfile } from '../types/crm';
 import { Avatar, Button, IconButton, Kbd, cn } from './ui';
 
@@ -7,13 +7,12 @@ interface HeaderProps {
   activeTab: string;
   onOpenCommandPalette: () => void;
   currentUser: UserProfile;
-  profiles: UserProfile[];
-  onSwitchUser: (userId: string) => void;
   onLogout?: () => void;
+  onChangePassword?: () => void;
+  canChangePassword?: boolean;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onOpenNewTask: () => void;
-  onOpenIntegrations: () => void;
   onToggleMobileSidebar?: () => void;
 }
 
@@ -42,9 +41,9 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   onOpenCommandPalette,
   currentUser,
-  profiles,
-  onSwitchUser,
   onLogout,
+  onChangePassword,
+  canChangePassword = true,
   theme,
   onToggleTheme,
   onOpenNewTask,
@@ -115,32 +114,22 @@ export const Header: React.FC<HeaderProps> = ({
                   <Avatar initials={initialsOf(currentUser.name)} size="md" />
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-fg truncate">{currentUser.name}</div>
-                    <div className="text-xs text-fg-subtle truncate">{currentUser.designation}</div>
+                    <div className="text-xs text-fg-subtle truncate">{currentUser.email}</div>
                   </div>
                 </div>
                 <div className="h-px bg-line my-1" />
-                <div className="eyebrow px-2.5 pt-1.5 pb-1">Switch user</div>
-                {profiles.map((p) => {
-                  const selected = p.id === currentUser.id;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        onSwitchUser(p.id);
-                        setIsUserMenuOpen(false);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-left hover:bg-hover transition-colors"
-                    >
-                      <Avatar initials={initialsOf(p.name)} size="xs" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-fg truncate">{p.name}</div>
-                        <div className="text-xs text-fg-subtle truncate capitalize">{p.role} · {p.designation}</div>
-                      </div>
-                      {selected && <Check className="w-3.5 h-3.5 text-fg shrink-0" strokeWidth={2} />}
-                    </button>
-                  );
-                })}
-                <div className="h-px bg-line my-1" />
+                {canChangePassword && (
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      onChangePassword?.();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 h-8 rounded-md text-sm text-fg-muted hover:text-fg hover:bg-hover transition-colors"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" strokeWidth={1.75} />
+                    Change password
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setIsUserMenuOpen(false);

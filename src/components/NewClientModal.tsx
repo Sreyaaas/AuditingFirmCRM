@@ -79,7 +79,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
       size="md"
       icon={Building2}
       title="New client"
-      description="Creates the client account and syncs it to the practice database."
+      description="Adds the client to the CRM."
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -147,7 +147,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
         </section>
 
         <section className="space-y-4 pt-5 border-t border-line">
-          <div className="eyebrow">Engagement</div>
+          <div className="eyebrow">Work & fees</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Monthly fee (₹)">
               <Input type="number" min="0" step="500" value={monthlyAuditFee} onChange={(e) => setMonthlyAuditFee(Number(e.target.value))} className="num" />

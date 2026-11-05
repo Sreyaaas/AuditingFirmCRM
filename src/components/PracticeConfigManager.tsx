@@ -1,278 +1,272 @@
-import React, { useState, useRef } from 'react';
-import { SlidersHorizontal, Plus, X, Check, RefreshCw, AlertCircle, MessageSquare, Building2, Download, RotateCcw } from 'lucide-react';
-import { isSupabaseConfigured } from '../services/supabaseClient';
-import { 
-  WhatsAppTemplateSettings, 
-  FirmProfileSettings, 
-  getStoredWhatsAppTemplates, 
-  saveStoredWhatsAppTemplates, 
-  getStoredFirmProfile, 
-  saveStoredFirmProfile, 
-  renderTemplate, 
-  DEFAULT_WHATSAPP_TEMPLATES, 
-  DEFAULT_FIRM_PROFILE 
+import React, { useEffect, useRef, useState } from 'react';
+import { SlidersHorizontal, Plus, X, Check, RefreshCw, AlertCircle, MessageSquare, Building2, Download, RotateCcw, Settings2, ShieldCheck } from 'lucide-react';
+import {
+  AppPreferences,
+  DEFAULT_WHATSAPP_TEMPLATES,
+  FirmProfileSettings,
+  WhatsAppTemplateSettings,
+  renderTemplate,
 } from '../services/firmConfigService';
-import { Client, MonthlyTask, ITRFiling, DebtorRecord, UserProfile, StaffTicket, ActivityLog } from '../types/crm';
-import { Button, Card, CardHeader, Field, IconButton, Input, Label, Metric, MetricGrid, Segmented, StatusDot, Textarea, cn } from './ui';
+import { ActivityLog, Client, DebtorRecord, GSTComplianceItem, ITRFiling, MonthlyTask, OfficeBillingEntry, StaffTicket, UserProfile } from '../types/crm';
+import { Button, Card, CardHeader, Field, IconButton, Input, Label, Metric, MetricGrid, Segmented, Select, Textarea, cn } from './ui';
+import { Toggle } from './EmployeeManagement';
+
+type SaveResult = { error?: string };
 
 interface PracticeConfigManagerProps {
   configs: Record<string, string[]>;
   onAddOption: (categoryKey: string, newOption: string) => Promise<boolean>;
   onRemoveOption: (categoryKey: string, optionToRemove: string) => Promise<boolean>;
+  preferences: AppPreferences;
+  onSavePreferences: (prefs: AppPreferences) => Promise<SaveResult>;
+  firmProfile: FirmProfileSettings;
+  onSaveFirmProfile: (profile: FirmProfileSettings) => Promise<SaveResult>;
+  whatsappTemplates: WhatsAppTemplateSettings;
+  onSaveWhatsAppTemplates: (templates: WhatsAppTemplateSettings) => Promise<SaveResult>;
   clients?: Client[];
   monthlyTasks?: MonthlyTask[];
   itrFilings?: ITRFiling[];
   debtors?: DebtorRecord[];
+  billings?: OfficeBillingEntry[];
+  gstReturns?: GSTComplianceItem[];
   profiles?: UserProfile[];
   tickets?: StaffTicket[];
   activityLogs?: ActivityLog[];
-  whatsappTemplates?: WhatsAppTemplateSettings;
-  onSaveWhatsAppTemplates?: (templates: WhatsAppTemplateSettings) => void;
-  firmProfile?: FirmProfileSettings;
-  onSaveFirmProfile?: (profile: FirmProfileSettings) => void;
 }
+
+type Section = 'general' | 'security' | 'lists' | 'templates' | 'firm' | 'backup';
+
+const Saved: React.FC<{ children: React.ReactNode; error?: boolean }> = ({ children, error }) => (
+  <span className={cn('inline-flex items-center gap-1.5 text-xs animate-fade-in', error ? 'text-danger' : 'text-fg-muted')}>
+    {error ? <AlertCircle className="w-3.5 h-3.5" strokeWidth={2} /> : <Check className="w-3.5 h-3.5 text-success" strokeWidth={2} />}
+    {children}
+  </span>
+);
+
+/** A labelled settings row: description on the left, control on the right. */
+const Row: React.FC<{ title: string; description?: string; children: React.ReactNode }> = ({ title, description, children }) => (
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-4">
+    <div className="min-w-0 max-w-xl">
+      <div className="text-sm font-medium text-fg">{title}</div>
+      {description && <div className="text-xs text-fg-subtle mt-0.5">{description}</div>}
+    </div>
+    <div className="shrink-0 sm:min-w-[14rem] flex sm:justify-end">{children}</div>
+  </div>
+);
+
+const useFeedback = () => {
+  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const timer = useRef<number>();
+  const show = (text: string, error = false) => {
+    setMsg({ text, error });
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setMsg(null), 3500);
+  };
+  return [msg, show] as const;
+};
 
 export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
   configs,
   onAddOption,
   onRemoveOption,
+  preferences,
+  onSavePreferences,
+  firmProfile,
+  onSaveFirmProfile,
+  whatsappTemplates,
+  onSaveWhatsAppTemplates,
   clients = [],
   monthlyTasks = [],
   itrFilings = [],
   debtors = [],
+  billings = [],
+  gstReturns = [],
   profiles = [],
   tickets = [],
   activityLogs = [],
-  whatsappTemplates: initialTemplates,
-  onSaveWhatsAppTemplates,
-  firmProfile: initialFirmProfile,
-  onSaveFirmProfile,
 }) => {
-  // Main module tab
-  const [activeTab, setActiveTab] = useState<'dropdowns' | 'whatsapp' | 'profile' | 'backup'>('dropdowns');
+  const [section, setSection] = useState<Section>('general');
 
-  // --- TAB 1: DROPDOWNS STATE ---
+  // -------------------------------------------------- preferences
+  const [prefs, setPrefs] = useState<AppPreferences>(preferences);
+  useEffect(() => setPrefs(preferences), [preferences]);
+  const [prefsMsg, showPrefsMsg] = useFeedback();
+  const prefsDirty = JSON.stringify(prefs) !== JSON.stringify(preferences);
+  const savePrefs = async () => {
+    const res = await onSavePreferences(prefs);
+    showPrefsMsg(res.error ? `Not saved: ${res.error}` : 'Saved', !!res.error);
+  };
+  const numberField = (key: 'dueSoonDays' | 'itrDueSoonDays', min: number, max: number, suffix?: string) => (
+    <div className="flex items-center gap-2">
+      <Input
+        type="number"
+        min={min}
+        max={max}
+        value={String(prefs[key])}
+        onChange={(e) => setPrefs({ ...prefs, [key]: Math.max(min, Math.min(max, Number(e.target.value) || 0)) })}
+        className="num w-24 text-right"
+      />
+      {suffix && <span className="text-sm text-fg-subtle whitespace-nowrap">{suffix}</span>}
+    </div>
+  );
+  const prefsFooter = (
+    <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-line">
+      {prefsMsg && <Saved error={prefsMsg.error}>{prefsMsg.text}</Saved>}
+      <Button variant="ghost" disabled={!prefsDirty} onClick={() => setPrefs(preferences)}>
+        Discard
+      </Button>
+      <Button variant="primary" disabled={!prefsDirty} onClick={savePrefs}>
+        Save Changes
+      </Button>
+    </div>
+  );
+
+  // -------------------------------------------------- lists
   const [activeCategory, setActiveCategory] = useState<string>('filing_types');
-  const [newOptionInput, setNewOptionInput] = useState<string>('');
-  const [savingDropdown, setSavingDropdown] = useState(false);
-  const [dropdownFeedback, setDropdownFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
+  const [newOptionInput, setNewOptionInput] = useState('');
+  const [savingList, setSavingList] = useState(false);
+  const [listMsg, showListMsg] = useFeedback();
   const categories = [
-    { key: 'filing_types', label: 'Filing types', description: 'Monthly compliance work — GSTR-1, GSTR-3B, TDS, PF & ESI, audit.' },
-    { key: 'return_types', label: 'GST returns', description: 'Return codes tracked on the GST portal — GSTR-1, GSTR-3B, CMP-08, GSTR-9.' },
+    { key: 'filing_types', label: 'Filing types', description: 'Monthly work — GSTR-1, GSTR-3B, TDS, PF & ESI, audit.' },
+    { key: 'return_types', label: 'GST returns', description: 'Return codes tracked on the Deadlines page.' },
     { key: 'entity_types', label: 'Entity types', description: 'Client constitution — Private Limited, LLP, Partnership, Proprietorship, Individual.' },
-    { key: 'service_types', label: 'Services', description: 'Professional services available for fee billing.' },
+    { key: 'service_types', label: 'Services', description: 'Services offered when billing a client.' },
   ];
-
   const currentOptions = configs[activeCategory] || [];
-  const currentCategoryMeta = categories.find((c) => c.key === activeCategory) || categories[0];
+  const currentCategory = categories.find((c) => c.key === activeCategory) || categories[0];
 
-  const handleAddOption = async (e: React.FormEvent) => {
+  const addOption = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newOptionInput.trim()) return;
-
-    setSavingDropdown(true);
-    setDropdownFeedback(null);
-    const success = await onAddOption(activeCategory, newOptionInput.trim());
-    setSavingDropdown(false);
-
-    if (success) {
+    const value = newOptionInput.trim();
+    if (!value) return;
+    setSavingList(true);
+    const ok = await onAddOption(activeCategory, value);
+    setSavingList(false);
+    if (ok) {
       setNewOptionInput('');
-      setDropdownFeedback({ type: 'success', message: `Added "${newOptionInput.trim()}" to ${currentCategoryMeta.label}` });
-      setTimeout(() => setDropdownFeedback(null), 3000);
-    } else {
-      setDropdownFeedback({ type: 'error', message: 'Option already exists or could not be saved' });
-    }
+      showListMsg(`Added “${value}”`);
+    } else showListMsg('Already in the list, or could not be saved', true);
   };
 
-  const handleRemoveOption = async (option: string) => {
-    setSavingDropdown(true);
-    setDropdownFeedback(null);
-    const success = await onRemoveOption(activeCategory, option);
-    setSavingDropdown(false);
-
-    if (success) {
-      setDropdownFeedback({ type: 'success', message: `Removed "${option}" from ${currentCategoryMeta.label}` });
-      setTimeout(() => setDropdownFeedback(null), 3000);
-    }
-  };
-
-  // --- TAB 2: WHATSAPP TEMPLATES STATE ---
-  const [templates, setTemplates] = useState<WhatsAppTemplateSettings>(() => initialTemplates || getStoredWhatsAppTemplates());
+  // -------------------------------------------------- templates
+  const [templates, setTemplates] = useState<WhatsAppTemplateSettings>(whatsappTemplates);
+  useEffect(() => setTemplates(whatsappTemplates), [whatsappTemplates]);
   const [activeTemplateKey, setActiveTemplateKey] = useState<keyof WhatsAppTemplateSettings>('docRequest');
-  const [templateFeedback, setTemplateFeedback] = useState<string | null>(null);
+  const [tplMsg, showTplMsg] = useFeedback();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
   const templateDefinitions: { key: keyof WhatsAppTemplateSettings; label: string; description: string }[] = [
     { key: 'docRequest', label: 'Document request', description: 'Monthly reminder for sales, purchase and bank statements.' },
     { key: 'paymentReminder', label: 'Fee reminder', description: 'Outstanding fee notice with bank and UPI details.' },
-    { key: 'filingAck', label: 'Filing confirmation', description: 'Confirmation with the portal ARN or acknowledgement.' },
+    { key: 'filingAck', label: 'Filing confirmation', description: 'Sent after a return is filed, with the ARN.' },
   ];
-
-  const placeholderChips = [
-    { label: 'Client Name', value: '{{clientName}}' },
-    { label: 'Period / Month', value: '{{period}}' },
-    { label: 'Due Date', value: '{{dueDate}}' },
-    { label: 'Amount (₹)', value: '{{amount}}' },
-    { label: 'Practice UPI', value: '{{upiId}}' },
-    { label: 'Portal ARN', value: '{{arn}}' },
-    { label: 'Bank Name', value: '{{bankName}}' },
-    { label: 'A/C Number', value: '{{accountNumber}}' },
-    { label: 'IFSC Code', value: '{{ifscCode}}' },
-  ];
-
-  const handleInsertPlaceholder = (placeholder: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const currentText = templates[activeTemplateKey];
-    const newText = currentText.substring(0, start) + placeholder + currentText.substring(end);
-
-    const updated = { ...templates, [activeTemplateKey]: newText };
-    setTemplates(updated);
-
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
-    }, 50);
+  const placeholderChips = ['clientName', 'period', 'dueDate', 'amount', 'upiId', 'arn', 'bankName', 'accountNumber', 'ifscCode'].map((v) => `{{${v}}}`);
+  const insertPlaceholder = (placeholder: string) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const { selectionStart: start, selectionEnd: end } = ta;
+    const text = templates[activeTemplateKey];
+    setTemplates({ ...templates, [activeTemplateKey]: text.slice(0, start) + placeholder + text.slice(end) });
+    window.setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(start + placeholder.length, start + placeholder.length);
+    }, 30);
   };
-
-  const handleSaveTemplates = () => {
-    saveStoredWhatsAppTemplates(templates);
-    if (onSaveWhatsAppTemplates) {
-      onSaveWhatsAppTemplates(templates);
-    }
-    setTemplateFeedback('Templates saved successfully');
-    setTimeout(() => setTemplateFeedback(null), 3000);
+  const saveTemplates = async (next = templates) => {
+    const res = await onSaveWhatsAppTemplates(next);
+    showTplMsg(res.error ? `Not saved: ${res.error}` : 'Saved', !!res.error);
   };
-
-  const handleResetTemplates = () => {
-    setTemplates(DEFAULT_WHATSAPP_TEMPLATES);
-    saveStoredWhatsAppTemplates(DEFAULT_WHATSAPP_TEMPLATES);
-    if (onSaveWhatsAppTemplates) {
-      onSaveWhatsAppTemplates(DEFAULT_WHATSAPP_TEMPLATES);
-    }
-    setTemplateFeedback('Templates reset to firm defaults');
-    setTimeout(() => setTemplateFeedback(null), 3000);
-  };
-
-  // --- TAB 3: FIRM PROFILE & BANK STATE ---
-  const [profile, setProfile] = useState<FirmProfileSettings>(() => initialFirmProfile || getStoredFirmProfile());
-  const [profileFeedback, setProfileFeedback] = useState<string | null>(null);
-
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    saveStoredFirmProfile(profile);
-    if (onSaveFirmProfile) {
-      onSaveFirmProfile(profile);
-    }
-    setProfileFeedback('Firm profile & payment parameters updated');
-    setTimeout(() => setProfileFeedback(null), 3000);
-  };
-
-  // --- TAB 4: PRACTICE DATA BACKUP ---
-  const [backupNotice, setBackupNotice] = useState<string | null>(null);
-
-  const handleDownloadBackup = () => {
-    const timestamp = new Date().toISOString().slice(0, 10);
-    const backupData = {
-      exportTimestamp: new Date().toISOString(),
-      firm: profile.legalName,
-      software: 'Shameer & Associates Practice Management CRM',
-      version: '1.0.0',
-      summary: {
-        totalClients: clients.length,
-        monthlyTasks: monthlyTasks.length,
-        itrFilings: itrFilings.length,
-        debtors: debtors.length,
-        staffProfiles: profiles.length,
-        callTickets: tickets.length,
-        activityLogs: activityLogs.length,
-      },
-      practiceConfigs: configs,
-      whatsappTemplates: templates,
-      firmProfile: profile,
-      clients,
-      monthlyTasks,
-      itrFilings,
-      debtors,
-      profiles,
-      tickets,
-      activityLogs,
-    };
-
-    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(backupData, null, 2))}`;
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', jsonString);
-    downloadAnchor.setAttribute('download', `shameer_associates_crm_backup_${timestamp}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-
-    setBackupNotice(`Complete backup exported (${(JSON.stringify(backupData).length / 1024).toFixed(1)} KB)`);
-    setTimeout(() => setBackupNotice(null), 4000);
-  };
-
-  // Sample preview for active template
   const sampleRender = renderTemplate(templates[activeTemplateKey], {
     clientName: 'KM Traders',
     period: 'October 2026',
     dueDate: '11 Nov 2026',
     amount: '5,760',
-    upiId: profile.upiId,
+    upiId: firmProfile.upiId || '—',
     arn: 'AA321126048123Z',
-    bankName: profile.bankName,
-    accountNumber: profile.accountNumber,
-    ifscCode: profile.ifscCode,
+    bankName: firmProfile.bankName || '—',
+    accountNumber: firmProfile.accountNumber || '—',
+    ifscCode: firmProfile.ifscCode || '—',
   });
 
-  const sections = [
-    { key: 'dropdowns' as const, label: 'Lists', icon: SlidersHorizontal },
-    { key: 'whatsapp' as const, label: 'Message templates', icon: MessageSquare },
-    { key: 'profile' as const, label: 'Firm & banking', icon: Building2 },
-    { key: 'backup' as const, label: 'Backup', icon: Download },
-  ];
-
-  const Saved: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <span className="inline-flex items-center gap-1.5 text-xs text-fg-muted animate-fade-in">
-      <Check className="w-3.5 h-3.5 text-success" strokeWidth={2} />
-      {children}
-    </span>
-  );
-
-  const profileField = (key: keyof FirmProfileSettings, label: string, opts: { mono?: boolean; type?: string; className?: string } = {}) => (
+  // -------------------------------------------------- firm profile
+  const [profile, setProfile] = useState<FirmProfileSettings>(firmProfile);
+  useEffect(() => setProfile(firmProfile), [firmProfile]);
+  const [firmMsg, showFirmMsg] = useFeedback();
+  const saveFirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await onSaveFirmProfile(profile);
+    showFirmMsg(res.error ? `Not saved: ${res.error}` : 'Saved', !!res.error);
+  };
+  const firmField = (key: keyof FirmProfileSettings, label: string, opts: { mono?: boolean; type?: string; className?: string } = {}) => (
     <Field label={label} className={opts.className}>
       <Input
         type={opts.type || 'text'}
-        value={String(profile[key] ?? '')}
+        value={profile[key] ?? ''}
         onChange={(e) => setProfile({ ...profile, [key]: e.target.value })}
         className={opts.mono ? 'font-mono' : undefined}
       />
     </Field>
   );
+  const bankingIncomplete = !profile.accountNumber || !profile.ifscCode || !profile.upiId;
 
-  const backupStats = [
-    { label: 'Clients', value: clients.length },
-    { label: 'Monthly filings', value: monthlyTasks.length },
-    { label: 'ITR returns', value: itrFilings.length },
-    { label: 'Debtor accounts', value: debtors.length },
-    { label: 'Call tickets', value: tickets.length },
-    { label: 'Audit events', value: activityLogs.length },
+  // -------------------------------------------------- backup
+  const [backupMsg, showBackupMsg] = useFeedback();
+  const downloadBackup = () => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const data = {
+      exportedAt: new Date().toISOString(),
+      firm: profile.legalName,
+      settings: { preferences, firmProfile, whatsappTemplates, lists: configs },
+      clients,
+      monthlyTasks,
+      itrFilings,
+      gstReturns,
+      debtors,
+      billings,
+      team: profiles.map(({ id, name, email, role, designation, phone, status, canAccessFinancials, canEditPayments }) => ({
+        id,
+        name,
+        email,
+        role,
+        designation,
+        phone,
+        status,
+        canAccessFinancials,
+        canEditPayments,
+      })),
+      calls: tickets,
+      auditTrail: activityLogs,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shameer-associates-backup-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showBackupMsg(`Downloaded (${(blob.size / 1024).toFixed(0)} KB)`);
+  };
+
+  const sections: { key: Section; label: string; icon: typeof Settings2 }[] = [
+    { key: 'general', label: 'General', icon: Settings2 },
+    { key: 'security', label: 'Access & security', icon: ShieldCheck },
+    { key: 'firm', label: 'Firm & banking', icon: Building2 },
+    { key: 'templates', label: 'Message templates', icon: MessageSquare },
+    { key: 'lists', label: 'Lists', icon: SlidersHorizontal },
+    { key: 'backup', label: 'Backup', icon: Download },
   ];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[200px_minmax(0,1fr)] gap-6 items-start">
-      {/* Section nav */}
       <nav className="flex lg:flex-col gap-px overflow-x-auto scrollbar-none lg:sticky lg:top-0">
         {sections.map((s) => {
           const Icon = s.icon;
-          const active = activeTab === s.key;
+          const active = section === s.key;
           return (
             <button
               key={s.key}
-              onClick={() => setActiveTab(s.key)}
+              onClick={() => setSection(s.key)}
               className={cn(
                 'h-8 px-2.5 rounded-md flex items-center gap-2.5 text-sm whitespace-nowrap transition-colors',
                 active ? 'bg-surface text-fg font-medium shadow-xs ring-1 ring-line' : 'text-fg-muted hover:text-fg hover:bg-hover'
@@ -283,29 +277,97 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
             </button>
           );
         })}
-        <div className="hidden lg:flex items-center gap-2 px-2.5 pt-4 mt-3 border-t border-line text-xs text-fg-subtle">
-          <StatusDot tone="success" />
-          {isSupabaseConfigured() ? 'Cloud sync live' : 'Local storage mode'}
-        </div>
       </nav>
 
       <div className="min-w-0">
-        {/* Lists */}
-        {activeTab === 'dropdowns' && (
+        {section === 'general' && (
           <Card>
-            <CardHeader title="Lists" description="Options offered in dropdowns across the CRM" />
+            <CardHeader title="General" description="Applies to everyone" />
+            <div className="divide-y divide-line">
+              <Row title="Financial year" description="Shown on the Overview and used as the default assessment year for new ITR returns.">
+                <Input value={prefs.financialYear} onChange={(e) => setPrefs({ ...prefs, financialYear: e.target.value })} placeholder="2026-27" className="num w-28" />
+              </Row>
+              <Row title="GST & TDS due-soon window" description="Unfiled monthly tasks and GST returns due within this many days are highlighted.">
+                {numberField('dueSoonDays', 1, 30, 'days')}
+              </Row>
+              <Row title="ITR due-soon window" description="Income tax returns due within this many days are highlighted.">
+                {numberField('itrDueSoonDays', 1, 60, 'days')}
+              </Row>
+              <Row title="WhatsApp country code" description="Added to 10-digit mobile numbers when opening WhatsApp.">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm text-fg-subtle">+</span>
+                  <Input
+                    value={prefs.whatsappCountryCode}
+                    onChange={(e) => setPrefs({ ...prefs, whatsappCountryCode: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                    className="num w-20"
+                  />
+                </div>
+              </Row>
+              <Row title="Invoice numbering" description={`Next invoice: ${prefs.invoicePrefix}${String(prefs.nextInvoiceNumber).padStart(4, '0')}`}>
+                <div className="flex items-center gap-2">
+                  <Input value={prefs.invoicePrefix} onChange={(e) => setPrefs({ ...prefs, invoicePrefix: e.target.value })} placeholder="SA/" className="font-mono w-24" aria-label="Invoice prefix" />
+                  <Input
+                    type="number"
+                    min={1}
+                    value={prefs.nextInvoiceNumber}
+                    onChange={(e) => setPrefs({ ...prefs, nextInvoiceNumber: Math.max(1, Number(e.target.value) || 1) })}
+                    className="num w-24 text-right"
+                    aria-label="Next invoice number"
+                  />
+                </div>
+              </Row>
+            </div>
+            {prefsFooter}
+          </Card>
+        )}
+
+        {section === 'security' && (
+          <Card>
+            <CardHeader title="Access & security" description="Sign-in and default permissions" />
+            <div className="divide-y divide-line">
+              <Row title="Sign out after inactivity" description="Signs a user out when the app has not been used for this long. Recommended on shared office computers.">
+                <Select value={String(prefs.idleTimeoutMinutes)} onChange={(e) => setPrefs({ ...prefs, idleTimeoutMinutes: Number(e.target.value) })} className="w-40">
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="60">1 hour</option>
+                  <option value="240">4 hours</option>
+                  <option value="0">Never</option>
+                </Select>
+              </Row>
+              <Row title="New staff can view fees" description="Default for the Debtors page when adding a staff member. Can be changed per person on the Team page.">
+                <Toggle
+                  label="New staff can view fees"
+                  checked={prefs.newStaffCanViewFees}
+                  onChange={(v) => setPrefs({ ...prefs, newStaffCanViewFees: v, newStaffCanRecordPayments: v ? prefs.newStaffCanRecordPayments : false })}
+                />
+              </Row>
+              <Row title="New staff can record payments" description="Default for recording receipts and bills.">
+                <Toggle
+                  label="New staff can record payments"
+                  checked={prefs.newStaffCanRecordPayments}
+                  disabled={!prefs.newStaffCanViewFees}
+                  onChange={(v) => setPrefs({ ...prefs, newStaffCanRecordPayments: v })}
+                />
+              </Row>
+              <div className="px-4 py-4 text-xs text-fg-subtle leading-5">
+                Passwords are stored by Supabase Auth as one-way bcrypt hashes and are never visible to anyone, including administrators. Logins are created and passwords set from the Team page.
+              </div>
+            </div>
+            {prefsFooter}
+          </Card>
+        )}
+
+        {section === 'lists' && (
+          <Card>
+            <CardHeader title="Lists" description="Options offered in dropdowns" />
             <div className="p-4 space-y-4">
               <Segmented
                 size="sm"
                 value={activeCategory}
-                onChange={(v) => {
-                  setActiveCategory(v);
-                  setDropdownFeedback(null);
-                }}
+                onChange={(v) => setActiveCategory(v)}
                 options={categories.map((c) => ({ value: c.key, label: c.label, count: (configs[c.key] || []).length }))}
               />
-              <p className="text-sm text-fg-subtle">{currentCategoryMeta.description}</p>
-
+              <p className="text-sm text-fg-subtle">{currentCategory.description}</p>
               <div className="border border-line rounded-lg divide-y divide-line">
                 {currentOptions.map((opt) => (
                   <div key={opt} className="group flex items-center justify-between h-10 px-3 text-sm">
@@ -314,43 +376,31 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
                       icon={X}
                       label={`Remove ${opt}`}
                       size="sm"
-                      onClick={() => handleRemoveOption(opt)}
-                      disabled={savingDropdown || currentOptions.length <= 1}
+                      onClick={async () => {
+                        setSavingList(true);
+                        await onRemoveOption(activeCategory, opt);
+                        setSavingList(false);
+                      }}
+                      disabled={savingList || currentOptions.length <= 1}
                       className="opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-danger"
                     />
                   </div>
                 ))}
               </div>
-
-              <form onSubmit={handleAddOption} className="flex items-center gap-2">
-                <Input
-                  value={newOptionInput}
-                  onChange={(e) => setNewOptionInput(e.target.value)}
-                  placeholder={`New ${currentCategoryMeta.label.toLowerCase()} option`}
-                />
-                <Button type="submit" variant="primary" icon={savingDropdown ? RefreshCw : Plus} disabled={savingDropdown || !newOptionInput.trim()}>
+              <form onSubmit={addOption} className="flex items-center gap-2">
+                <Input value={newOptionInput} onChange={(e) => setNewOptionInput(e.target.value)} placeholder={`New ${currentCategory.label.toLowerCase()} option`} />
+                <Button type="submit" variant="primary" icon={savingList ? RefreshCw : Plus} disabled={savingList || !newOptionInput.trim()}>
                   Add
                 </Button>
               </form>
-
-              {dropdownFeedback && (
-                <div className={cn('flex items-center gap-2 text-xs animate-fade-in', dropdownFeedback.type === 'success' ? 'text-fg-muted' : 'text-danger')}>
-                  {dropdownFeedback.type === 'success' ? (
-                    <Check className="w-3.5 h-3.5 text-success" strokeWidth={2} />
-                  ) : (
-                    <AlertCircle className="w-3.5 h-3.5" strokeWidth={2} />
-                  )}
-                  {dropdownFeedback.message}
-                </div>
-              )}
+              {listMsg && <Saved error={listMsg.error}>{listMsg.text}</Saved>}
             </div>
           </Card>
         )}
 
-        {/* Templates */}
-        {activeTab === 'whatsapp' && (
+        {section === 'templates' && (
           <Card>
-            <CardHeader title="Message templates" description="WhatsApp copy sent to clients" />
+            <CardHeader title="Message templates" description="WhatsApp text sent to clients" />
             <div className="p-4 space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {templateDefinitions.map((t) => {
@@ -360,10 +410,7 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
                       key={t.key}
                       type="button"
                       onClick={() => setActiveTemplateKey(t.key)}
-                      className={cn(
-                        'p-3 rounded-lg border text-left transition-colors',
-                        selected ? 'border-fg/70 bg-surface ring-1 ring-fg/70' : 'border-line hover:border-line-strong'
-                      )}
+                      className={cn('p-3 rounded-lg border text-left transition-colors', selected ? 'border-fg/70 ring-1 ring-fg/70' : 'border-line hover:border-line-strong')}
                     >
                       <div className="text-sm font-medium text-fg">{t.label}</div>
                       <div className="text-xs text-fg-subtle mt-1 leading-4">{t.description}</div>
@@ -371,10 +418,9 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
                   );
                 })}
               </div>
-
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
                 <div className="space-y-2.5">
-                  <Label className="mb-0">Message body</Label>
+                  <Label className="mb-0">Message</Label>
                   <Textarea
                     ref={textareaRef}
                     rows={10}
@@ -382,42 +428,42 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
                     onChange={(e) => setTemplates({ ...templates, [activeTemplateKey]: e.target.value })}
                     className="font-mono text-xs leading-5"
                   />
-                  <div>
-                    <div className="eyebrow mb-1.5">Insert variable</div>
-                    <div className="flex flex-wrap gap-1">
-                      {placeholderChips.map((chip) => (
-                        <button
-                          key={chip.value}
-                          type="button"
-                          onClick={() => handleInsertPlaceholder(chip.value)}
-                          className="h-6 px-1.5 rounded-sm border border-line bg-subtle font-mono text-2xs text-fg-muted hover:text-fg hover:border-line-strong transition-colors"
-                          title={chip.label}
-                        >
-                          {chip.value}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="flex flex-wrap gap-1">
+                    {placeholderChips.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => insertPlaceholder(chip)}
+                        className="h-6 px-1.5 rounded-sm border border-line font-mono text-2xs text-fg-muted hover:text-fg hover:border-line-strong transition-colors"
+                      >
+                        {chip}
+                      </button>
+                    ))}
                   </div>
                 </div>
-
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
                     <Label className="mb-0">Preview</Label>
-                    <span className="text-xs text-fg-subtle">Sample client · KM Traders</span>
+                    <span className="text-xs text-fg-subtle">Sample client</span>
                   </div>
-                  <div className="rounded-lg border border-line bg-subtle p-4 min-h-[200px]">
-                    <div className="whitespace-pre-wrap text-sm text-fg leading-6">{sampleRender}</div>
-                  </div>
+                  <div className="rounded-lg border border-line bg-subtle p-4 min-h-[200px] whitespace-pre-wrap text-sm text-fg leading-6">{sampleRender}</div>
                 </div>
               </div>
             </div>
             <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-line">
-              <Button variant="ghost" icon={RotateCcw} onClick={handleResetTemplates}>
+              <Button
+                variant="ghost"
+                icon={RotateCcw}
+                onClick={() => {
+                  setTemplates(DEFAULT_WHATSAPP_TEMPLATES);
+                  saveTemplates(DEFAULT_WHATSAPP_TEMPLATES);
+                }}
+              >
                 Restore Defaults
               </Button>
               <div className="flex items-center gap-3">
-                {templateFeedback && <Saved>{templateFeedback}</Saved>}
-                <Button variant="primary" onClick={handleSaveTemplates}>
+                {tplMsg && <Saved error={tplMsg.error}>{tplMsg.text}</Saved>}
+                <Button variant="primary" onClick={() => saveTemplates()}>
                   Save Templates
                 </Button>
               </div>
@@ -425,34 +471,38 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
           </Card>
         )}
 
-        {/* Firm profile */}
-        {activeTab === 'profile' && (
-          <form onSubmit={handleSaveProfile} className="space-y-6">
+        {section === 'firm' && (
+          <form onSubmit={saveFirm} className="space-y-6">
             <Card>
-              <CardHeader title="Firm identity" description="Shown on notices and exports" />
+              <CardHeader title="Firm details" description="Used on notices and exports" />
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {profileField('legalName', 'Legal name')}
-                {profileField('category', 'Category & registration')}
-                {profileField('address', 'Office address', { className: 'sm:col-span-2' })}
-                {profileField('gstin', 'GSTIN', { mono: true })}
-                {profileField('pan', 'PAN', { mono: true })}
-                {profileField('phone', 'Phone / WhatsApp', { mono: true })}
-                {profileField('email', 'Email', { type: 'email' })}
+                {firmField('legalName', 'Firm name')}
+                {firmField('category', 'Description')}
+                {firmField('address', 'Office address', { className: 'sm:col-span-2' })}
+                {firmField('gstin', 'GSTIN', { mono: true })}
+                {firmField('pan', 'PAN', { mono: true })}
+                {firmField('phone', 'Phone / WhatsApp', { mono: true })}
+                {firmField('email', 'Email', { type: 'email' })}
               </div>
             </Card>
-
             <Card>
-              <CardHeader title="Banking" description="Included in fee reminders" />
+              <CardHeader title="Bank & UPI" description="Included in fee reminders" />
+              {bankingIncomplete && (
+                <div className="mx-4 mt-4 flex items-start gap-2 px-3 py-2.5 rounded-md border border-warning/30 text-sm text-fg-muted">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-warning" strokeWidth={1.75} />
+                  Fee reminders include the bank account and UPI ID below. Fill them in before sending reminders.
+                </div>
+              )}
               <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {profileField('beneficiaryName', 'Account name')}
-                {profileField('bankName', 'Bank')}
-                {profileField('branch', 'Branch')}
-                {profileField('accountNumber', 'Account number', { mono: true })}
-                {profileField('ifscCode', 'IFSC', { mono: true })}
-                {profileField('upiId', 'UPI ID', { mono: true })}
+                {firmField('beneficiaryName', 'Account name')}
+                {firmField('bankName', 'Bank')}
+                {firmField('branch', 'Branch')}
+                {firmField('accountNumber', 'Account number', { mono: true })}
+                {firmField('ifscCode', 'IFSC', { mono: true })}
+                {firmField('upiId', 'UPI ID', { mono: true })}
               </div>
               <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-line">
-                {profileFeedback && <Saved>{profileFeedback}</Saved>}
+                {firmMsg && <Saved error={firmMsg.error}>{firmMsg.text}</Saved>}
                 <Button type="submit" variant="primary">
                   Save Changes
                 </Button>
@@ -461,25 +511,25 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
           </form>
         )}
 
-        {/* Backup */}
-        {activeTab === 'backup' && (
+        {section === 'backup' && (
           <Card>
-            <CardHeader title="Backup" description="Full JSON export of practice data" />
+            <CardHeader title="Backup" description="Download everything as one JSON file" />
             <div className="p-4 space-y-4">
               <p className="text-sm text-fg-muted max-w-2xl">
-                Exports every client record, filing history, debtor ledger, call ticket and audit event, together with lists, templates and firm settings.
+                Includes clients, filings, GST returns, debtors, the billing register, calls, the audit trail and all settings. Passwords are never included.
               </p>
-              <MetricGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 shadow-none">
-                {backupStats.map((s) => (
-                  <Metric key={s.label} label={s.label} value={s.value} className="py-3" />
-                ))}
+              <MetricGrid className="grid-cols-2 sm:grid-cols-4 shadow-none">
+                <Metric label="Clients" value={clients.length} className="py-3" />
+                <Metric label="Monthly tasks" value={monthlyTasks.length} className="py-3" />
+                <Metric label="Debtor accounts" value={debtors.length} className="py-3" />
+                <Metric label="Billing entries" value={billings.length} className="py-3" />
               </MetricGrid>
             </div>
             <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-line">
-              <span className="text-xs text-fg-subtle">Contains client identifiers and bank details — store securely.</span>
+              <span className="text-xs text-fg-subtle">Contains client tax IDs and fee balances. Store it securely.</span>
               <div className="flex items-center gap-3">
-                {backupNotice && <Saved>{backupNotice}</Saved>}
-                <Button variant="primary" icon={Download} onClick={handleDownloadBackup}>
+                {backupMsg && <Saved>{backupMsg.text}</Saved>}
+                <Button variant="primary" icon={Download} onClick={downloadBackup}>
                   Download Backup
                 </Button>
               </div>

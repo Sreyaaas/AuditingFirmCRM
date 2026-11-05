@@ -10,15 +10,23 @@ import {
   TicketStatus, 
   FilingStatus, 
   ITRStatus, 
-  UserRole 
+  UserRole,
+  DebtorMonth,
+  OfficeBillingEntry,
+  GSTComplianceItem
 } from '../types/crm';
-import { INITIAL_CLIENTS, INITIAL_MONTHLY_TASKS, INITIAL_TICKETS } from '../data/mockData';
-import { 
-  ACTUAL_DEBTOR_RECORDS, 
-  ACTUAL_ITR_RECORDS, 
-  INITIAL_PROFILES, 
-  INITIAL_ACTIVITY_LOGS 
-} from '../data/actualClientData';
+import {
+  SAMPLE_ACTIVITY_LOGS,
+  SAMPLE_BILLINGS,
+  SAMPLE_CLIENTS,
+  SAMPLE_DEBTORS,
+  SAMPLE_GST_RETURNS,
+  SAMPLE_ITR,
+  SAMPLE_PROFILES,
+  SAMPLE_TASKS,
+  SAMPLE_TICKETS,
+} from '../data/sampleData';
+import { recalcDebtor } from '../utils/debtors';
 
 // ==============================================================================
 // UUID COMPATIBILITY MAPPINGS (Bridging frontend IDs with Supabase PostgreSQL UUIDs)
@@ -118,7 +126,7 @@ export const fetchPracticeConfigs = async (): Promise<Record<string, string[]>> 
       .from('practice_configs')
       .select('id, options');
 
-    if (error || !data || data.length === 0) {
+    if (error || !data) {
       const saved = localStorage.getItem('shameer_crm_practice_configs');
       return saved ? JSON.parse(saved) : DEFAULT_PRACTICE_CONFIGS;
     }
@@ -220,7 +228,7 @@ export const removePracticeConfigOption = async (
 export const fetchProfilesFromDb = async (): Promise<UserProfile[]> => {
   if (!isSupabaseConfigured()) {
     const saved = localStorage.getItem('shameer_crm_profiles_local');
-    return saved ? JSON.parse(saved) : INITIAL_PROFILES;
+    return saved ? JSON.parse(saved) : SAMPLE_PROFILES;
   }
 
   try {
@@ -229,9 +237,9 @@ export const fetchProfilesFromDb = async (): Promise<UserProfile[]> => {
       .select('*')
       .order('name', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      const saved = localStorage.getItem('shameer_crm_profiles_local');
-      return saved ? JSON.parse(saved) : INITIAL_PROFILES;
+    if (error || !data) {
+      console.error('Load failed (shameer_crm_profiles_local):', error?.message);
+      return [];
     }
 
     const mapped: UserProfile[] = data.map((row: any) => ({
@@ -243,9 +251,10 @@ export const fetchProfilesFromDb = async (): Promise<UserProfile[]> => {
       phone: row.phone || '',
       status: row.status || 'Active',
       joinedDate: row.joined_date || row.created_at?.slice(0, 10) || '2026-01-01',
-      assignedClientsCount: 6,
-      assignedTasksCount: 6,
-      completedThisMonth: 6,
+      assignedClientsCount: 0,
+      assignedTasksCount: 0,
+      completedThisMonth: 0,
+      authUserId: row.auth_user_id ?? null,
       canEditPayments: Boolean(row.can_edit_payments || row.role === 'admin'),
       canAccessFinancials: Boolean(row.can_access_financials || row.role === 'admin'),
       initials: row.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
@@ -255,14 +264,14 @@ export const fetchProfilesFromDb = async (): Promise<UserProfile[]> => {
     return mapped;
   } catch (err) {
     console.error('Fetch profiles error:', err);
-    return INITIAL_PROFILES;
+    return [];
   }
 };
 
 export const saveProfileToDb = async (profile: UserProfile): Promise<{ success: boolean; error?: string }> => {
   try {
     const local = localStorage.getItem('shameer_crm_profiles_local');
-    const existing: UserProfile[] = local ? JSON.parse(local) : INITIAL_PROFILES;
+    const existing: UserProfile[] = local ? JSON.parse(local) : SAMPLE_PROFILES;
     const updated = [profile, ...existing.filter(p => p.id !== profile.id && p.email !== profile.email)];
     localStorage.setItem('shameer_crm_profiles_local', JSON.stringify(updated));
 
@@ -308,6 +317,9 @@ export const updateProfileInDb = async (userId: string, updates: Partial<UserPro
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.designation) dbUpdates.designation = updates.designation;
       if (updates.phone) dbUpdates.phone = updates.phone;
+      if (updates.canAccessFinancials !== undefined) dbUpdates.can_access_financials = updates.canAccessFinancials;
+      if (updates.canEditPayments !== undefined) dbUpdates.can_edit_payments = updates.canEditPayments;
+      if (updates.name) dbUpdates.name = updates.name;
 
       const uuid = ensureUuid(userId, 'staff');
       const { error } = await supabase.from('profiles').update(dbUpdates).eq('id', uuid);
@@ -329,7 +341,7 @@ export const updateProfileInDb = async (userId: string, updates: Partial<UserPro
 export const fetchClientsFromDb = async (): Promise<Client[]> => {
   if (!isSupabaseConfigured()) {
     const saved = localStorage.getItem('shameer_crm_clients_local');
-    return saved ? JSON.parse(saved) : INITIAL_CLIENTS;
+    return saved ? JSON.parse(saved) : SAMPLE_CLIENTS;
   }
 
   try {
@@ -338,9 +350,9 @@ export const fetchClientsFromDb = async (): Promise<Client[]> => {
       .select('*')
       .order('client_code', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      const saved = localStorage.getItem('shameer_crm_clients_local');
-      return saved ? JSON.parse(saved) : INITIAL_CLIENTS;
+    if (error || !data) {
+      console.error('Load failed (shameer_crm_clients_local):', error?.message);
+      return [];
     }
 
     const mapped: Client[] = data.map((row: any) => ({
@@ -367,14 +379,14 @@ export const fetchClientsFromDb = async (): Promise<Client[]> => {
     return mapped;
   } catch (err) {
     console.error('Fetch clients error:', err);
-    return INITIAL_CLIENTS;
+    return [];
   }
 };
 
 export const saveClientToDb = async (client: Client): Promise<{ success: boolean; error?: string }> => {
   try {
     const local = localStorage.getItem('shameer_crm_clients_local');
-    const existing: Client[] = local ? JSON.parse(local) : INITIAL_CLIENTS;
+    const existing: Client[] = local ? JSON.parse(local) : SAMPLE_CLIENTS;
     const updated = [client, ...existing.filter(c => c.clientCode !== client.clientCode)];
     localStorage.setItem('shameer_crm_clients_local', JSON.stringify(updated));
 
@@ -437,9 +449,7 @@ export const updateClientInDb = async (clientId: string, updates: Partial<Client
 
       const uuid = ensureUuid(clientId, 'client');
       const { error } = await supabase.from('clients').update(dbUpdates).eq('id', uuid);
-      if (error) {
-        console.warn('Supabase client update notice:', error.message);
-      }
+      if (error) return { success: false, error: error.message };
     }
 
     return { success: true };
@@ -455,7 +465,7 @@ export const updateClientInDb = async (clientId: string, updates: Partial<Client
 export const fetchTasksFromDb = async (): Promise<MonthlyTask[]> => {
   if (!isSupabaseConfigured()) {
     const saved = localStorage.getItem('shameer_crm_tasks_local');
-    return saved ? JSON.parse(saved) : INITIAL_MONTHLY_TASKS;
+    return saved ? JSON.parse(saved) : SAMPLE_TASKS;
   }
 
   try {
@@ -464,9 +474,9 @@ export const fetchTasksFromDb = async (): Promise<MonthlyTask[]> => {
       .select('*, clients(name, trade_name, gstin)')
       .order('due_date', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      const saved = localStorage.getItem('shameer_crm_tasks_local');
-      return saved ? JSON.parse(saved) : INITIAL_MONTHLY_TASKS;
+    if (error || !data) {
+      console.error('Load failed (shameer_crm_tasks_local):', error?.message);
+      return [];
     }
 
     const mapped: MonthlyTask[] = data.map((t: any) => ({
@@ -493,14 +503,14 @@ export const fetchTasksFromDb = async (): Promise<MonthlyTask[]> => {
     localStorage.setItem('shameer_crm_tasks_local', JSON.stringify(mapped));
     return mapped;
   } catch (err) {
-    return INITIAL_MONTHLY_TASKS;
+    return [];
   }
 };
 
 export const saveTaskToDb = async (task: MonthlyTask): Promise<{ success: boolean; error?: string }> => {
   try {
     const local = localStorage.getItem('shameer_crm_tasks_local');
-    const existing: MonthlyTask[] = local ? JSON.parse(local) : INITIAL_MONTHLY_TASKS;
+    const existing: MonthlyTask[] = local ? JSON.parse(local) : SAMPLE_TASKS;
     const updated = [task, ...existing.filter(t => t.id !== task.id)];
     localStorage.setItem('shameer_crm_tasks_local', JSON.stringify(updated));
 
@@ -579,7 +589,7 @@ export const updateTaskStatusInDb = async (
 export const fetchItrFilingsFromDb = async (): Promise<ITRFiling[]> => {
   if (!isSupabaseConfigured()) {
     const saved = localStorage.getItem('shameer_crm_itr_filings_v2');
-    return saved ? JSON.parse(saved) : ACTUAL_ITR_RECORDS;
+    return saved ? JSON.parse(saved) : SAMPLE_ITR;
   }
 
   try {
@@ -588,9 +598,9 @@ export const fetchItrFilingsFromDb = async (): Promise<ITRFiling[]> => {
       .select('*, clients(name, trade_name, entity_type)')
       .order('due_date', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      const saved = localStorage.getItem('shameer_crm_itr_filings_v2');
-      return saved ? JSON.parse(saved) : ACTUAL_ITR_RECORDS;
+    if (error || !data) {
+      console.error('Load failed (itr_filings):', error?.message);
+      return [];
     }
 
     const mapped: ITRFiling[] = data.map((row: any) => ({
@@ -616,14 +626,14 @@ export const fetchItrFilingsFromDb = async (): Promise<ITRFiling[]> => {
     return mapped;
   } catch (err) {
     console.error('Fetch ITR error:', err);
-    return ACTUAL_ITR_RECORDS;
+    return [];
   }
 };
 
 export const saveItrFilingToDb = async (itr: ITRFiling): Promise<{ success: boolean; error?: string }> => {
   try {
     const local = localStorage.getItem('shameer_crm_itr_filings_v2');
-    const existing: ITRFiling[] = local ? JSON.parse(local) : ACTUAL_ITR_RECORDS;
+    const existing: ITRFiling[] = local ? JSON.parse(local) : SAMPLE_ITR;
     const updated = [itr, ...existing.filter(i => i.id !== itr.id)];
     localStorage.setItem('shameer_crm_itr_filings_v2', JSON.stringify(updated));
 
@@ -700,111 +710,263 @@ export const updateItrFilingStatusInDb = async (
 // 6. DEBTORS & MONEY OWED LEDGER SYNC
 // ==============================================================================
 
-export const fetchDebtorsFromDb = async (): Promise<DebtorRecord[]> => {
-  if (!isSupabaseConfigured()) {
-    const saved = localStorage.getItem('shameer_crm_debtors_local');
-    return saved ? JSON.parse(saved) : ACTUAL_DEBTOR_RECORDS;
-  }
+const DEBTORS_LOCAL_KEY = 'sa_crm_debtors';
+const BILLINGS_LOCAL_KEY = 'sa_crm_billings';
+const GST_LOCAL_KEY = 'sa_crm_gst_returns';
 
+const readLocalList = <T>(key: string, seed: T[]): T[] => {
   try {
-    const { data, error } = await supabase
-      .from('debtor_records')
-      .select('*, clients(entity_type)')
-      .order('client_name', { ascending: true });
-
-    if (error || !data || data.length === 0) {
-      const saved = localStorage.getItem('shameer_crm_debtors_local');
-      return saved ? JSON.parse(saved) : ACTUAL_DEBTOR_RECORDS;
-    }
-
-    const mapped: DebtorRecord[] = data.map((row: any, idx: number) => ({
-      sNo: idx + 1,
-      id: row.id,
-      clientName: row.client_name,
-      phone: row.phone || '',
-      entityType: row.clients?.entity_type || 'Private Limited',
-      assignedStaff: row.assigned_staff || 'Ameen',
-      august: {
-        outstanding: Number(row.aug_outstanding) || 0,
-        paymentCleared: Number(row.aug_cleared) || 0,
-        currentBilling: Number(row.aug_billing) || 0
-      },
-      september: {
-        outstanding: Number(row.sep_outstanding) || 0,
-        paymentCleared: Number(row.sep_cleared) || 0,
-        currentBilling: Number(row.sep_billing) || 0
-      },
-      october: {
-        outstanding: Number(row.oct_outstanding) || 0,
-        paymentCleared: Number(row.oct_cleared) || 0,
-        currentBilling: Number(row.oct_billing) || 0
-      },
-      november: {
-        outstanding: Number(row.nov_outstanding) || 0,
-        paymentCleared: Number(row.nov_cleared) || 0,
-        currentBilling: Number(row.nov_billing) || 0
-      },
-      currentBalance: Number(row.current_balance) || 0,
-      status: row.status || (Number(row.current_balance) > 0 ? 'Overdue' : 'Cleared'),
-      agingBucket: row.aging_bucket || '31-60 Days',
-    }));
-
-    localStorage.setItem('shameer_crm_debtors_local', JSON.stringify(mapped));
-    return mapped;
-  } catch (err) {
-    console.error('Fetch debtors error:', err);
-    return ACTUAL_DEBTOR_RECORDS;
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : seed;
+  } catch {
+    return seed;
+  }
+};
+const writeLocalList = (key: string, list: unknown[]) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(list));
+  } catch {
+    /* ignore */
   }
 };
 
-export const updateDebtorPaymentInDb = async (
-  debtorId: string, 
-  amountCleared: number,
-  newNovemberOutstanding: number,
-  newBalance: number
-): Promise<{ success: boolean; error?: string }> => {
-  try {
-    const local = localStorage.getItem('shameer_crm_debtors_local');
-    if (local) {
-      const parsed: DebtorRecord[] = JSON.parse(local);
-      const updated = parsed.map(d => {
-        if (d.id === debtorId) {
-          const cleared = (d.november?.paymentCleared || 0) + amountCleared;
-          return {
-            ...d,
-            november: {
-              ...d.november,
-              paymentCleared: cleared,
-            },
-            currentBalance: newBalance,
-            status: (newBalance === 0 ? 'Cleared' : 'Partially Paid') as any,
-          };
-        }
-        return d;
-      });
-      localStorage.setItem('shameer_crm_debtors_local', JSON.stringify(updated));
-    }
-
-    if (isSupabaseConfigured() && isUuid(debtorId)) {
-      const { error } = await supabase
-        .from('debtor_records')
-        .update({
-          nov_cleared: amountCleared,
-          current_balance: newBalance,
-          status: newBalance === 0 ? 'Cleared' : 'Partially Paid',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', debtorId);
-
-      if (error) {
-        console.warn('Supabase debtor payment update notice:', error.message);
-      }
-    }
-
-    return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+/** Builds monthly history from the JSONB ledger, or from the legacy Aug–Nov columns. */
+const ledgerFromRow = (row: any): DebtorMonth[] => {
+  if (Array.isArray(row.ledger) && row.ledger.length > 0) {
+    return row.ledger.map((m: any) => ({
+      month: String(m.month),
+      opening: Number(m.opening) || 0,
+      received: Number(m.received) || 0,
+      billed: Number(m.billed) || 0,
+    }));
   }
+  const legacy: [string, string][] = [['2026-08', 'aug'], ['2026-09', 'sep'], ['2026-10', 'oct'], ['2026-11', 'nov']];
+  return legacy.map(([month, p]) => ({
+    month,
+    opening: Number(row[`${p}_outstanding`]) || 0,
+    received: Number(row[`${p}_cleared`]) || 0,
+    billed: Number(row[`${p}_billing`]) || 0,
+  }));
+};
+
+export const fetchDebtorsFromDb = async (): Promise<DebtorRecord[]> => {
+  if (!isSupabaseConfigured()) return readLocalList(DEBTORS_LOCAL_KEY, SAMPLE_DEBTORS);
+
+  const { data, error } = await supabase.from('debtor_records').select('*').order('s_no', { ascending: true, nullsFirst: false });
+  if (error || !data) {
+    console.error('Load failed (debtor_records):', error?.message);
+    return [];
+  }
+  return data.map((row: any, idx: number) =>
+    recalcDebtor({
+      sNo: row.s_no || idx + 1,
+      id: row.id,
+      clientName: row.client_name,
+      phone: row.phone || '',
+      entityType: row.entity_type || '',
+      assignedStaff: row.assigned_staff || '',
+      months: ledgerFromRow(row),
+      currentBalance: Number(row.current_balance) || 0,
+      status: row.status || 'Pending',
+      agingBucket: row.aging_bucket || '0-30 Days',
+      lastReminderSent: row.last_reminder_sent || undefined,
+    })
+  );
+};
+
+const debtorPayload = (d: DebtorRecord) => ({
+  ...(isUuid(d.id) ? { id: d.id } : {}),
+  s_no: d.sNo,
+  client_name: d.clientName,
+  phone: d.phone,
+  entity_type: d.entityType,
+  assigned_staff: d.assignedStaff,
+  ledger: d.months,
+  current_balance: d.currentBalance,
+  status: d.status,
+  aging_bucket: d.agingBucket,
+  updated_at: new Date().toISOString(),
+});
+
+/** Saves one debtor account (after a payment or bill). */
+export const saveDebtorToDb = async (debtor: DebtorRecord): Promise<{ error?: string }> => {
+  if (!isSupabaseConfigured()) {
+    const list = readLocalList<DebtorRecord>(DEBTORS_LOCAL_KEY, SAMPLE_DEBTORS);
+    writeLocalList(DEBTORS_LOCAL_KEY, [debtor, ...list.filter((d) => d.id !== debtor.id)].sort((a, b) => a.sNo - b.sNo));
+    return {};
+  }
+  const payload = debtorPayload(debtor);
+  const { error } = isUuid(debtor.id)
+    ? await supabase.from('debtor_records').update(payload).eq('id', debtor.id)
+    : await supabase.from('debtor_records').insert(payload);
+  return error ? { error: error.message } : {};
+};
+
+/**
+ * Replaces debtor accounts and billing entries with the contents of an imported workbook.
+ * Accounts are matched by client name; billing rows by their workbook position, so
+ * re-importing an updated file does not create duplicates.
+ */
+export const importDebtorWorkbookToDb = async (
+  debtors: DebtorRecord[],
+  billings: OfficeBillingEntry[]
+): Promise<{ debtors: DebtorRecord[]; billings: OfficeBillingEntry[]; error?: string }> => {
+  if (!isSupabaseConfigured()) {
+    writeLocalList(DEBTORS_LOCAL_KEY, debtors);
+    writeLocalList(BILLINGS_LOCAL_KEY, billings);
+    return { debtors, billings };
+  }
+
+  const { data: existing, error: readErr } = await supabase.from('debtor_records').select('id, client_name');
+  if (readErr) return { debtors: [], billings: [], error: readErr.message };
+  const idByName = new Map((existing || []).map((r: any) => [String(r.client_name).toLowerCase(), r.id]));
+
+  const rows = debtors.map((d) => {
+    const id = idByName.get(d.clientName.toLowerCase());
+    return { ...debtorPayload(d), ...(id ? { id } : {}) };
+  });
+  const updates = rows.filter((r: any) => r.id);
+  const inserts = rows.filter((r: any) => !r.id);
+  if (updates.length) {
+    const { error } = await supabase.from('debtor_records').upsert(updates, { onConflict: 'id' });
+    if (error) return { debtors: [], billings: [], error: error.message };
+  }
+  if (inserts.length) {
+    const { error } = await supabase.from('debtor_records').insert(inserts);
+    if (error) return { debtors: [], billings: [], error: error.message };
+  }
+
+  if (billings.length) {
+    const billingRows = billings.map((b) => ({
+      external_id: b.id,
+      serial_no: b.serialNo,
+      date: b.date || null,
+      client_name: b.clientName,
+      nature_of_service: b.natureOfService || '',
+      filing_month: b.filingMonth || '',
+      professional_income: b.professionalIncome || 0,
+      oop_expenses: b.oopExpenses || 0,
+      rcm: b.rcm || 0,
+      tax_amount: b.taxAmount || 0,
+      billing_status: b.billingStatus || '',
+      invoice_number: b.invoiceNumber || '',
+      period: b.period || '',
+      user_name: b.user || '',
+    }));
+    const { error } = await supabase.from('office_billings').upsert(billingRows, { onConflict: 'external_id' });
+    if (error) return { debtors: [], billings: [], error: error.message };
+  }
+
+  const [freshDebtors, freshBillings] = await Promise.all([fetchDebtorsFromDb(), fetchBillingsFromDb()]);
+  return { debtors: freshDebtors, billings: freshBillings };
+};
+
+// ------------------------------------------------------------- billing register
+
+export const fetchBillingsFromDb = async (): Promise<OfficeBillingEntry[]> => {
+  if (!isSupabaseConfigured()) return readLocalList(BILLINGS_LOCAL_KEY, SAMPLE_BILLINGS);
+  const { data, error } = await supabase.from('office_billings').select('*').order('period', { ascending: false }).order('serial_no', { ascending: true });
+  if (error || !data) {
+    console.error('Load failed (office_billings):', error?.message);
+    return [];
+  }
+  return data.map((r: any) => ({
+    id: r.id,
+    serialNo: r.serial_no,
+    date: r.date || '',
+    clientName: r.client_name,
+    natureOfService: r.nature_of_service || '',
+    filingMonth: r.filing_month || '',
+    professionalIncome: Number(r.professional_income) || 0,
+    oopExpenses: Number(r.oop_expenses) || 0,
+    rcm: Number(r.rcm) || undefined,
+    taxAmount: Number(r.tax_amount) || undefined,
+    billingStatus: r.billing_status || '',
+    invoiceNumber: r.invoice_number || '',
+    period: r.period || '',
+    user: r.user_name || '',
+  }));
+};
+
+export const saveBillingToDb = async (entry: OfficeBillingEntry): Promise<{ error?: string }> => {
+  if (!isSupabaseConfigured()) {
+    writeLocalList(BILLINGS_LOCAL_KEY, [entry, ...readLocalList(BILLINGS_LOCAL_KEY, SAMPLE_BILLINGS)]);
+    return {};
+  }
+  const { error } = await supabase.from('office_billings').insert({
+    serial_no: entry.serialNo,
+    date: entry.date || null,
+    client_name: entry.clientName,
+    nature_of_service: entry.natureOfService,
+    filing_month: entry.filingMonth || '',
+    professional_income: entry.professionalIncome,
+    oop_expenses: entry.oopExpenses || 0,
+    billing_status: entry.billingStatus || 'Billed',
+    invoice_number: entry.invoiceNumber || '',
+    period: entry.period || '',
+    user_name: entry.user || '',
+  });
+  return error ? { error: error.message } : {};
+};
+
+// ---------------------------------------------------------------- GST returns
+
+const daysUntil = (iso: string): number => {
+  const [y, m, d] = iso.split('-').map(Number);
+  const due = new Date(y, (m || 1) - 1, d || 1);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((due.getTime() - today.getTime()) / 86400000);
+};
+
+/** Recomputes days remaining and priority from the due date. */
+export const withGstPriority = (item: GSTComplianceItem, dueSoonDays = 2): GSTComplianceItem => {
+  if (item.arnNumber || item.filingStatus === 'Filed') return { ...item, priorityLevel: 'filed', filingStatus: 'Filed', daysRemaining: 0 };
+  const days = /^\d{4}-\d{2}-\d{2}$/.test(item.dueDate) ? daysUntil(item.dueDate) : item.daysRemaining;
+  const priorityLevel = days < 0 ? 'overdue' : days <= dueSoonDays ? 'due-2-days' : 'upcoming';
+  return { ...item, daysRemaining: days, priorityLevel, filingStatus: days < 0 ? 'Overdue' : days <= dueSoonDays ? 'Due Soon' : item.filingStatus };
+};
+
+export const fetchGstReturnsFromDb = async (): Promise<GSTComplianceItem[]> => {
+  if (!isSupabaseConfigured()) return readLocalList(GST_LOCAL_KEY, SAMPLE_GST_RETURNS).map((i) => withGstPriority(i));
+  const { data, error } = await supabase.from('gst_returns').select('*').order('due_date', { ascending: true });
+  if (error || !data) {
+    console.error('Load failed (gst_returns):', error?.message);
+    return [];
+  }
+  return data.map((r: any) =>
+    withGstPriority({
+      id: r.id,
+      clientName: r.client_name,
+      tradeName: r.trade_name || r.client_name,
+      gstin: r.gstin || '',
+      returnType: r.return_type,
+      filingMonth: r.filing_month,
+      dueDate: r.due_date,
+      daysRemaining: 0,
+      priorityLevel: 'upcoming',
+      filingStatus: r.status === 'Filed' ? 'Filed' : 'In Progress',
+      assignedStaff: r.assigned_staff || '',
+      arnNumber: r.arn_number || undefined,
+      filedDate: r.filed_date || undefined,
+      phone: r.phone || '',
+      taxPayable: Number(r.tax_payable) || 0,
+    })
+  );
+};
+
+export const markGstFiledInDb = async (id: string, arn: string): Promise<{ error?: string }> => {
+  const filedDate = new Date().toISOString().slice(0, 10);
+  if (!isSupabaseConfigured()) {
+    const list = readLocalList<GSTComplianceItem>(GST_LOCAL_KEY, SAMPLE_GST_RETURNS);
+    writeLocalList(GST_LOCAL_KEY, list.map((i) => (i.id === id ? { ...i, arnNumber: arn, filedDate, filingStatus: 'Filed' } : i)));
+    return {};
+  }
+  const { error } = await supabase
+    .from('gst_returns')
+    .update({ status: 'Filed', arn_number: arn, filed_date: filedDate, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  return error ? { error: error.message } : {};
 };
 
 // ==============================================================================
@@ -814,7 +976,7 @@ export const updateDebtorPaymentInDb = async (
 export const fetchTicketsFromDb = async (): Promise<StaffTicket[]> => {
   if (!isSupabaseConfigured()) {
     const saved = localStorage.getItem('shameer_crm_tickets_local');
-    return saved ? JSON.parse(saved) : INITIAL_TICKETS;
+    return saved ? JSON.parse(saved) : SAMPLE_TICKETS;
   }
 
   try {
@@ -823,9 +985,9 @@ export const fetchTicketsFromDb = async (): Promise<StaffTicket[]> => {
       .select('*, clients(trade_name)')
       .order('created_at', { ascending: false });
 
-    if (error || !data || data.length === 0) {
-      const saved = localStorage.getItem('shameer_crm_tickets_local');
-      return saved ? JSON.parse(saved) : INITIAL_TICKETS;
+    if (error || !data) {
+      console.error('Load failed (shameer_crm_tickets_local):', error?.message);
+      return [];
     }
 
     const mapped: StaffTicket[] = data.map((row: any) => ({
@@ -854,14 +1016,14 @@ export const fetchTicketsFromDb = async (): Promise<StaffTicket[]> => {
     return mapped;
   } catch (err) {
     console.error('Fetch tickets error:', err);
-    return INITIAL_TICKETS;
+    return [];
   }
 };
 
 export const saveTicketToDb = async (ticket: StaffTicket): Promise<{ success: boolean; error?: string }> => {
   try {
     const local = localStorage.getItem('shameer_crm_tickets_local');
-    const existing: StaffTicket[] = local ? JSON.parse(local) : INITIAL_TICKETS;
+    const existing: StaffTicket[] = local ? JSON.parse(local) : SAMPLE_TICKETS;
     const updated = [ticket, ...existing.filter(t => t.id !== ticket.id)];
     localStorage.setItem('shameer_crm_tickets_local', JSON.stringify(updated));
 
@@ -939,7 +1101,7 @@ export const updateTicketInDb = async (
 export const fetchActivityLogsFromDb = async (): Promise<ActivityLog[]> => {
   if (!isSupabaseConfigured()) {
     const saved = localStorage.getItem('shameer_crm_activity_logs_local');
-    return saved ? JSON.parse(saved) : INITIAL_ACTIVITY_LOGS;
+    return saved ? JSON.parse(saved) : SAMPLE_ACTIVITY_LOGS;
   }
 
   try {
@@ -949,9 +1111,9 @@ export const fetchActivityLogsFromDb = async (): Promise<ActivityLog[]> => {
       .order('timestamp', { ascending: false })
       .limit(50);
 
-    if (error || !data || data.length === 0) {
-      const saved = localStorage.getItem('shameer_crm_activity_logs_local');
-      return saved ? JSON.parse(saved) : INITIAL_ACTIVITY_LOGS;
+    if (error || !data) {
+      console.error('Load failed (shameer_crm_activity_logs_local):', error?.message);
+      return [];
     }
 
     const mapped: ActivityLog[] = data.map((row: any) => ({
@@ -976,14 +1138,14 @@ export const fetchActivityLogsFromDb = async (): Promise<ActivityLog[]> => {
     return mapped;
   } catch (err) {
     console.error('Fetch activity logs error:', err);
-    return INITIAL_ACTIVITY_LOGS;
+    return [];
   }
 };
 
 export const saveActivityLogToDb = async (log: ActivityLog): Promise<{ success: boolean; error?: string }> => {
   try {
     const local = localStorage.getItem('shameer_crm_activity_logs_local');
-    const existing: ActivityLog[] = local ? JSON.parse(local) : INITIAL_ACTIVITY_LOGS;
+    const existing: ActivityLog[] = local ? JSON.parse(local) : SAMPLE_ACTIVITY_LOGS;
     const updated = [log, ...existing].slice(0, 100);
     localStorage.setItem('shameer_crm_activity_logs_local', JSON.stringify(updated));
 
@@ -1070,3 +1232,23 @@ export const checkSupabaseHealth = async (): Promise<SupabaseHealthReport> => {
     return report;
   }
 };
+
+// ==============================================================================
+// DELETE (administrators only — enforced by Row Level Security in the database)
+// ==============================================================================
+
+type DeletableTable = 'clients' | 'tasks' | 'itr_filings' | 'tickets' | 'debtor_records';
+
+const deleteRow = async (table: DeletableTable, id: string): Promise<{ error?: string }> => {
+  if (!isSupabaseConfigured()) return {};
+  const { error, count } = await supabase.from(table).delete({ count: 'exact' }).eq('id', id);
+  if (error) return { error: error.message };
+  if (count === 0) return { error: 'Nothing was deleted. Only administrators can delete records.' };
+  return {};
+};
+
+export const deleteClientFromDb = (id: string) => deleteRow('clients', id);
+export const deleteTaskFromDb = (id: string) => deleteRow('tasks', id);
+export const deleteItrFilingFromDb = (id: string) => deleteRow('itr_filings', id);
+export const deleteTicketFromDb = (id: string) => deleteRow('tickets', id);
+export const deleteDebtorFromDb = (id: string) => deleteRow('debtor_records', id);

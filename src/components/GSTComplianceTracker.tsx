@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MessageSquare, Download } from 'lucide-react';
 import { GSTComplianceItem, StaffMember } from '../types/crm';
 import { exportDebtorsAndGSTWorkbook } from '../utils/excelExport';
-import { ACTUAL_DEBTOR_RECORDS, ACTUAL_OFFICE_BILLINGS } from '../data/actualClientData';
+import type { DebtorRecord, OfficeBillingEntry } from '../types/crm';
 import { Badge, Button, DescriptionList, EmptyState, Field, IconButton, Input, Metric, MetricGrid, Modal, PageHeader, SearchInput, Segmented, Select, TableCard, Toolbar, formatDate, formatINR } from './ui';
 
 interface GSTComplianceTrackerProps {
@@ -12,6 +12,8 @@ interface GSTComplianceTrackerProps {
   returnTypes?: string[];
   onOpenWhatsApp: (item: GSTComplianceItem) => void;
   onMarkAsFiled: (id: string, arn: string) => void;
+  /** Fee data to include in the Excel export; omitted for users without fee access. */
+  onExport?: { debtors: DebtorRecord[]; billings: OfficeBillingEntry[] };
 }
 
 export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
@@ -21,6 +23,7 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
   returnTypes = ['GSTR-1', 'GSTR-3B', 'CMP-08', 'GSTR-9', 'GSTR-9C'],
   onOpenWhatsApp,
   onMarkAsFiled,
+  onExport,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [returnTypeFilter, setReturnTypeFilter] = useState<string>('all');
@@ -75,8 +78,7 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
 
   const handleOpenFilingModal = (item: GSTComplianceItem) => {
     setFilingModalItem(item);
-    const mockArn = `AA321126${Math.floor(100000 + Math.random() * 900000)}Z`;
-    setArnInput(mockArn);
+    setArnInput('');
   };
 
   const handleSubmitFiling = (e: React.FormEvent) => {
@@ -88,7 +90,7 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
   };
 
   const handleExportToExcel = () => {
-    exportDebtorsAndGSTWorkbook(ACTUAL_DEBTOR_RECORDS, ACTUAL_OFFICE_BILLINGS, complianceItems);
+    exportDebtorsAndGSTWorkbook(onExport?.debtors ?? [], onExport?.billings ?? [], complianceItems);
   };
 
   const renderTimeline = (item: GSTComplianceItem) => {

@@ -9,14 +9,19 @@ import {
   ChevronDown 
 } from 'lucide-react';
 import { MonthlyTask, StaffMember, FilingStatus } from '../types/crm';
-import { Avatar, Badge, Button, EmptyState, IconButton, Menu, PageHeader, Pagination, SearchInput, Select, TableCard, Tabs, Tone, cn } from './ui';
+import { Trash2 } from 'lucide-react';
+import { Avatar, Badge, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Menu, Modal, PageHeader, Pagination, SearchInput, Select, TableCard, Tabs, Tone, cn } from './ui';
 
 interface ComplianceTaskManagerProps {
   tasks: MonthlyTask[];
   staffList: StaffMember[];
   selectedStaffId: string | null;
   filingTypes?: string[];
-  onUpdateStatus: (taskId: string, newStatus: FilingStatus) => void;
+  onUpdateStatus: (taskId: string, newStatus: FilingStatus, arn?: string) => void;
+  /** Administrators only. */
+  onDelete?: (taskId: string) => void;
+  /** Unfiled tasks due within this many days are highlighted. */
+  dueSoonDays?: number;
   onOpenWhatsApp: (task: MonthlyTask) => void;
   onSelectClient: (clientId: string) => void;
 }
@@ -35,9 +40,12 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   selectedStaffId,
   filingTypes = ['GSTR-1 (Sales)', 'GSTR-3B (Summary)', 'Statutory Audit', 'TDS Payment', 'PF & ESI', 'CMP-08', 'IFF'],
   onUpdateStatus,
+  dueSoonDays = 5,
   onOpenWhatsApp,
   onSelectClient,
+  onDelete,
 }) => {
+  const [confirmDelete, setConfirmDelete] = useState<MonthlyTask | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [filingTypeFilter, setFilingTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -46,6 +54,8 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [openStatusMenuId, setOpenStatusMenuId] = useState<string | null>(null);
   const [copiedArn, setCopiedArn] = useState<string | null>(null);
+  const [arnFor, setArnFor] = useState<MonthlyTask | null>(null);
+  const [arnInput, setArnInput] = useState('');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 12;
 
@@ -170,7 +180,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
     let rel: React.ReactNode = null;
     if (task.status !== 'Filed') {
       if (task.daysRemaining < 0) rel = <span className="text-danger">{Math.abs(task.daysRemaining)}d late</span>;
-      else if (task.daysRemaining <= 5) rel = <span className="text-warning">{task.daysRemaining === 0 ? 'Today' : `In ${task.daysRemaining}d`}</span>;
+      else if (task.daysRemaining <= dueSoonDays) rel = <span className="text-warning">{task.daysRemaining === 0 ? 'Today' : `In ${task.daysRemaining}d`}</span>;
       else rel = <span className="text-fg-subtle">In {task.daysRemaining}d</span>;
     }
     return (
@@ -187,7 +197,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
     <div className="space-y-4">
       <PageHeader
         title="GST & Audit"
-        description={`${tasks.length} engagements · Monthly GST, TDS and payroll returns`}
+        description={`${tasks.length} tasks · Monthly GST, TDS and payroll returns`}
         actions={
           <>
             <div className="flex items-center h-8 rounded-md border border-line bg-surface shadow-xs">
@@ -352,7 +362,12 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                             onClose={() => setOpenStatusMenuId(null)}
                             title="Set status"
                             items={ALL_STATUSES.map((st) => ({ value: st, label: st, selected: task.status === st }))}
-                            onSelect={(v) => onUpdateStatus(task.id, v as FilingStatus)}
+                            onSelect={(v) => {
+                              if (v === 'Filed') {
+                                setArnFor(task);
+                                setArnInput(task.arnNumber || '');
+                              } else onUpdateStatus(task.id, v as FilingStatus);
+                            }}
                           />
                         </div>
 
@@ -384,6 +399,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                           {isFiled ? 'Send Receipt' : 'Remind'}
                         </Button>
                         <IconButton icon={ArrowUpRight} label="View client account" size="sm" onClick={() => onSelectClient(task.clientId)} />
+                        {onDelete && <IconButton icon={Trash2} label="Delete task" size="sm" className="hover:text-danger" onClick={() => setConfirmDelete(task)} />}
                       </div>
                     </td>
                   </tr>
@@ -393,6 +409,48 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
           </tbody>
         </table>
       </TableCard>
+
+      <Modal
+        isOpen={!!arnFor}
+        onClose={() => setArnFor(null)}
+        size="sm"
+        title="Mark as filed"
+        description={arnFor ? `${arnFor.tradeName} · ${arnFor.filingType} · ${arnFor.period}` : undefined}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setArnFor(null)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" form="task-arn-form">
+              Mark Filed
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="task-arn-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!arnFor) return;
+            onUpdateStatus(arnFor.id, 'Filed', arnInput.trim());
+            setArnFor(null);
+          }}
+        >
+          <Field label="ARN / acknowledgement number" hint="From the portal acknowledgement. Leave blank if not yet available.">
+            <Input autoFocus value={arnInput} onChange={(e) => setArnInput(e.target.value.toUpperCase())} placeholder="AA3211260481234" className="font-mono" />
+          </Field>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        title="Delete this task?"
+        description="This permanently removes the task and its filing status."
+        confirmLabel="Delete Task"
+        danger
+        onConfirm={() => confirmDelete && onDelete?.(confirmDelete.id)}
+      />
     </div>
   );
 };

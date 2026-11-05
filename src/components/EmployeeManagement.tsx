@@ -1,109 +1,149 @@
 import React, { useState } from 'react';
-import { Plus, KeyRound, UserPlus } from 'lucide-react';
+import { Plus, KeyRound, UserPlus, MoreHorizontal } from 'lucide-react';
 import { UserProfile, UserRole } from '../types/crm';
-import { Avatar, Badge, Button, EmptyState, Field, IconButton, Input, Metric, MetricGrid, Modal, PageHeader, SearchInput, Segmented, Select, TableCard, Toolbar, cn, formatDate } from './ui';
+import type { NewMemberInput } from '../services/authService';
+import { MIN_PASSWORD_LENGTH, passwordProblem } from '../services/authService';
+import type { AppPreferences } from '../services/firmConfigService';
+import {
+  Avatar,
+  Badge,
+  Button,
+  EmptyState,
+  Field,
+  IconButton,
+  Input,
+  Menu,
+  Metric,
+  MetricGrid,
+  Modal,
+  PageHeader,
+  SearchInput,
+  Segmented,
+  Select,
+  TableCard,
+  Toolbar,
+  cn,
+  formatDate,
+} from './ui';
 
 interface EmployeeManagementProps {
   currentUser: UserProfile;
   profiles: UserProfile[];
-  onAddEmployee: (profile: Omit<UserProfile, 'id' | 'assignedClientsCount' | 'assignedTasksCount' | 'completedThisMonth'>) => void;
-  onToggleStatus: (userId: string) => void;
-  onUpdateRole: (userId: string, newRole: UserRole) => void;
-  onResetPassword: (userId: string) => void;
+  preferences: AppPreferences;
+  onAddEmployee: (input: NewMemberInput) => Promise<{ error?: string }>;
+  onToggleStatus: (userId: string) => Promise<{ error?: string }>;
+  onUpdateEmployee: (userId: string, patch: Partial<UserProfile>) => void;
+  onSetPassword: (userId: string, password: string) => Promise<{ error?: string }>;
   onSelectEmployeeWork?: (employeeName: string) => void;
 }
+
+export const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; label: string }> = ({ checked, onChange, disabled, label }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    disabled={disabled}
+    onClick={() => onChange(!checked)}
+    className={cn('relative inline-flex h-[18px] w-8 shrink-0 rounded-full transition-colors disabled:opacity-40', checked ? 'bg-ink' : 'bg-muted')}
+  >
+    <span className={cn('absolute top-[2px] left-[2px] h-[14px] w-[14px] rounded-full bg-surface shadow-sm transition-transform', checked && 'translate-x-[14px]')} />
+  </button>
+);
 
 export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
   currentUser,
   profiles,
+  preferences,
   onAddEmployee,
   onToggleStatus,
-  onUpdateRole,
-  onResetPassword,
+  onUpdateEmployee,
+  onSetPassword,
   onSelectEmployeeWork,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'employee'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
+  const [menuFor, setMenuFor] = useState<string | null>(null);
 
-  // Add Employee Modal
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newDesignation, setNewDesignation] = useState('Audit & Accounts Associate');
-  const [newPhone, setNewPhone] = useState('');
-  const [newRole, setNewRole] = useState<UserRole>('employee');
-  const [canEditPayments, setCanEditPayments] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [form, setForm] = useState({ name: '', email: '', designation: 'Audit & Tax Executive', phone: '', password: '', role: 'employee' as UserRole });
+  const [fees, setFees] = useState({ view: preferences.newStaffCanViewFees, record: preferences.newStaffCanRecordPayments });
+  const [addError, setAddError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
-  // Reset Password Confirmation Modal
-  const [resetModalUser, setResetModalUser] = useState<UserProfile | null>(null);
+  const [passwordFor, setPasswordFor] = useState<UserProfile | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [savingPw, setSavingPw] = useState(false);
 
-  const filteredProfiles = profiles.filter((p) => {
+  const filtered = profiles.filter((p) => {
     if (roleFilter !== 'all' && p.role !== roleFilter) return false;
     if (statusFilter !== 'all' && p.status !== statusFilter) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return (
-        p.name.toLowerCase().includes(q) ||
-        p.email.toLowerCase().includes(q) ||
-        p.designation.toLowerCase().includes(q) ||
-        p.phone.toLowerCase().includes(q)
-      );
-    }
-    return true;
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return [p.name, p.email, p.designation, p.phone].some((v) => (v || '').toLowerCase().includes(q));
   });
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const openAdd = () => {
+    setForm({ name: '', email: '', designation: 'Audit & Tax Executive', phone: '', password: '', role: 'employee' });
+    setFees({ view: preferences.newStaffCanViewFees, record: preferences.newStaffCanRecordPayments });
+    setAddError(null);
+    setIsAddOpen(true);
+  };
+
+  const submitAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim() || !newEmail.trim()) return;
-
-    onAddEmployee({
-      name: newName.trim(),
-      email: newEmail.trim().toLowerCase(),
-      role: newRole,
-      designation: newDesignation.trim(),
-      phone: newPhone.trim() || '+91 98200 00000',
-      status: 'Active',
-      joinedDate: new Date().toISOString().slice(0, 10),
-      canEditPayments: newRole === 'admin' ? true : canEditPayments,
-      canAccessFinancials: newRole === 'admin',
-      initials: newName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+    const problem = passwordProblem(form.password);
+    if (problem) return setAddError(problem);
+    setAdding(true);
+    setAddError(null);
+    const res = await onAddEmployee({
+      ...form,
+      name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
+      canAccessFinancials: form.role === 'admin' || fees.view,
+      canEditPayments: form.role === 'admin' || fees.record,
     });
+    setAdding(false);
+    if (res.error) return setAddError(res.error);
+    setIsAddOpen(false);
+  };
 
-    setIsAddModalOpen(false);
-    setNewName('');
-    setNewEmail('');
-    setNewPhone('');
-    setNewDesignation('Audit & Accounts Associate');
-    setNewRole('employee');
-    setCanEditPayments(false);
+  const submitPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordFor) return;
+    const problem = passwordProblem(newPassword);
+    if (problem) return setPwError(problem);
+    setSavingPw(true);
+    setPwError(null);
+    const res = await onSetPassword(passwordFor.id, newPassword);
+    setSavingPw(false);
+    if (res.error) return setPwError(res.error);
+    setPasswordFor(null);
   };
 
   const activeCount = profiles.filter((p) => p.status === 'Active').length;
-  const adminCount = profiles.filter((p) => p.role === 'admin').length;
-  const employeeCount = profiles.filter((p) => p.role === 'employee').length;
-
-  const isAdminViewer = currentUser.role === 'admin';
+  const adminCount = profiles.filter((p) => p.role === 'admin' && p.status === 'Active').length;
+  const feeAccessCount = profiles.filter((p) => p.status === 'Active' && p.role !== 'admin' && p.canAccessFinancials).length;
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="Team"
-        description="Staff accounts, roles and client allocation"
+        description="Logins, roles and what each person can see"
         actions={
-          isAdminViewer && (
-            <Button variant="primary" icon={Plus} onClick={() => setIsAddModalOpen(true)}>
-              Add Member
-            </Button>
-          )
+          <Button variant="primary" icon={Plus} onClick={openAdd}>
+            Add Member
+          </Button>
         }
       />
 
       <MetricGrid className="grid-cols-2 lg:grid-cols-4">
-        <Metric label="Members" value={profiles.length} hint={`${activeCount} active`} />
-        <Metric label="Staff" value={employeeCount} hint="Access to assigned clients" />
-        <Metric label="Administrators" value={adminCount} hint="Full practice access" />
-        <Metric label="Row-level security" value="On" tone="success" hint="Enforced in the database" />
+        <Metric label="Members" value={profiles.length} hint={`${activeCount} can sign in`} />
+        <Metric label="Administrators" value={adminCount} hint="Full access" />
+        <Metric label="Staff with fee access" value={feeAccessCount} hint="Can open Debtors" />
+        <Metric label="Inactive" value={profiles.length - activeCount} hint="Blocked from signing in" />
       </MetricGrid>
 
       <TableCard
@@ -140,74 +180,112 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
           <thead>
             <tr>
               <th className="min-w-[240px]">Member</th>
-              <th>Designation</th>
-              <th>Phone</th>
               <th>Role</th>
-              <th>Status</th>
+              <th className="text-center">View fees</th>
+              <th className="text-center">Record payments</th>
               <th className="text-right">Clients</th>
               <th className="text-right">Tasks done</th>
+              <th>Status</th>
               <th>Joined</th>
-              {isAdminViewer && <th className="text-right">Actions</th>}
+              <th className="w-10" />
             </tr>
           </thead>
           <tbody>
-            {filteredProfiles.length === 0 && (
+            {filtered.length === 0 && (
               <tr>
                 <td colSpan={9} className="!h-auto">
                   <EmptyState title="No members match these filters" />
                 </td>
               </tr>
             )}
-            {filteredProfiles.map((emp) => {
-              const isCurrentUser = emp.id === currentUser.id;
-              const isUserAdmin = emp.role === 'admin';
-
+            {filtered.map((emp) => {
+              const isSelf = emp.id === currentUser.id;
+              const isAdminRow = emp.role === 'admin';
+              const inactive = emp.status !== 'Active';
               return (
-                <tr key={emp.id} className={cn(emp.status !== 'Active' && 'opacity-60')}>
+                <tr key={emp.id}>
                   <td className="py-2">
                     <div className="flex items-center gap-2.5">
                       <Avatar initials={emp.initials || emp.name.slice(0, 2).toUpperCase()} size="sm" />
                       <div className="min-w-0">
                         <button
                           onClick={() => onSelectEmployeeWork?.(emp.name)}
-                          className="font-medium text-fg hover:underline underline-offset-2 text-left"
+                          className={cn('font-medium hover:underline underline-offset-2 text-left', inactive ? 'text-fg-muted' : 'text-fg')}
                           title="View assigned work"
                         >
                           {emp.name}
-                          {isCurrentUser && <span className="ml-1.5 text-xs font-normal text-fg-subtle">You</span>}
+                          {isSelf && <span className="ml-1.5 text-xs font-normal text-fg-subtle">You</span>}
                         </button>
-                        <div className="text-xs text-fg-subtle truncate">{emp.email}</div>
+                        <div className="text-xs text-fg-subtle truncate">
+                          {emp.designation} · {emp.email}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="text-fg-muted">{emp.designation}</td>
-                  <td className="ident text-fg-muted whitespace-nowrap">{emp.phone || '—'}</td>
                   <td>
-                    <Badge tone={isUserAdmin ? 'info' : 'neutral'}>{isUserAdmin ? 'Admin' : 'Staff'}</Badge>
+                    <Select
+                      value={emp.role}
+                      disabled={isSelf}
+                      onChange={(e) => {
+                        const role = e.target.value as UserRole;
+                        onUpdateEmployee(emp.id, role === 'admin' ? { role, canAccessFinancials: true, canEditPayments: true } : { role });
+                      }}
+                      className="h-7 text-xs w-[124px]"
+                      aria-label={`Role for ${emp.name}`}
+                    >
+                      <option value="employee">Staff</option>
+                      <option value="admin">Administrator</option>
+                    </Select>
+                  </td>
+                  <td className="text-center">
+                    <Toggle
+                      label={`Fee access for ${emp.name}`}
+                      checked={isAdminRow || emp.canAccessFinancials}
+                      disabled={isAdminRow}
+                      onChange={(v) => onUpdateEmployee(emp.id, v ? { canAccessFinancials: true } : { canAccessFinancials: false, canEditPayments: false })}
+                    />
+                  </td>
+                  <td className="text-center">
+                    <Toggle
+                      label={`Payment recording for ${emp.name}`}
+                      checked={isAdminRow || emp.canEditPayments}
+                      disabled={isAdminRow || !emp.canAccessFinancials}
+                      onChange={(v) => onUpdateEmployee(emp.id, { canEditPayments: v })}
+                    />
+                  </td>
+                  <td className="num text-right">{emp.assignedClientsCount}</td>
+                  <td className="num text-right whitespace-nowrap">
+                    {emp.completedThisMonth}
+                    <span className="text-fg-subtle"> / {emp.assignedTasksCount}</span>
                   </td>
                   <td>
-                    <Badge tone={emp.status === 'Active' ? 'success' : 'neutral'} dot>
+                    <Badge tone={inactive ? 'neutral' : 'success'} dot>
                       {emp.status}
                     </Badge>
                   </td>
-                  <td className="num text-right text-fg">{emp.assignedClientsCount}</td>
-                  <td className="num text-right whitespace-nowrap">
-                    <span className="text-fg">{emp.completedThisMonth}</span>
-                    <span className="text-fg-subtle"> / {emp.assignedTasksCount}</span>
-                  </td>
                   <td className="num text-fg-muted whitespace-nowrap">{formatDate(emp.joinedDate)}</td>
-                  {isAdminViewer && (
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <IconButton icon={KeyRound} label="Reset password" size="sm" onClick={() => setResetModalUser(emp)} />
-                        {!isCurrentUser && (
-                          <Button size="sm" variant={emp.status === 'Active' ? 'ghost' : 'secondary'} onClick={() => onToggleStatus(emp.id)}>
-                            {emp.status === 'Active' ? 'Deactivate' : 'Activate'}
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  )}
+                  <td className="text-right">
+                    <div className="relative inline-block">
+                      <IconButton icon={MoreHorizontal} label={`Actions for ${emp.name}`} size="sm" onClick={() => setMenuFor(menuFor === emp.id ? null : emp.id)} />
+                      <Menu
+                        open={menuFor === emp.id}
+                        onClose={() => setMenuFor(null)}
+                        align="right"
+                        items={[
+                          { value: 'password', label: 'Set password', icon: KeyRound },
+                          ...(isSelf ? [] : [{ value: 'status', label: inactive ? 'Activate' : 'Deactivate', danger: !inactive }]),
+                        ]}
+                        onSelect={(v) => {
+                          if (v === 'password') {
+                            setPasswordFor(emp);
+                            setNewPassword('');
+                            setPwError(null);
+                          }
+                          if (v === 'status') onToggleStatus(emp.id);
+                        }}
+                      />
+                    </div>
+                  </td>
                 </tr>
               );
             })}
@@ -216,88 +294,87 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
       </TableCard>
 
       <Modal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
         size="sm"
         icon={UserPlus}
         title="Add team member"
-        description="Creates a login and assigns a role."
+        description="Creates a login. Share the password privately; they can change it after signing in."
         footer={
           <>
-            <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
+            <Button variant="ghost" onClick={() => setIsAddOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" type="submit" form="add-member-form">
-              Create Account
+            <Button variant="primary" type="submit" form="add-member-form" disabled={adding}>
+              {adding ? 'Creating…' : 'Create Login'}
             </Button>
           </>
         }
       >
-        <form id="add-member-form" onSubmit={handleCreateSubmit} className="space-y-4">
+        <form id="add-member-form" onSubmit={submitAdd} className="space-y-4">
+          {addError && <p className="text-sm text-danger">{addError}</p>}
           <Field label="Full name" required>
-            <Input required placeholder="Full name" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <Input required autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </Field>
           <Field label="Work email" required>
-            <Input type="email" required placeholder="name@shameerassociates.in" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+            <Input type="email" required placeholder="name@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </Field>
+          <Field label="Initial password" required hint={`At least ${MIN_PASSWORD_LENGTH} characters, letters and numbers.`}>
+            <Input type="text" required autoComplete="off" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="font-mono" />
           </Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Designation" required>
-              <Input required value={newDesignation} onChange={(e) => setNewDesignation(e.target.value)} />
+              <Input required value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} />
             </Field>
             <Field label="Phone">
-              <Input placeholder="+91 98200 00000" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="font-mono" />
+              <Input placeholder="+91 98200 00000" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="font-mono" />
             </Field>
           </div>
           <Field label="Role">
-            <Select value={newRole} onChange={(e) => setNewRole(e.target.value as UserRole)}>
-              <option value="employee">Staff — assigned clients only</option>
-              <option value="admin">Administrator — full practice access</option>
+            <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}>
+              <option value="employee">Staff</option>
+              <option value="admin">Administrator — full access</option>
             </Select>
           </Field>
-          {newRole === 'employee' && (
-            <label className="flex items-center gap-2 text-sm text-fg cursor-pointer">
-              <input type="checkbox" checked={canEditPayments} onChange={(e) => setCanEditPayments(e.target.checked)} className="h-3.5 w-3.5" />
-              Allow recording client payments
-            </label>
+          {form.role === 'employee' && (
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between gap-3 text-sm text-fg">
+                Can view fees (Debtors)
+                <Toggle label="Can view fees" checked={fees.view} onChange={(v) => setFees({ view: v, record: v ? fees.record : false })} />
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm text-fg">
+                Can record payments and bills
+                <Toggle label="Can record payments" checked={fees.record} disabled={!fees.view} onChange={(v) => setFees({ ...fees, record: v })} />
+              </div>
+            </div>
           )}
         </form>
       </Modal>
 
       <Modal
-        isOpen={!!resetModalUser}
-        onClose={() => setResetModalUser(null)}
+        isOpen={!!passwordFor}
+        onClose={() => setPasswordFor(null)}
         size="sm"
         icon={KeyRound}
-        title="Reset password"
-        description={resetModalUser ? `Issue a temporary credential for ${resetModalUser.email}` : undefined}
+        title="Set password"
+        description={passwordFor ? `New password for ${passwordFor.name} (${passwordFor.email})` : undefined}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setResetModalUser(null)}>
+            <Button variant="ghost" onClick={() => setPasswordFor(null)}>
               Cancel
             </Button>
-            <Button
-              variant="primary"
-              onClick={() => {
-                if (resetModalUser) onResetPassword(resetModalUser.id);
-                setResetModalUser(null);
-              }}
-            >
-              Reset Password
+            <Button variant="primary" type="submit" form="set-password-form" disabled={savingPw}>
+              {savingPw ? 'Saving…' : 'Set Password'}
             </Button>
           </>
         }
       >
-        {resetModalUser && (
-          <div className="space-y-3">
-            <p className="text-sm text-fg-muted">
-              {resetModalUser.name} will be asked to set a new password at next sign-in.
-            </p>
-            <div className="flex items-center justify-between h-10 px-3 rounded-md border border-line bg-subtle text-sm">
-              <span className="text-fg-subtle">Temporary code</span>
-              <span className="ident text-sm font-medium text-fg">SA-{Math.floor(100000 + Math.random() * 900000)}</span>
-            </div>
-          </div>
-        )}
+        <form id="set-password-form" onSubmit={submitPassword} className="space-y-3">
+          {pwError && <p className="text-sm text-danger">{pwError}</p>}
+          <Field label="New password" required hint="They will use this the next time they sign in.">
+            <Input type="text" required autoFocus autoComplete="off" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="font-mono" />
+          </Field>
+        </form>
       </Modal>
     </div>
   );

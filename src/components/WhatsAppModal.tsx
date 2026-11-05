@@ -6,6 +6,7 @@ import {
   getStoredWhatsAppTemplates, 
   getStoredFirmProfile, 
   renderTemplate, 
+  toWhatsAppNumber,
   WhatsAppTemplateSettings, 
   FirmProfileSettings 
 } from '../services/firmConfigService';
@@ -21,6 +22,8 @@ interface WhatsAppModalProps {
   staffName?: string;
   customTemplates?: WhatsAppTemplateSettings;
   firmProfile?: FirmProfileSettings;
+  /** Country calling code for 10-digit numbers (from Settings). */
+  countryCode?: string;
 }
 
 const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
@@ -30,9 +33,10 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
   debtor,
   ticket,
   gstItem,
-  staffName = 'Ameen',
+  staffName = '',
   customTemplates,
   firmProfile: propFirmProfile,
+  countryCode,
 }) => {
   const storedTemplates = customTemplates || getStoredWhatsAppTemplates();
   const profile = propFirmProfile || getStoredFirmProfile();
@@ -40,7 +44,7 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
   const clientName = gstItem?.clientName || task?.clientName || itrFiling?.clientName || debtor?.clientName || ticket?.clientName || 'Client';
   const tradeName = gstItem?.tradeName || task?.tradeName || debtor?.tradeName || ticket?.tradeName || clientName;
   const rawPhone = gstItem?.phone || task?.phone || itrFiling?.phone || debtor?.phone || ticket?.callerPhone || '+91 98200 00000';
-  const cleanPhone = rawPhone.replace(/\D/g, '');
+  const cleanPhone = toWhatsAppNumber(rawPhone, countryCode);
 
   const standardTemplates = [
     {
@@ -74,7 +78,7 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
       text: renderTemplate(storedTemplates.filingAck, {
         clientName: tradeName,
         period: task?.filingType || itrFiling?.itrForm || 'return',
-        arn: task?.arnNumber || itrFiling?.acknowledgmentNo || 'AA321126048192Z',
+        arn: task?.arnNumber || itrFiling?.acknowledgmentNo || '[ARN]',
         dueDate: '',
         amount: '',
         upiId: profile.upiId,
@@ -104,7 +108,7 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
     {
       id: 'overdue_notice',
       label: 'Overdue Notice',
-      text: `URGENT NOTICE: ${tradeName}\n\nOur accounts ledger indicates an outstanding balance of ₹${(debtor.currentBalance ?? debtor.outstandingBalance ?? 0).toLocaleString('en-IN')} pending clearance with Shameer & Associates.\n\nKindly release the payment today via UPI (${profile.upiId}) or transfer to ${profile.bankName} Account (${profile.accountNumber}, IFSC: ${profile.ifscCode}) and share transaction UTR.\n\nContact: ${debtor.assignedStaff || staffName} | Shameer & Associates`,
+      text: `Dear ${tradeName},\n\nOur records show an outstanding balance of ₹${(debtor.currentBalance ?? debtor.outstandingBalance ?? 0).toLocaleString('en-IN')} with Shameer & Associates.\n\nPlease arrange payment via UPI (${profile.upiId}) or transfer to ${profile.bankName} Account (${profile.accountNumber}, IFSC: ${profile.ifscCode}) and share the transaction reference.\n\nContact: ${debtor.assignedStaff || staffName} | Shameer & Associates`,
     },
     {
       id: 'bank_details',
@@ -114,7 +118,8 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
     {
       id: 'receipt_ack',
       label: 'Receipt Ack',
-      text: `Dear ${tradeName},\n\nWe acknowledge receipt of your payment towards professional audit and filing services.\n\nYour account ledger has been updated.\n\nThank you for partnering with Shameer & Associates.`,
+      text: `Dear ${tradeName},\n\nWe acknowledge receipt of your payment towards professional audit and filing services.\n\nYour account has been updated.\n\nThank you,
+Shameer & Associates`,
     },
   ] : [];
 
@@ -127,7 +132,7 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
     {
       id: 'gst_urgent_deadline',
       label: 'Urgent Cutoff',
-      text: `CRITICAL GST NOTICE: ${tradeName}\n\nThe deadline for filing ${gstItem.returnType} (${gstItem.filingMonth}) is ${gstItem.dueDate}.\n\nGSTIN: ${gstItem.gstin}\n\nPlease confirm OTP or finalize computation today to avoid late fees (₹50/day) and interest on output tax.\n\nContact: ${gstItem.assignedStaff || staffName} | Shameer & Associates`,
+      text: `Dear ${tradeName},\n\nThe deadline for filing ${gstItem.returnType} (${gstItem.filingMonth}) is ${gstItem.dueDate}.\n\nGSTIN: ${gstItem.gstin}\n\nPlease confirm OTP or finalize computation today to avoid late fees (₹50/day) and interest on output tax.\n\nContact: ${gstItem.assignedStaff || staffName} | Shameer & Associates`,
     },
     {
       id: 'gst_challan_approval',
@@ -137,7 +142,7 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
     {
       id: 'gst_arn_confirmation',
       label: 'Return Filed',
-      text: `Dear ${tradeName},\n\nYour ${gstItem.returnType} for ${gstItem.filingMonth} has been filed successfully on the GST portal.\n\nGSTIN: ${gstItem.gstin}\nARN Number: ${gstItem.arnNumber || 'AA321126' + Math.floor(100000 + Math.random() * 900000) + 'Z'}\nFiled on: ${gstItem.filedDate || new Date().toLocaleDateString('en-IN')}\n\nAcknowledgment receipt is generated and filed for your records.\n\nRegards,\nShameer & Associates`,
+      text: `Dear ${tradeName},\n\nYour ${gstItem.returnType} for ${gstItem.filingMonth} has been filed successfully on the GST portal.\n\nGSTIN: ${gstItem.gstin}\nARN: ${gstItem.arnNumber || '[ARN]'}\nFiled on: ${gstItem.filedDate || new Date().toLocaleDateString('en-IN')}\n\nAcknowledgment receipt is generated and filed for your records.\n\nRegards,\nShameer & Associates`,
     },
   ] : [];
 
@@ -168,7 +173,7 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
     {
       id: 'itr_urgent_deadline',
       label: 'Cutoff Warning',
-      text: `URGENT TAX DEADLINE NOTICE: ${tradeName}\n\nYour Annual Income Tax Return (${itrFiling.itrForm} for ${itrFiling.assessmentYear}) is due for filing on ${itrFiling.dueDate}.\n\nPAN: ${itrFiling.pan}\nStatus: ${itrFiling.status}\n\nPlease confirm OTP or approve computation today to prevent late filing penalties under Section 234F (up to ₹5,000) and interest charges.\n\nContact: ${staffName} | Shameer & Associates`,
+      text: `Dear ${tradeName},\n\nYour Annual Income Tax Return (${itrFiling.itrForm} for ${itrFiling.assessmentYear}) is due for filing on ${itrFiling.dueDate}.\n\nPAN: ${itrFiling.pan}\nStatus: ${itrFiling.status}\n\nPlease confirm OTP or approve computation today to prevent late filing penalties under Section 234F (up to ₹5,000) and interest charges.\n\nContact: ${staffName} | Shameer & Associates`,
     },
     {
       id: 'itr_tax_computation',
@@ -178,7 +183,7 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
     {
       id: 'itr_ack_confirmation',
       label: 'Filing Acknowledgment',
-      text: `Dear ${tradeName},\n\nYour Income Tax Return (${itrFiling.itrForm}) for Assessment Year ${itrFiling.assessmentYear} has been filed on the Income Tax e-filing portal.\n\nPAN: ${itrFiling.pan}\nITR-V Acknowledgment No: ${itrFiling.acknowledgmentNo || 'ACK98200' + Math.floor(100000 + Math.random() * 900000)}\nStatus: Filed & e-Verified\n\nThe ITR-V acknowledgment receipt is ready for your records.\n\nThank you for choosing Shameer & Associates.`,
+      text: `Dear ${tradeName},\n\nYour Income Tax Return (${itrFiling.itrForm}) for Assessment Year ${itrFiling.assessmentYear} has been filed on the Income Tax e-filing portal.\n\nPAN: ${itrFiling.pan}\nAcknowledgement no.: ${itrFiling.acknowledgmentNo || '[acknowledgement no.]'}\nStatus: Filed & e-Verified\n\nThe ITR-V acknowledgment receipt is ready for your records.\n\nThank you for choosing Shameer & Associates.`,
     },
   ] : [];
 

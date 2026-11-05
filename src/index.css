@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ==========================================================================
-   Shameer & Associates — v2 "Ledger" design system
+   Shameer & Associates — design tokens
    --------------------------------------------------------------------------
    Neutral zinc greyscale, a single restrained blue accent, near-black "ink"
    for primary actions. Tokens are RGB channels so Tailwind opacity modifiers

@@ -16,6 +16,8 @@ export interface UserProfile {
   canEditPayments: boolean;
   canAccessFinancials: boolean;
   initials?: string;
+  /** Supabase Auth user id linked to this profile. */
+  authUserId?: string | null;
 }
 
 export interface ActivityLog {
@@ -33,7 +35,7 @@ export type FilingStatus = 'Docs Pending' | 'In Progress' | 'Draft Ready' | 'Fil
 export type ITRStatus = 'Docs Pending' | '26AS Reconciled' | 'Draft Computation' | 'Client Confirmed' | 'Filed & e-Verified';
 export type EntityType = 'Private Limited' | 'LLP' | 'Partnership' | 'Proprietorship' | 'Individual';
 export type DebtAgingBucket = '0-30 Days' | '31-60 Days' | '61-90 Days' | '90+ Days';
-export type DebtStatus = 'Pending' | 'Partially Paid' | 'Overdue' | 'Cleared';
+export type DebtStatus = 'Pending' | 'Partially Paid' | 'Overdue' | 'Cleared' | 'Advance';
 
 export type TicketPriority = 'Urgent' | 'High' | 'Normal' | 'Low';
 export type TicketStatus = 'Unassigned' | 'In Progress' | 'Waiting on Client' | 'Resolved';
@@ -118,30 +120,16 @@ export interface ITRFiling {
   phone: string;
 }
 
-// Exact Debtors Monthly Reconciliation Ledger Structure from Shameer and Associates Workbook
-export interface MonthDebtorLedger {
-  outstanding: number;
-  paymentCleared: number;
-  currentBilling: number;
-}
-
-export interface DebtorAccount {
-  id: string;
-  clientId: string;
-  clientName: string;
-  tradeName: string;
-  phone: string;
-  serviceCategory: string;
-  invoiceNumber: string;
-  invoiceDate: string;
-  dueDate: string;
-  billedAmount: number;
-  paidAmount: number;
-  outstandingBalance: number;
-  agingDays: number;
-  agingBucket: string;
-  status: string;
-  assignedStaffId: string;
+/** One month of a client's fee account. Closing = opening - received + billed. */
+export interface DebtorMonth {
+  /** Calendar month, 'YYYY-MM' (e.g. '2026-11'). */
+  month: string;
+  /** Balance brought forward at the start of the month. */
+  opening: number;
+  /** Payments received during the month. */
+  received: number;
+  /** Fees billed during the month. */
+  billed: number;
 }
 
 export interface DebtorRecord {
@@ -149,12 +137,12 @@ export interface DebtorRecord {
   id: string;
   clientName: string;
   phone: string;
-  entityType: EntityType;
-  assignedStaff: string; // Ameen, Susmi
-  august: MonthDebtorLedger;
-  september: MonthDebtorLedger;
-  october: MonthDebtorLedger;
-  november: MonthDebtorLedger;
+  entityType: EntityType | '';
+  /** Staff member responsible for follow-up; empty when not assigned. */
+  assignedStaff: string;
+  /** Monthly history, oldest first. The last entry is the current month. */
+  months: DebtorMonth[];
+  /** Closing balance of the latest month. Negative = advance received. */
   currentBalance: number;
   status: DebtStatus;
   agingBucket: DebtAgingBucket;
@@ -171,9 +159,12 @@ export interface OfficeBillingEntry {
   rcm?: number;
   taxAmount?: number;
   oopExpenses?: number;
-  billingStatus?: 'Billed' | 'Pending' | 'Received';
-  user: string; // Ameen, Susmi
+  billingStatus?: 'Billed' | 'Pending' | 'Received' | '';
+  user: string;
   invoiceNumber?: string;
+  /** Register month the entry belongs to, 'YYYY-MM'. */
+  period?: string;
+  id?: string;
 }
 
 export type GSTPriorityLevel = 'overdue' | 'due-2-days' | 'upcoming' | 'filed';

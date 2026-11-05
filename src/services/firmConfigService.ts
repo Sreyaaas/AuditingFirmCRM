@@ -1,5 +1,11 @@
-// Practice Settings & Configuration Storage Service
-// Manages Custom WhatsApp Templates, Firm Legal Profile & Bank Payment Details
+/**
+ * Firm-wide settings: firm details & bank, WhatsApp templates and preferences.
+ *
+ * Source of truth is the Supabase `app_settings` table (admins write, active
+ * staff read). A localStorage copy is kept so synchronous readers (e.g. the
+ * WhatsApp composer) have the latest values without a round trip.
+ */
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 export interface WhatsAppTemplateSettings {
   docRequest: string;
@@ -23,81 +29,145 @@ export interface FirmProfileSettings {
   upiId: string;
 }
 
-const STORAGE_KEY_WHATSAPP = 'shameer_crm_whatsapp_templates';
-const STORAGE_KEY_FIRM_PROFILE = 'shameer_crm_firm_profile';
+/** Admin-configurable behaviour of the CRM. */
+export interface AppPreferences {
+  /** Financial year label shown across the app, e.g. "2026-27". */
+  financialYear: string;
+  /** GST/TDS tasks due within this many days are flagged as due soon. */
+  dueSoonDays: number;
+  /** ITR returns due within this many days are flagged as due soon. */
+  itrDueSoonDays: number;
+  /** Country calling code prefixed to 10-digit numbers for WhatsApp. */
+  whatsappCountryCode: string;
+  /** Invoice numbers for new bills: prefix + running number. */
+  invoicePrefix: string;
+  nextInvoiceNumber: number;
+  /** Sign users out after this many minutes without activity. 0 = never. */
+  idleTimeoutMinutes: number;
+  /** Defaults applied when a new staff member is added. */
+  newStaffCanViewFees: boolean;
+  newStaffCanRecordPayments: boolean;
+}
+
+const STORAGE_KEY_WHATSAPP = 'sa_crm_whatsapp_templates';
+const STORAGE_KEY_FIRM_PROFILE = 'sa_crm_firm_profile';
+const STORAGE_KEY_PREFERENCES = 'sa_crm_preferences';
 
 export const DEFAULT_WHATSAPP_TEMPLATES: WhatsAppTemplateSettings = {
-  docRequest: `Hello {{clientName}},\n\nThis is Shameer & Associates.\n\nPlease share your sales invoices, purchase registers, and bank statements for {{period}}.\n\nStatutory deadline: {{dueDate}}.\n\nPlease share the records directly here on WhatsApp so our audit team can review.\n\nThank you,\nShameer & Associates`,
+  docRequest: `Hello {{clientName}},\n\nPlease share your sales invoices, purchase bills and bank statements for {{period}}.\n\nDue date: {{dueDate}}.\n\nYou can send them here on WhatsApp.\n\nThank you,\nShameer & Associates`,
 
-  paymentReminder: `Dear {{clientName}},\n\nGentle reminder from Shameer & Associates regarding professional accounting and compliance fees.\n\nTotal Pending Amount: ₹{{amount}}\nAccount Ledger Status: Overdue\n\nPlease transfer to our bank account or via UPI ({{upiId}}):\nBank: {{bankName}}\nA/C No: {{accountNumber}}\nIFSC: {{ifscCode}}\n\nLet us know once completed so we can update your ledger.\n\nRegards,\nShameer & Associates`,
+  paymentReminder: `Dear {{clientName}},\n\nThis is a reminder that ₹{{amount}} is outstanding towards our professional fees.\n\nYou can pay by UPI ({{upiId}}) or bank transfer:\nBank: {{bankName}}\nA/C No: {{accountNumber}}\nIFSC: {{ifscCode}}\n\nPlease let us know once paid.\n\nRegards,\nShameer & Associates`,
 
-  filingAck: `Dear {{clientName}},\n\nYour {{period}} return has been filed successfully on the government portal.\n\nFiling Reference / ARN: {{arn}}\nFiled by: Shameer & Associates\n\nThe official acknowledgment receipt has been saved for your records.\n\nThank you,\nShameer & Associates`,
+  filingAck: `Dear {{clientName}},\n\nYour {{period}} return has been filed.\n\nAcknowledgement / ARN: {{arn}}\n\nWe have kept a copy of the acknowledgement for your records.\n\nThank you,\nShameer & Associates`,
 };
 
+/** Only the firm name is pre-filled; tax IDs and bank details must be entered by an admin. */
 export const DEFAULT_FIRM_PROFILE: FirmProfileSettings = {
-  legalName: 'Shameer & Associates | Accountants and Practitioners',
-  category: 'Accountants & Tax Practitioners',
-  address: 'Mavoor Road Commercial Complex, Calicut & MG Road, Kochi, Kerala, India',
-  gstin: '32AABCS9821L1Z0',
-  pan: 'AABCS9821L',
-  phone: '+91 98470 12345',
-  email: 'contact@shameerassociates.in',
+  legalName: 'Shameer & Associates',
+  category: 'Accountants and Tax Practitioners',
+  address: '',
+  gstin: '',
+  pan: '',
+  phone: '',
+  email: '',
   beneficiaryName: 'Shameer & Associates',
-  bankName: 'Federal Bank',
-  branch: 'Calicut Main Branch',
-  accountNumber: '12450200045612',
-  ifscCode: 'FDRL0001245',
-  upiId: 'shameerassociates@okaxis',
+  bankName: '',
+  branch: '',
+  accountNumber: '',
+  ifscCode: '',
+  upiId: '',
 };
 
-export const getStoredWhatsAppTemplates = (): WhatsAppTemplateSettings => {
-  if (typeof window === 'undefined') return DEFAULT_WHATSAPP_TEMPLATES;
+const fyFor = (d = new Date()) => {
+  const start = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
+  return `${start}-${String((start + 1) % 100).padStart(2, '0')}`;
+};
+
+export const DEFAULT_PREFERENCES: AppPreferences = {
+  financialYear: fyFor(),
+  dueSoonDays: 5,
+  itrDueSoonDays: 10,
+  whatsappCountryCode: '91',
+  invoicePrefix: 'SA/',
+  nextInvoiceNumber: 1,
+  idleTimeoutMinutes: 30,
+  newStaffCanViewFees: false,
+  newStaffCanRecordPayments: false,
+};
+
+const readLocal = <T>(key: string, fallback: T): T => {
+  if (typeof window === 'undefined') return fallback;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_WHATSAPP);
-    if (raw) {
-      return { ...DEFAULT_WHATSAPP_TEMPLATES, ...JSON.parse(raw) };
-    }
+    const raw = localStorage.getItem(key);
+    if (raw) return { ...fallback, ...JSON.parse(raw) };
   } catch {
-    // fallback
+    /* ignore malformed cache */
   }
-  return DEFAULT_WHATSAPP_TEMPLATES;
+  return fallback;
 };
 
-export const saveStoredWhatsAppTemplates = (templates: WhatsAppTemplateSettings): void => {
-  if (typeof window === 'undefined') return;
+const writeLocal = (key: string, value: unknown) => {
   try {
-    localStorage.setItem(STORAGE_KEY_WHATSAPP, JSON.stringify(templates));
-  } catch (err) {
-    console.error('Failed to save whatsapp templates:', err);
-  }
-};
-
-export const getStoredFirmProfile = (): FirmProfileSettings => {
-  if (typeof window === 'undefined') return DEFAULT_FIRM_PROFILE;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_FIRM_PROFILE);
-    if (raw) {
-      return { ...DEFAULT_FIRM_PROFILE, ...JSON.parse(raw) };
-    }
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // fallback
+    /* storage full or unavailable */
   }
-  return DEFAULT_FIRM_PROFILE;
 };
 
-export const saveStoredFirmProfile = (profile: FirmProfileSettings): void => {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(STORAGE_KEY_FIRM_PROFILE, JSON.stringify(profile));
-  } catch (err) {
-    console.error('Failed to save firm profile:', err);
+export const getStoredWhatsAppTemplates = () => readLocal(STORAGE_KEY_WHATSAPP, DEFAULT_WHATSAPP_TEMPLATES);
+export const getStoredFirmProfile = () => readLocal(STORAGE_KEY_FIRM_PROFILE, DEFAULT_FIRM_PROFILE);
+export const getStoredPreferences = () => readLocal(STORAGE_KEY_PREFERENCES, DEFAULT_PREFERENCES);
+
+const saveRemote = async (key: string, value: unknown): Promise<{ error?: string }> => {
+  if (!isSupabaseConfigured()) return {};
+  const { error } = await supabase.from('app_settings').upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+  return error ? { error: error.message } : {};
+};
+
+export const saveStoredWhatsAppTemplates = async (templates: WhatsAppTemplateSettings) => {
+  writeLocal(STORAGE_KEY_WHATSAPP, templates);
+  return saveRemote('whatsapp_templates', templates);
+};
+
+export const saveStoredFirmProfile = async (profile: FirmProfileSettings) => {
+  writeLocal(STORAGE_KEY_FIRM_PROFILE, profile);
+  return saveRemote('firm_profile', profile);
+};
+
+export const savePreferences = async (prefs: AppPreferences) => {
+  writeLocal(STORAGE_KEY_PREFERENCES, prefs);
+  return saveRemote('preferences', prefs);
+};
+
+/** Loads all settings from Supabase into the local cache. Call after sign-in. */
+export const loadRemoteSettings = async (): Promise<{
+  firmProfile: FirmProfileSettings;
+  templates: WhatsAppTemplateSettings;
+  preferences: AppPreferences;
+}> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase.from('app_settings').select('key, value');
+    if (!error && data) {
+      const byKey = Object.fromEntries(data.map((r: any) => [r.key, r.value]));
+      if (byKey.firm_profile) writeLocal(STORAGE_KEY_FIRM_PROFILE, { ...DEFAULT_FIRM_PROFILE, ...byKey.firm_profile });
+      if (byKey.whatsapp_templates) writeLocal(STORAGE_KEY_WHATSAPP, { ...DEFAULT_WHATSAPP_TEMPLATES, ...byKey.whatsapp_templates });
+      if (byKey.preferences) writeLocal(STORAGE_KEY_PREFERENCES, { ...DEFAULT_PREFERENCES, ...byKey.preferences });
+    }
   }
+  return { firmProfile: getStoredFirmProfile(), templates: getStoredWhatsAppTemplates(), preferences: getStoredPreferences() };
 };
 
 export function renderTemplate(template: string, vars: Record<string, string>): string {
   let result = template;
   for (const [key, val] of Object.entries(vars)) {
-    result = result.replaceAll(`{{${key}}}`, val ?? '');
+    result = result.split(`{{${key}}}`).join(val ?? '');
   }
   return result;
 }
+
+/** Normalises a phone number for wa.me links using the configured country code. */
+export const toWhatsAppNumber = (raw: string, countryCode = getStoredPreferences().whatsappCountryCode): string => {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (digits.length === 10) return `${countryCode}${digits}`;
+  return digits;
+};
