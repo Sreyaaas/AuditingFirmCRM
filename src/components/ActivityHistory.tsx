@@ -34,7 +34,7 @@ export const ActivityHistory: React.FC<ActivityHistoryProps> = ({ logs }) => {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Audit Trail"
+        section="activity" title="Audit Trail"
         description="Every filing, payment and account change, with who made it and when"
       />
 

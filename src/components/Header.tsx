@@ -3,6 +3,7 @@ import { Search, Plus, Palette, Check, ChevronDown, Menu, LogOut, KeyRound } fro
 import { UserProfile } from '../types/crm';
 import { LIGHT_THEMES, DARK_THEMES } from '../types/themes';
 import { Avatar, Button, IconButton, Kbd, cn } from './ui';
+import { Toggle } from './EmployeeManagement';
 
 interface HeaderProps {
   activeTab: string;
@@ -15,6 +16,8 @@ interface HeaderProps {
   onToggleTheme?: () => void;
   activeTheme?: string;
   onSelectTheme?: (theme: string) => void;
+  colourAccents?: boolean;
+  onToggleColourAccents?: (on: boolean) => void;
   onOpenNewTask: () => void;
   onToggleMobileSidebar?: () => void;
 }
@@ -51,6 +54,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTheme,
   activeTheme = 'navy-light',
   onSelectTheme,
+  colourAccents = true,
+  onToggleColourAccents,
   onOpenNewTask,
   onToggleMobileSidebar,
 }) => {
@@ -185,6 +190,15 @@ export const Header: React.FC<HeaderProps> = ({
                     })}
                   </div>
                 </div>
+
+                {onToggleColourAccents && (
+                  <div className="pt-1.5">
+                    <div className="flex items-center justify-between gap-3 px-2.5 h-9">
+                      <span className="text-xs font-medium text-fg">Colour accents</span>
+                      <Toggle label="Colour accents" checked={colourAccents} onChange={onToggleColourAccents} />
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}

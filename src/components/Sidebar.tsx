@@ -14,7 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { StaffMember, UserProfile } from '../types/crm';
-import { BrandLogo, cn } from './ui';
+import { BrandLogo, SECTIONS, cn, type SectionId } from './ui';
 
 interface SidebarProps {
   activeTab: string;
@@ -87,6 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const renderItem = (item: NavItem) => {
     const Icon = item.icon;
     const active = activeTab === item.id;
+    const hue = SECTIONS[item.id as SectionId]?.hue ?? 8;
     return (
       <button
         key={item.id}
@@ -94,18 +95,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         aria-current={active ? 'page' : undefined}
         className={cn(
           'group w-full h-8 flex items-center gap-2.5 px-2.5 rounded-md text-sm transition-colors',
-          active ? 'bg-accent/[0.09] text-fg font-medium' : 'text-fg-muted hover:text-fg hover:bg-hover'
+          active ? cn(`av-${hue}`, 'font-medium') : 'text-fg-muted hover:text-fg hover:bg-hover'
         )}
       >
-        <Icon
-          className={cn('w-4 h-4 shrink-0', active ? 'text-accent' : 'text-fg-subtle group-hover:text-fg-muted')}
-          strokeWidth={1.75}
-        />
+        <Icon className={cn('w-4 h-4 shrink-0', !active && `tx-${hue}`)} strokeWidth={active ? 2 : 1.75} />
         <span className="flex-1 truncate text-left">{item.label}</span>
         {item.alert ? (
           <span className="num text-2xs font-semibold text-danger">{item.alert}</span>
         ) : item.count !== undefined && item.count !== null ? (
-          <span className={cn('num text-2xs', active ? 'text-accent font-medium' : 'text-fg-faint')}>{item.count}</span>
+          <span className={cn('num text-2xs', active ? 'font-semibold opacity-80' : 'text-fg-faint')}>{item.count}</span>
         ) : null}
       </button>
     );

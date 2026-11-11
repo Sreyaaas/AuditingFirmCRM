@@ -123,6 +123,12 @@ export function App() {
 
   // ---------------------------------------------------------------- theme
   const [activeTheme, setActiveTheme] = useState<string>(() => localStorage.getItem('crm-active-theme') || 'navy-light');
+  // Section colours and coloured avatars; per device, like the theme.
+  const [colourAccents, setColourAccents] = useState<boolean>(() => localStorage.getItem('crm-colour-accents') !== 'off');
+  useEffect(() => {
+    document.documentElement.setAttribute('data-accents', colourAccents ? 'on' : 'off');
+    localStorage.setItem('crm-colour-accents', colourAccents ? 'on' : 'off');
+  }, [colourAccents]);
   const isDark = activeTheme.endsWith('-dark');
   const theme: 'light' | 'dark' = isDark ? 'dark' : 'light';
 
@@ -761,6 +767,8 @@ export function App() {
           onToggleTheme={toggleTheme}
           activeTheme={activeTheme}
           onSelectTheme={setActiveTheme}
+          colourAccents={colourAccents}
+          onToggleColourAccents={setColourAccents}
           onOpenNewTask={() => setIsNewTaskOpen(true)}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
         />
@@ -949,7 +957,7 @@ export function App() {
             {activeTab === 'settings' &&
               (isAdmin ? (
                 <div className="space-y-6">
-                  <PageHeader title="Settings" description="Firm details, preferences, lists, message templates and backup." />
+                  <PageHeader section="settings" title="Settings" description="Firm details, preferences, lists, message templates and backup." />
                   <PracticeConfigManager
                     configs={practiceConfigs}
                     onAddOption={handleAddConfigOption}
@@ -962,6 +970,8 @@ export function App() {
                     onSaveWhatsAppTemplates={handleSaveTemplates}
                     activeTheme={activeTheme}
                     onSelectTheme={setActiveTheme}
+                    colourAccents={colourAccents}
+                    onToggleColourAccents={setColourAccents}
                     clients={clients}
                     monthlyTasks={monthlyTasks}
                     itrFilings={itrFilings}

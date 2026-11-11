@@ -3,7 +3,7 @@ import { MessageSquare, Download } from 'lucide-react';
 import { GSTComplianceItem, StaffMember } from '../types/crm';
 import { exportDebtorsAndGSTWorkbook } from '../utils/excelExport';
 import type { DebtorRecord, OfficeBillingEntry } from '../types/crm';
-import { Badge, Button, DescriptionList, EmptyState, Field, IconButton, Input, Metric, MetricGrid, Modal, PageHeader, SearchInput, Segmented, Select, TableCard, Toolbar, formatDate, formatINR } from './ui';
+import { Badge, Button, DescriptionList, EmptyState, Field, IconButton, Input, Metric, MetricGrid, Modal, PageHeader, SearchInput, Segmented, Select, TableCard, Toolbar, formatDate, formatINR, Avatar, nameInitials } from './ui';
 
 interface GSTComplianceTrackerProps {
   complianceItems: GSTComplianceItem[];
@@ -107,8 +107,13 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
     items.map((item) => (
       <tr key={item.id}>
         <td className="py-2">
-          <div className="font-medium text-fg">{item.clientName}</div>
-          {item.tradeName !== item.clientName && <div className="text-xs text-fg-subtle">{item.tradeName}</div>}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Avatar initials={nameInitials(item.clientName)} seed={item.clientName} size="md" className="rounded-lg" />
+            <div className="min-w-0">
+              <div className="font-medium text-fg">{item.clientName}</div>
+              {item.tradeName !== item.clientName && <div className="text-xs text-fg-subtle">{item.tradeName}</div>}
+            </div>
+          </div>
         </td>
         <td className="ident text-fg-muted whitespace-nowrap">{item.gstin}</td>
         <td className="whitespace-nowrap text-fg">{item.returnType}</td>
@@ -145,7 +150,7 @@ export const GSTComplianceTracker: React.FC<GSTComplianceTrackerProps> = ({
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Deadlines"
+        section="gst-tracker" title="Deadlines"
         description="GST return calendar, cut-off tracking and portal ARN records"
         actions={
           <Button icon={Download} onClick={handleExportToExcel}>

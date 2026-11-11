@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MessageSquare, ArrowUpRight, Plus, FileCheck, Trash2 } from 'lucide-react';
 import { ITRFiling, StaffMember, ITRStatus, EntityType, Client } from '../types/crm';
-import { Avatar, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Label, Metric, MetricGrid, Modal, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, cn, formatINR } from './ui';
+import { Avatar, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Label, Metric, MetricGrid, Modal, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, cn, formatINR, nameInitials } from './ui';
 
 interface ITRFilingsManagerProps {
   itrFilings: ITRFiling[];
@@ -252,7 +252,7 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
   return (
     <div className="space-y-4">
       <PageHeader
-        title="ITR Returns"
+        section="itr" title="ITR Returns"
         description={`${assessmentYear} · Income tax returns, most urgent first`}
         actions={
           <>
@@ -384,14 +384,19 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                 return (
                   <tr key={itr.id}>
                     <td className="py-2">
-                      <button
-                        onClick={() => onSelectClient(itr.clientId)}
-                        className="block max-w-[240px] truncate text-left font-medium text-fg hover:underline underline-offset-2"
-                      >
-                        {itr.clientName}
-                      </button>
-                      <div className="ident text-fg-subtle mt-0.5">
-                        {itr.pan} · {itr.assessmentYear}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Avatar initials={nameInitials(itr.clientName)} seed={itr.clientName} size="md" className="rounded-lg" />
+                        <div className="min-w-0">
+                          <button
+                            onClick={() => onSelectClient(itr.clientId)}
+                            className="block max-w-[240px] truncate text-left font-medium text-fg hover:underline underline-offset-2"
+                          >
+                            {itr.clientName}
+                          </button>
+                          <div className="ident text-fg-subtle mt-0.5">
+                            {itr.pan} · {itr.assessmentYear}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="py-2 whitespace-nowrap">

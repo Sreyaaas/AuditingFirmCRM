@@ -7,6 +7,9 @@ import { createPortal } from 'react-dom';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { X, Search, Check, type LucideIcon } from 'lucide-react';
+import { SECTIONS, type SectionId } from './sections';
+
+export { SECTIONS, type SectionId };
 
 export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
@@ -294,17 +297,30 @@ export interface PageHeaderProps {
   description?: React.ReactNode;
   actions?: React.ReactNode;
   className?: string;
+  /** Shows the section's coloured icon badge beside the title. */
+  section?: SectionId;
 }
 
-export const PageHeader: React.FC<PageHeaderProps> = ({ title, description, actions, className }) => (
+export const PageHeader: React.FC<PageHeaderProps> = ({ title, description, actions, className, section }) => {
+  const meta = section ? SECTIONS[section] : null;
+  const Icon = meta?.icon;
+  return (
   <div className={cn('flex flex-col sm:flex-row sm:items-end justify-between gap-3', className)}>
-    <div className="min-w-0">
-      <h1 className="text-xl font-semibold text-fg tracking-tight">{title}</h1>
-      {description && <p className="text-sm text-fg-subtle mt-0.5">{description}</p>}
+    <div className="min-w-0 flex items-center gap-3">
+      {Icon && (
+        <span className={cn('w-10 h-10 rounded-lg flex items-center justify-center shrink-0', `av-${meta!.hue}`)} aria-hidden="true">
+          <Icon className="w-5 h-5" strokeWidth={1.75} />
+        </span>
+      )}
+      <div className="min-w-0">
+        <h1 className="text-xl font-semibold text-fg tracking-tight">{title}</h1>
+        {description && <p className="text-sm text-fg-subtle mt-0.5">{description}</p>}
+      </div>
     </div>
     {actions && <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div>}
   </div>
-);
+  );
+};
 
 /* ----------------------------------------------------------- Metric */
 
@@ -319,6 +335,9 @@ export interface MetricProps {
   progress?: { value: number; tone?: Tone };
   /** Stacked bar, e.g. receivables by age. Values are relative. */
   segments?: { value: number; tone: Tone; label: string }[];
+  /** Small coloured icon beside the label; `hue` indexes the .av-N colours. */
+  icon?: LucideIcon;
+  hue?: number;
 }
 
 const barTone: Record<Tone, string> = {
@@ -329,7 +348,7 @@ const barTone: Record<Tone, string> = {
   danger: 'bg-danger',
 };
 
-export const Metric: React.FC<MetricProps> = ({ label, value, hint, tone, onClick, className, progress, segments }) => {
+export const Metric: React.FC<MetricProps> = ({ label, value, hint, tone, onClick, className, progress, segments, icon: MetricIcon, hue }) => {
   const segTotal = segments?.reduce((a, s) => a + Math.max(0, s.value), 0) || 0;
   const Comp: any = onClick ? 'button' : 'div';
   return (
@@ -341,7 +360,14 @@ export const Metric: React.FC<MetricProps> = ({ label, value, hint, tone, onClic
         className
       )}
     >
-      <div className="text-xs font-medium text-fg-subtle truncate">{label}</div>
+      <div className="flex items-center gap-2 min-w-0">
+        {MetricIcon && (
+          <span className={cn('w-6 h-6 rounded-md flex items-center justify-center shrink-0', `av-${hue ?? 8}`)} aria-hidden="true">
+            <MetricIcon className="w-3.5 h-3.5" strokeWidth={2} />
+          </span>
+        )}
+        <span className="text-xs font-medium text-fg-subtle truncate">{label}</span>
+      </div>
       <div className="mt-2 text-[22px] font-semibold text-fg num tracking-[-0.02em] leading-none">{value}</div>
       {hint && (
         <div className={cn('mt-2 text-xs truncate', tone === 'danger' || tone === 'warning' ? toneText[tone] : 'text-fg-subtle')}>{hint}</div>
@@ -880,3 +906,11 @@ export const BrandLogo: React.FC<{ size?: keyof typeof logoHeights; inverse?: bo
     />
   </span>
 );
+
+/** Two-letter initials for a client or person, ignoring legal suffixes and joiners. */
+export const nameInitials = (name: string): string => {
+  const skip = new Set(['(p)', 'pvt', 'ltd', 'llp', 'private', 'limited', '&', 'and', 'the', 'm/s', 'm/s.']);
+  const words = (name || '').split(/\s+/).filter((w) => w && !skip.has(w.toLowerCase()));
+  const letters = words.slice(0, 2).map((w) => w.replace(/[^A-Za-z0-9]/g, '').charAt(0).toUpperCase());
+  return letters.join('') || '?';
+};

@@ -6,7 +6,7 @@ import {
   ITRFiling, 
   UserProfile 
 } from '../types/crm';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Wallet, ListChecks, FileText, CalendarClock, FileClock } from 'lucide-react';
 import { Avatar, Badge, Button, Card, CardHeader, Metric, MetricGrid, PageHeader, Progress, Tone, cn, formatDate } from './ui';
 
 interface OverviewStatsProps {
@@ -138,6 +138,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
         {showFees && (
         <Metric
           label="Fee receivables"
+          icon={Wallet} hue={2}
           value={`₹${totalReceivables.toLocaleString('en-IN')}`}
           hint={`${overdueDebtorsCount} ${overdueDebtorsCount === 1 ? 'account' : 'accounts'} outstanding`}
           segments={[
@@ -151,6 +152,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
         )}
         <Metric
           label="Monthly returns"
+          icon={ListChecks} hue={3}
           value={recurringTotal}
           hint={`${filedCount} of ${recurringTotal} filed`}
           progress={{ value: pct(filedCount, recurringTotal), tone: filedCount === recurringTotal && recurringTotal > 0 ? 'success' : 'info' }}
@@ -158,6 +160,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
         />
         <Metric
           label="ITR returns"
+          icon={FileText} hue={5}
           value={itrTotal}
           hint={`${itrFiledCount} filed · ${itrPendingCount} pending`}
           progress={{ value: pct(itrFiledCount, itrTotal), tone: itrPendingCount === 0 && itrTotal > 0 ? 'success' : 'info' }}
@@ -165,6 +168,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
         />
         <Metric
           label="Overdue filings"
+          icon={CalendarClock} hue={6}
           value={overdueCount}
           tone={overdueCount > 0 ? 'danger' : undefined}
           hint={overdueCount > 0 ? 'Requires immediate action' : 'All on schedule'}
@@ -172,6 +176,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
         />
         <Metric
           label="Awaiting documents"
+          icon={FileClock} hue={0}
           value={docsPendingCount}
           tone={docsPendingCount > 0 ? 'warning' : undefined}
           hint={docsPendingCount === 1 ? '1 client' : `${docsPendingCount} clients`}

@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { MonthlyTask, StaffMember, FilingStatus } from '../types/crm';
 import { Trash2 } from 'lucide-react';
-import { Avatar, Badge, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Menu, Modal, PageHeader, Pagination, SearchInput, Select, TableCard, Tabs, Tone, cn } from './ui';
+import { Avatar, Badge, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Menu, Modal, PageHeader, Pagination, SearchInput, Select, TableCard, Tabs, Tone, cn, nameInitials } from './ui';
 
 interface ComplianceTaskManagerProps {
   tasks: MonthlyTask[];
@@ -196,7 +196,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   return (
     <div className="space-y-4">
       <PageHeader
-        title="GST & Audit"
+        section="monthly" title="GST & Audit"
         description={`${tasks.length} tasks · Monthly GST, TDS and payroll returns`}
         actions={
           <>
@@ -330,10 +330,15 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                       <input type="checkbox" aria-label={`Select ${task.tradeName}`} checked={isSelected} onChange={() => toggleSelectRow(task.id)} className="h-3.5 w-3.5 cursor-pointer align-middle" />
                     </td>
                     <td className="py-2">
-                      <button onClick={() => onSelectClient(task.clientId)} className="block max-w-xs truncate text-left font-medium text-fg hover:underline underline-offset-2">
-                        {task.tradeName}
-                      </button>
-                      <div className="ident text-fg-subtle mt-0.5">{task.gstin}</div>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Avatar initials={nameInitials(task.clientName)} seed={task.clientName} size="md" className="rounded-lg" />
+                        <div className="min-w-0">
+                          <button onClick={() => onSelectClient(task.clientId)} className="block max-w-xs truncate text-left font-medium text-fg hover:underline underline-offset-2">
+                            {task.tradeName}
+                          </button>
+                          <div className="ident text-fg-subtle mt-0.5">{task.gstin}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="text-fg whitespace-nowrap">{task.filingType}</td>
                     <td>

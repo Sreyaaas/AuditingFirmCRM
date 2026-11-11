@@ -26,6 +26,9 @@ interface PracticeConfigManagerProps {
   onSaveWhatsAppTemplates: (templates: WhatsAppTemplateSettings) => Promise<SaveResult>;
   activeTheme?: string;
   onSelectTheme?: (theme: string) => void;
+  /** Section colours and coloured avatars (per device). */
+  colourAccents?: boolean;
+  onToggleColourAccents?: (on: boolean) => void;
   palette?: string;
   onSelectPalette?: (palette: string) => void;
   clients?: Client[];
@@ -82,6 +85,8 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
   onSaveWhatsAppTemplates,
   activeTheme = 'navy-light',
   onSelectTheme,
+  colourAccents = true,
+  onToggleColourAccents,
   palette,
   onSelectPalette,
   clients = [],
@@ -634,6 +639,19 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
                     })}
                   </div>
                 </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center justify-between gap-4 px-4 py-4">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-fg">Colour accents</div>
+                  <div className="text-xs text-fg-subtle mt-0.5">
+                    Section colours on sidebar icons and page titles, and coloured badges for clients and team members. Turn off for a plain grey look.
+                    Status colours (overdue, paid) always stay on. Saved on this device.
+                  </div>
+                </div>
+                <Toggle label="Colour accents" checked={colourAccents} onChange={(v) => onToggleColourAccents?.(v)} />
               </div>
             </Card>
           </div>

@@ -4,29 +4,7 @@ import { DebtorRecord, GSTComplianceItem, OfficeBillingEntry, StaffMember, Clien
 import { exportDebtorsAndGSTWorkbook } from '../utils/excelExport';
 import { closingOf, collectMonths, currentMonthKey, monthLabel, monthOf, recalcDebtor } from '../utils/debtors';
 import { DebtorWorkbookResult, parseDebtorWorkbookFile } from '../utils/debtorWorkbook';
-import {
-  Badge,
-  Button,
-  ConfirmDialog,
-  EmptyState,
-  Field,
-  IconButton,
-  Input,
-  Metric,
-  MetricGrid,
-  Modal,
-  PageHeader,
-  SearchInput,
-  Segmented,
-  Select,
-  TableCard,
-  Tabs,
-  Toolbar,
-  Tone,
-  cn,
-  formatDate,
-  formatINR,
-} from './ui';
+import { Badge, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Metric, MetricGrid, Modal, PageHeader, SearchInput, Segmented, Select, TableCard, Tabs, Toolbar, Tone, cn, formatDate, formatINR, Avatar, nameInitials } from './ui';
 
 interface DebtorsManagerProps {
   debtors: DebtorRecord[];
@@ -272,7 +250,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Debtors"
+        section="debtors" title="Debtors"
         description={latestMonth ? `Fees owed by clients, month by month · up to ${monthLabel(latestMonth)}` : 'Fees owed by clients, month by month'}
         actions={
           <>
@@ -450,12 +428,17 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
                       <tr key={d.id}>
                         <td className="num text-right text-fg-faint text-xs">{d.sNo}</td>
                         <td className="py-2">
-                          <button onClick={() => setStatementFor(d)} className="block max-w-xs truncate text-left font-medium text-fg hover:underline underline-offset-2">
-                            {d.clientName}
-                          </button>
-                          {(d.assignedStaff || d.entityType) && (
-                            <div className="text-xs text-fg-subtle mt-0.5">{[d.entityType, d.assignedStaff].filter(Boolean).join(' · ')}</div>
-                          )}
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Avatar initials={nameInitials(d.clientName)} seed={d.clientName} size="md" className="rounded-lg" />
+                            <div className="min-w-0">
+                              <button onClick={() => setStatementFor(d)} className="block max-w-xs truncate text-left font-medium text-fg hover:underline underline-offset-2">
+                                {d.clientName}
+                              </button>
+                              {(d.assignedStaff || d.entityType) && (
+                                <div className="text-xs text-fg-subtle mt-0.5">{[d.entityType, d.assignedStaff].filter(Boolean).join(' · ')}</div>
+                              )}
+                            </div>
+                          </div>
                         </td>
                         <td className="num text-right text-fg-muted whitespace-nowrap">{signedINR(m.opening)}</td>
                         <td className="num text-right text-fg whitespace-nowrap">{amt(m.received)}</td>

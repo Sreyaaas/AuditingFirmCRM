@@ -13,6 +13,7 @@
         try {
           var activeTheme = localStorage.getItem('crm-active-theme') || 'navy-light';
           document.documentElement.setAttribute('data-theme', activeTheme);
+          document.documentElement.setAttribute('data-accents', localStorage.getItem('crm-colour-accents') === 'off' ? 'off' : 'on');
           if (activeTheme.endsWith('-dark')) {
             document.documentElement.classList.add('dark');
           } else {

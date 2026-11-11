@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MessageSquare, MoreHorizontal, Plus } from 'lucide-react';
 import { Client, StaffMember } from '../types/crm';
 import { NewClientModal } from './NewClientModal';
-import { Avatar, Badge, Button, ConfirmDialog, EmptyState, IconButton, Menu, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, formatINR } from './ui';
+import { Avatar, Badge, Button, ConfirmDialog, EmptyState, IconButton, Menu, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, formatINR, nameInitials } from './ui';
 
 interface ClientDirectoryProps {
   clients: Client[];
@@ -77,7 +77,7 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Clients"
+        section="clients" title="Clients"
         description={`${clients.length} companies, firms and individuals`}
         actions={
           isAdmin &&
@@ -171,16 +171,21 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
               return (
                 <tr key={client.id}>
                   <td className="py-2">
-                    <button
-                      onClick={() => onSelectClient(client.id)}
-                      className="block max-w-xs truncate text-left font-medium text-fg hover:underline underline-offset-2"
-                    >
-                      {client.tradeName}
-                    </button>
-                    <div className="flex items-center gap-1.5 text-xs text-fg-subtle mt-0.5 min-w-0">
-                      <span className="ident text-2xs">{client.clientCode}</span>
-                      <span className="text-fg-faint">·</span>
-                      <span className="truncate">{client.name}</span>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar initials={nameInitials(client.name)} seed={client.name} size="md" className="rounded-lg" />
+                      <div className="min-w-0">
+                        <button
+                          onClick={() => onSelectClient(client.id)}
+                          className="block max-w-xs truncate text-left font-medium text-fg hover:underline underline-offset-2"
+                        >
+                          {client.tradeName}
+                        </button>
+                        <div className="flex items-center gap-1.5 text-xs text-fg-subtle mt-0.5 min-w-0">
+                          <span className="ident text-2xs">{client.clientCode}</span>
+                          <span className="text-fg-faint">·</span>
+                          <span className="truncate">{client.name}</span>
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td className="py-2 whitespace-nowrap">

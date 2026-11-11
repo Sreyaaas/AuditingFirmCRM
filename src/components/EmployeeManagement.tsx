@@ -130,7 +130,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Team"
+        section="employees" title="Team"
         description="Logins, roles and what each person can see"
         actions={
           <Button variant="primary" icon={Plus} onClick={openAdd}>

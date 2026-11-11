@@ -87,7 +87,7 @@ export const StaffTicketDesk: React.FC<StaffTicketDeskProps> = ({
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Calls & Tickets"
+        section="staff" title="Calls & Tickets"
         description="Log inbound client calls, assign an owner and record the resolution"
         actions={
           <Button variant="primary" icon={Plus} onClick={onOpenNewTicketModal}>
