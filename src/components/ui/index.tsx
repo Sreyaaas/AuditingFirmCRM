@@ -845,3 +845,38 @@ export const ConfirmDialog: React.FC<{
     {description && <p className="text-sm text-fg-muted">{description}</p>}
   </Modal>
 );
+
+/* ------------------------------------------------------------ BrandLogo */
+
+const LOGO_ALT = 'Shameer & Associates — Accountants and Practitioners';
+
+/** Logo heights per placement. The artwork is 426×161, so width follows automatically. */
+const logoHeights = {
+  sm: 'h-9', // 36px — compact bars (mobile header)
+  md: 'h-11', // 44px — sidebar brand bar (64px tall), 10px above and below
+  lg: 'h-16', // 64px — sign-in panel
+} as const;
+
+/**
+ * The firm's wordmark — one component so the logo is identical everywhere.
+ * Uses the navy artwork and turns it pure white on dark surfaces (dark themes,
+ * or `inverse` for dark panels in light themes), so it stays crisp and full-strength.
+ */
+export const BrandLogo: React.FC<{ size?: keyof typeof logoHeights; inverse?: boolean; className?: string }> = ({
+  size = 'md',
+  inverse = false,
+  className,
+}) => (
+  <span className={cn('inline-flex items-center min-w-0', className)}>
+    <img
+      src="/logo-light.png"
+      alt={LOGO_ALT}
+      draggable={false}
+      className={cn(
+        'w-auto max-w-full object-contain select-none',
+        logoHeights[size],
+        inverse ? 'brightness-0 invert dark:filter-none' : 'dark:brightness-0 dark:invert'
+      )}
+    />
+  </span>
+);

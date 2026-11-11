@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, [isUserMenuOpen, isThemeMenuOpen]);
 
   return (
-    <header className="h-14 px-4 sm:px-6 flex items-center gap-4 border-b border-line bg-canvas shrink-0 z-20">
+    <header className="h-16 px-4 sm:px-6 flex items-center gap-4 border-b border-line bg-canvas shrink-0 z-20">
       {/* Left — breadcrumb */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {onToggleMobileSidebar && (

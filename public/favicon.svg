@@ -1,15 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#111113"/>
-  <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none" stroke="#27272C" stroke-width="1"/>
-  <text 
-    x="15" 
-    y="22.5" 
-    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif" 
-    font-size="19" 
-    font-weight="700" 
-    fill="#F4F4F5" 
-    text-anchor="middle"
-    letter-spacing="-0.5"
-  >S</text>
-  <circle cx="23.5" cy="8.5" r="2" fill="#0066D6"/>
+  <!-- Shameer & Associates — monogram in the firm navy -->
+  <rect width="32" height="32" rx="7" fill="#1B365D"/>
+  <text x="16" y="20.5" font-family="'Open Sans', 'Segoe UI', Inter, system-ui, sans-serif" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.2">SA</text>
+  <rect x="8" y="23.5" width="16" height="1.4" rx="0.7" fill="#FFFFFF" opacity="0.75"/>
 </svg>

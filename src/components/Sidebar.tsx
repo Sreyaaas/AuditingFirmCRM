@@ -14,7 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { StaffMember, UserProfile } from '../types/crm';
-import { cn } from './ui';
+import { BrandLogo, cn } from './ui';
 
 interface SidebarProps {
   activeTab: string;
@@ -120,12 +120,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const content = (
     <div className="w-60 h-full bg-canvas border-r border-line flex flex-col select-none">
-      {/* Brand — h-14 to align with the header hairline */}
-      <div className="h-14 px-4 border-b border-line flex items-center justify-between shrink-0">
-        <div className="flex items-center min-w-0">
-          <img src="/logo-light.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain block dark:hidden max-w-[176px]" />
-          <img src="/logo-dark.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain hidden dark:block max-w-[176px]" />
-        </div>
+      {/* Brand — h-16 to align with the header hairline */}
+      <div className="h-16 px-4 border-b border-line flex items-center justify-between shrink-0">
+        <button
+          type="button"
+          onClick={() => select('dashboard')}
+          className="flex items-center min-w-0 rounded-sm -ml-0.5 focus-visible:ring-2 focus-visible:ring-accent/40"
+          aria-label="Go to Overview"
+          title="Overview"
+        >
+          <BrandLogo size="md" />
+        </button>
         {onCloseMobile && (
           <button
             onClick={onCloseMobile}

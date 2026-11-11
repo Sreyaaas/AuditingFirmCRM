@@ -8,7 +8,8 @@ const token = (name) => `rgb(var(--c-${name}) / <alpha-value>)`;
 
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
-  darkMode: ['class', '[data-theme="dark"]'],
+  // The app adds the 'dark' class to <html> for every dark theme (navy-dark, zinc-dark, …).
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {

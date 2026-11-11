@@ -173,6 +173,7 @@ Dropdown lists remain in `practice_configs`.
 * **WhatsApp:** the direct-chat button is labelled "Send to Client" (it opens the client's number, not the staff owner's).
 * **Menu:** selected item shows a check, not a dot.
 * **Design:** per-person avatar colours (`.av-0` … `.av-7`, stable by name, light/dark aware); KPI progress bars and a receivables ageing bar (`Metric` `progress` / `segments` props); time-of-day greeting; tinted due-date tiles (green done, red overdue, amber soon, accent later); "All caught up" state; accent-tinted active sidebar item and accent tab underline; split-screen login with a firm panel.
+* **Logo:** one `BrandLogo` component (src/components/ui) used in the sidebar (44px, in a 64px top bar), sign-in panel (64px) and mobile header (36px). It uses `logo-light.png` and turns it white on dark surfaces. Tailwind `darkMode` is now `class` so `dark:` follows every dark theme (it previously matched only a theme named exactly "dark", so dark themes showed the navy logo on navy). Favicon redrawn as an "SA" monogram in the firm navy.
 * **Tests:** test 7 uses the header theme picker; test 9 matches the portal menu.
 
 ## 7. Known gaps / next steps

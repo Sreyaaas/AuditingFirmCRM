@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Sun, Moon, ShieldAlert, CheckCircle2, RefreshCw, CalendarClock, Wallet, Users } from 'lucide-react';
 import { changePassword, sendPasswordReset, signIn, passwordProblem, MIN_PASSWORD_LENGTH } from '../services/authService';
-import { Button, Card, Field, IconButton, Input, cn } from './ui';
+import { BrandLogo, Button, Card, Field, IconButton, Input, cn } from './ui';
 
 interface ShellProps {
   theme: 'light' | 'dark';
@@ -19,15 +19,11 @@ const AuthShell: React.FC<ShellProps> = ({ theme, onToggleTheme, children }) => 
   <div className="min-h-screen bg-canvas text-fg flex">
     {/* Firm panel — solid theme ink, typography only */}
     <aside className="hidden lg:flex w-[44%] max-w-[560px] shrink-0 flex-col justify-between bg-ink text-ink-fg px-12 py-10">
-      <div className="flex items-center">
-        {/* Inverse logo: white on the dark panel in light themes, dark on the light panel in dark themes */}
-        <img src="/logo-dark.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-8 w-auto object-contain block dark:hidden max-w-[200px]" />
-        <img src="/logo-light.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-8 w-auto object-contain hidden dark:block max-w-[200px]" />
-      </div>
+      {/* Inverse logo: light artwork on the navy panel in light themes, dark artwork on the light panel in dark themes */}
+      <BrandLogo size="lg" inverse />
 
       <div className="max-w-sm">
-        <p className="text-2xs font-medium uppercase tracking-[0.14em] opacity-60">Accountants and Tax Practitioners</p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight leading-tight">Your clients, filings and fees — calmly in order.</h2>
+        <h2 className="text-3xl font-semibold tracking-tight leading-tight">Your clients, filings and fees — calmly in order.</h2>
         <ul className="mt-10 space-y-6">
           {HIGHLIGHTS.map(({ icon: Icon, title, text }) => (
             <li key={title} className="flex gap-3.5">
@@ -48,11 +44,8 @@ const AuthShell: React.FC<ShellProps> = ({ theme, onToggleTheme, children }) => 
 
     {/* Sign-in side */}
     <div className="flex-1 flex flex-col min-w-0">
-      <header className="h-14 px-6 flex items-center justify-between">
-        <div className="flex items-center lg:invisible">
-          <img src="/logo-light.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain block dark:hidden max-w-[180px]" />
-          <img src="/logo-dark.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain hidden dark:block max-w-[180px]" />
-        </div>
+      <header className="h-16 px-6 flex items-center justify-between">
+        <BrandLogo size="sm" className="lg:invisible" />
         <IconButton icon={theme === 'light' ? Moon : Sun} label="Toggle Theme" onClick={onToggleTheme} />
       </header>
       <main className="flex-1 flex items-center justify-center px-4 py-10">

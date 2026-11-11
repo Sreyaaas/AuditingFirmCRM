@@ -124,11 +124,11 @@ async function runTests() {
     try {
       const header = await driver.findElement(By.tagName('header'));
       const headerRect = await header.getRect();
-      if (headerRect.height >= 54 && headerRect.height <= 58) {
-        console.log(`[PASS] Test 6: Chrome baseline height aligned at 56px`);
+      if (headerRect.height >= 62 && headerRect.height <= 66) {
+        console.log(`[PASS] Test 6: Chrome baseline height aligned at 64px`);
         passed++;
       } else {
-        throw new Error(`Header height is ${headerRect.height}px, expected 56px`);
+        throw new Error(`Header height is ${headerRect.height}px, expected 64px`);
       }
     } catch (e) {
       console.error(`[FAIL] Test 6: Top chrome alignment failed - ${e.message}`);

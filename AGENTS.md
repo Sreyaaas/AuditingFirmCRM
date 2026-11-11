@@ -108,7 +108,7 @@ The CRM strictly supports 2 themes via `data-theme`:
 ## 6. Component Construction Rules
 
 ### Continuous Top Chrome Alignment (Sidebar Brand & Header)
-* Both the Sidebar Brand header and the main Header MUST share the EXACT same height: `h-14` (`56px`).
+* Both the Sidebar Brand header and the main Header MUST share the EXACT same height: `h-16` (`64px`). The sidebar logo is 44px tall (`BrandLogo size="md"`).
 * Both must use `border-b border-line` so the horizontal dividing line forms one unbroken, continuous hairline across the entire screen from left to right.
 * All controls in the top-right toolbar (Theme switch, Search bar, User profile button, `+ Add Task` CTA) must share an exact uniform height of `h-8` (`32px`) and `rounded-[6px]`.
 * Viewport root must be `h-screen w-screen overflow-hidden flex`, with vertical scrolling strictly contained within `<main className="flex-1 overflow-y-auto">`, preventing browser scrollbars from ever appearing adjacent to the top header chrome.
