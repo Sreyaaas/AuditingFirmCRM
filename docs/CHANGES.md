@@ -178,10 +178,23 @@ Dropdown lists remain in `practice_configs`.
 * **Colour accents toggle:** Settings → Appearance and the header theme menu have a "Colour accents" switch (everyone, per device). Stored in localStorage `crm-colour-accents` (`on`/`off`), applied as `html[data-accents]` by App.tsx and by the pre-paint script in index.html. When off, CSS in index.css turns every `.tx-N` / `.av-N` grey; status colours (success / warning / danger) are unaffected.
 * **Tests:** test 7 uses the header theme picker; test 9 matches the portal menu.
 
+## 6c. Monthly roll-over and backups (11 Nov 2026)
+* **Start next month (Debtors, admins only):** a "Start <Month>" button opens the next month on every
+  account. The previous closing balance becomes the opening balance; received and billed start at 0.
+  Allowed up to one month ahead of today. Logic: `startMonth()` in `utils/debtors.ts`; saved through
+  `importDebtorWorkbookToDb(records, [])` (matches accounts by client name, no billing rows touched).
+  Logged in the audit trail as "Debtor month started".
+* **Backup (Settings → Backup, admins only):** Download Excel (one sheet per dataset, debtor months
+  flattened, built by `utils/dataExport.ts`) or Download JSON. Files are generated in the browser and
+  saved to the user's Downloads folder; nothing is uploaded. Passwords are never included (they live only
+  in Supabase Auth). Each download is logged in the audit trail ("Backup downloaded", category Security).
+  The last download date is remembered per device (localStorage `crm-last-backup`) and a weekly copy
+  is suggested when it is over 7 days old. There is no restore-from-backup yet.
+
 ## 7. Known gaps / next steps
 * Bulk delete, and undo for deletes (use Archive when in doubt).
 * `src/utils/whatsapp.ts`: only `sendToGroup` is used; the other helpers are unused.
-* Monthly roll-over of debtor accounts (opening a new month without re-importing).
+* Restore from a backup file (backups can be downloaded but not uploaded back).
 * Clients, tasks and ITR rows still use the original `schema.sql` columns; tasks and ITR require
   a client selected from the Clients list.
 * GST returns are stored in the new `gst_returns` table but there is no "add GST return" form yet.

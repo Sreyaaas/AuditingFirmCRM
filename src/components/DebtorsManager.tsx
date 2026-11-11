@@ -1,8 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Download, MessageSquare, Plus, Upload, FileSpreadsheet, AlertTriangle, UserPlus } from 'lucide-react';
+import { Download, MessageSquare, Plus, Upload, FileSpreadsheet, AlertTriangle, UserPlus, CalendarPlus } from 'lucide-react';
 import { DebtorRecord, GSTComplianceItem, OfficeBillingEntry, StaffMember, Client, EntityType, DebtorMonth } from '../types/crm';
 import { exportDebtorsAndGSTWorkbook } from '../utils/excelExport';
-import { closingOf, collectMonths, currentMonthKey, monthLabel, monthOf, recalcDebtor } from '../utils/debtors';
+import { closingOf, collectMonths, currentMonthKey, monthLabel, monthOf, nextMonthKey, recalcDebtor } from '../utils/debtors';
 import { DebtorWorkbookResult, parseDebtorWorkbookFile } from '../utils/debtorWorkbook';
 import { Badge, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Metric, MetricGrid, Modal, PageHeader, SearchInput, Segmented, Select, TableCard, Tabs, Toolbar, Tone, cn, formatDate, formatINR, Avatar, nameInitials } from './ui';
 
@@ -24,6 +24,8 @@ interface DebtorsManagerProps {
   onImport: (result: DebtorWorkbookResult) => Promise<{ error?: string }>;
   /** Administrators only: permanently delete a fee account. */
   onDelete?: (debtorId: string) => void;
+  /** Administrators only: open the next month on every account, carrying balances forward. */
+  onStartMonth?: (monthKey: string) => Promise<{ error?: string }>;
 }
 
 type View = string; // a 'YYYY-MM' month, 'all' or 'register'
@@ -63,11 +65,26 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   onAddAccount,
   onImport,
   onDelete,
+  onStartMonth,
 }) => {
   const [confirmDelete, setConfirmDelete] = useState<DebtorRecord | null>(null);
   const months = useMemo(() => collectMonths(debtors), [debtors]);
   const latestMonth = months[months.length - 1];
   const [view, setView] = useState<View>(latestMonth || 'register');
+
+  // A new month can be opened up to one month ahead of today (so December can be
+  // started at the end of November), never further.
+  const nextMonth = latestMonth ? nextMonthKey(latestMonth) : null;
+  const canStartMonth = !!(onStartMonth && nextMonth && nextMonth <= nextMonthKey(currentMonthKey()));
+  const [confirmStart, setConfirmStart] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+  const runStartMonth = async () => {
+    if (!nextMonth || !onStartMonth) return;
+    setStartError(null);
+    const res = await onStartMonth(nextMonth);
+    if (res.error) setStartError(res.error);
+    else setView(nextMonth);
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [balanceFilter, setBalanceFilter] = useState<'all' | 'due' | 'cleared'>('all');
   const [registerPeriod, setRegisterPeriod] = useState<string>('all');
@@ -257,6 +274,11 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
             {canEdit && onAddAccount && (
               <Button icon={Plus} onClick={() => { setAddAccountError(null); setIsAddAccountOpen(true); }}>
                 Add Account
+              </Button>
+            )}
+            {canStartMonth && (
+              <Button icon={CalendarPlus} onClick={() => setConfirmStart(true)}>
+                Start {monthLabel(nextMonth!)}
               </Button>
             )}
             {canImport && (
@@ -966,6 +988,23 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
           </div>
         </form>
       </Modal>
+
+      {startError && (
+        <div role="alert" className="text-sm text-danger">Could not start the month: {startError}</div>
+      )}
+
+      <ConfirmDialog
+        isOpen={confirmStart}
+        onClose={() => setConfirmStart(false)}
+        title={nextMonth ? `Start ${monthLabel(nextMonth)}?` : 'Start next month?'}
+        description={
+          nextMonth && latestMonth
+            ? `Each of the ${debtors.length} accounts gets a ${monthLabel(nextMonth)} column. The ${monthLabel(latestMonth)} closing balance becomes the opening balance, with nothing received or billed yet. ${monthLabel(latestMonth)} stays as it is.`
+            : undefined
+        }
+        confirmLabel={nextMonth ? `Start ${monthLabel(nextMonth, true)}` : 'Start'}
+        onConfirm={runStartMonth}
+      />
 
       <ConfirmDialog
         isOpen={!!confirmDelete}

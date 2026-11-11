@@ -94,3 +94,11 @@ export const applyBilling = (record: DebtorRecord, amount: number, key?: string)
     months: withMonth.months.map((m) => (m.month === target ? { ...m, billed: m.billed + amount } : m)),
   });
 };
+
+/**
+ * Opens `key` on every account: the previous closing balance becomes the opening
+ * balance, with nothing received or billed yet. Accounts that already have the month
+ * are left as they are.
+ */
+export const startMonth = (records: DebtorRecord[], key: string): DebtorRecord[] =>
+  records.map((r) => (r.months.some((m) => m.month === key) ? r : recalcDebtor(ensureMonth(r, key))));

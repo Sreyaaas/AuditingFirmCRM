@@ -83,7 +83,7 @@ import {
   saveStoredFirmProfile,
   saveStoredWhatsAppTemplates,
 } from './services/firmConfigService';
-import { applyBilling, applyPayment, currentMonthKey } from './utils/debtors';
+import { applyBilling, applyPayment, currentMonthKey, monthLabel, startMonth } from './utils/debtors';
 import type { DebtorWorkbookResult } from './utils/debtorWorkbook';
 
 import {
@@ -672,6 +672,17 @@ export function App() {
     if (!LOCAL_MODE) setDebtors(await fetchDebtorsFromDb());
   };
 
+  const handleStartDebtorMonth = async (key: string): Promise<{ error?: string }> => {
+    if (!isAdmin) return { error: 'Only administrators can start a new month.' };
+    const rolled = startMonth(debtors, key);
+    const res = await importDebtorWorkbookToDb(rolled, []);
+    if (res.error) return { error: res.error };
+    setDebtors(res.debtors);
+    showToast(`${monthLabel(key)} started for ${rolled.length} accounts`);
+    addActivityLog('Debtor month started', `${monthLabel(key)} opened for ${rolled.length} accounts, balances carried forward`, undefined, 'Payment');
+    return {};
+  };
+
   const handleImportDebtors = async (result: DebtorWorkbookResult): Promise<{ error?: string }> => {
     const res = await importDebtorWorkbookToDb(result.records, result.billings);
     if (res.error) return { error: res.error };
@@ -901,6 +912,7 @@ export function App() {
                   onAddAccount={canEditFees ? handleAddDebtorAccount : undefined}
                   onDelete={isAdmin ? handleDeleteDebtor : undefined}
                   onImport={handleImportDebtors}
+                  onStartMonth={isAdmin ? handleStartDebtorMonth : undefined}
                 />
               ) : (
                 restricted('Fee accounts are visible to administrators and staff given fee access.')
@@ -981,6 +993,7 @@ export function App() {
                     profiles={profiles}
                     tickets={tickets}
                     activityLogs={activityLogs}
+                    onBackupDownloaded={(format) => addActivityLog('Backup downloaded', `Full data backup (${format})`, undefined, 'Security')}
                   />
                 </div>
               ) : (

@@ -11,6 +11,9 @@ import { ActivityLog, Client, DebtorRecord, GSTComplianceItem, ITRFiling, Monthl
 import { LIGHT_THEMES, DARK_THEMES } from '../types/themes';
 import { Button, Card, CardHeader, Field, IconButton, Input, Label, Metric, MetricGrid, Segmented, Select, Textarea, cn } from './ui';
 import { Toggle } from './EmployeeManagement';
+import { debtorSheets, downloadExcelBackup } from '../utils/dataExport';
+
+const LAST_BACKUP_KEY = 'crm-last-backup';
 
 type SaveResult = { error?: string };
 
@@ -40,6 +43,8 @@ interface PracticeConfigManagerProps {
   profiles?: UserProfile[];
   tickets?: StaffTicket[];
   activityLogs?: ActivityLog[];
+  /** Records the download in the audit trail. */
+  onBackupDownloaded?: (format: 'Excel' | 'JSON') => void;
 }
 
 type Section = 'general' | 'security' | 'lists' | 'templates' | 'firm' | 'backup' | 'appearance';
@@ -98,6 +103,7 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
   profiles = [],
   tickets = [],
   activityLogs = [],
+  onBackupDownloaded,
 }) => {
   const [section, setSection] = useState<Section>('general');
 
@@ -224,6 +230,57 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
 
   // -------------------------------------------------- backup
   const [backupMsg, showBackupMsg] = useFeedback();
+  const [lastBackup, setLastBackup] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(LAST_BACKUP_KEY);
+    } catch {
+      return null;
+    }
+  });
+  const backupDone = (format: 'Excel' | 'JSON', size?: number) => {
+    const now = new Date().toISOString();
+    try {
+      localStorage.setItem(LAST_BACKUP_KEY, now);
+    } catch {
+      /* private window: nothing to remember */
+    }
+    setLastBackup(now);
+    onBackupDownloaded?.(format);
+    showBackupMsg(size ? `Downloaded (${(size / 1024).toFixed(0)} KB)` : 'Downloaded');
+  };
+  const backupAgeDays = lastBackup ? Math.floor((Date.now() - new Date(lastBackup).getTime()) / 86400000) : null;
+  const backupTeam = () =>
+    profiles.map(({ id, name, email, role, designation, phone, status, canAccessFinancials, canEditPayments }) => ({
+      id,
+      name,
+      email,
+      role,
+      designation,
+      phone,
+      status,
+      canAccessFinancials,
+      canEditPayments,
+    }));
+  const downloadExcel = () => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const d = debtorSheets(debtors);
+    downloadExcelBackup(
+      [
+        { name: 'Clients', rows: clients as any[] },
+        { name: 'GST & Audit', rows: monthlyTasks as any[] },
+        { name: 'ITR returns', rows: itrFilings as any[] },
+        { name: 'GST returns', rows: gstReturns as any[] },
+        { name: 'Debtor accounts', rows: d.accounts },
+        { name: 'Debtor months', rows: d.months },
+        { name: 'Billing register', rows: billings as any[] },
+        { name: 'Calls', rows: tickets as any[] },
+        { name: 'Team', rows: backupTeam() },
+        { name: 'Audit trail', rows: activityLogs as any[] },
+      ],
+      `shameer-associates-backup-${stamp}.xlsx`
+    );
+    backupDone('Excel');
+  };
   const downloadBackup = () => {
     const stamp = new Date().toISOString().slice(0, 10);
     const data = {
@@ -236,17 +293,7 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
       gstReturns,
       debtors,
       billings,
-      team: profiles.map(({ id, name, email, role, designation, phone, status, canAccessFinancials, canEditPayments }) => ({
-        id,
-        name,
-        email,
-        role,
-        designation,
-        phone,
-        status,
-        canAccessFinancials,
-        canEditPayments,
-      })),
+      team: backupTeam(),
       calls: tickets,
       auditTrail: activityLogs,
     };
@@ -259,7 +306,7 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    showBackupMsg(`Downloaded (${(blob.size / 1024).toFixed(0)} KB)`);
+    backupDone('JSON', blob.size);
   };
 
   const sections: { key: Section; label: string; icon: typeof Settings2 }[] = [
@@ -530,10 +577,16 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
 
         {section === 'backup' && (
           <Card>
-            <CardHeader title="Backup" description="Download everything as one JSON file" />
+            <CardHeader title="Backup" description="Download a full copy of the firm's data" />
             <div className="p-4 space-y-4">
               <p className="text-sm text-fg-muted max-w-2xl">
-                Includes clients, filings, GST returns, debtors, the billing register, calls, the audit trail and all settings. Passwords are never included.
+                Includes clients, filings, GST returns, debtors, the billing register, calls, the team list and the audit trail. Passwords are never included.
+                The file is created on this computer and goes straight to your Downloads folder; nothing is sent anywhere. Each download is noted in the audit trail.
+              </p>
+              <p className={cn('text-sm', backupAgeDays === null || backupAgeDays > 7 ? 'text-warning' : 'text-fg-muted')}>
+                {lastBackup
+                  ? `Last downloaded on this computer: ${new Date(lastBackup).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}${backupAgeDays && backupAgeDays > 7 ? ` (${backupAgeDays} days ago). A weekly copy is recommended.` : ''}`
+                  : 'No backup downloaded on this computer yet. A weekly copy is recommended.'}
               </p>
               <MetricGrid className="grid-cols-2 sm:grid-cols-4 shadow-none">
                 <Metric label="Clients" value={clients.length} className="py-3" />
@@ -543,11 +596,14 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
               </MetricGrid>
             </div>
             <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-line">
-              <span className="text-xs text-fg-subtle">Contains client tax IDs and fee balances. Store it securely.</span>
+              <span className="text-xs text-fg-subtle">Contains client tax IDs and fee balances. Keep it on an office drive, not personal email or chat.</span>
               <div className="flex items-center gap-3">
                 {backupMsg && <Saved>{backupMsg.text}</Saved>}
-                <Button variant="primary" icon={Download} onClick={downloadBackup}>
-                  Download Backup
+                <Button icon={Download} onClick={downloadBackup}>
+                  Download JSON
+                </Button>
+                <Button variant="primary" icon={Download} onClick={downloadExcel}>
+                  Download Excel
                 </Button>
               </div>
             </div>
