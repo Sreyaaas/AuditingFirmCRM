@@ -135,20 +135,25 @@ async function runTests() {
       failed++;
     }
 
-    // TEST 7: Theme Switcher (Light Minimal <-> Dark)
+    // TEST 7: Theme picker (header palette menu)
     try {
-      const themeBtn = await driver.findElement(By.css('button[title*="Mode"]'));
-      await themeBtn.click();
-      await driver.sleep(300);
-
       const html = await driver.findElement(By.tagName('html'));
-      const themeAttr = await html.getAttribute('data-theme');
-      console.log(`[PASS] Test 7: Theme switched dynamically to [${themeAttr}]`);
+      const original = await html.getAttribute('data-theme');
+      const pick = async (name) => {
+        await driver.findElement(By.css('button[aria-label="Select workspace theme"]')).click();
+        await driver.sleep(300);
+        await driver.findElement(By.xpath(`//header//button[contains(., '${name}')]`)).click();
+        await driver.sleep(300);
+      };
+      await pick('Midnight Zinc');
+      const darkAttr = await html.getAttribute('data-theme');
+      if (!darkAttr || !darkAttr.endsWith('-dark')) throw new Error(`Expected a dark theme, got ${darkAttr}`);
+      await pick('Firm Signature');
+      const restored = await html.getAttribute('data-theme');
+      console.log(`[PASS] Test 7: Theme switched ${original} → ${darkAttr} → ${restored}`);
       passed++;
-
-      await themeBtn.click();
     } catch (e) {
-      console.error(`[FAIL] Test 7: Theme toggle failed - ${e.message}`);
+      console.error(`[FAIL] Test 7: Theme picker failed - ${e.message}`);
       failed++;
     }
 
@@ -183,7 +188,7 @@ async function runTests() {
       await statusBtn.click();
       await driver.sleep(300);
 
-      const filedOption = await driver.findElement(By.xpath("//div[contains(@class, 'absolute')]//button[contains(., 'Filed')]"));
+      const filedOption = await driver.findElement(By.xpath("//div[contains(@class, 'absolute') or contains(@class, 'fixed')]//button[normalize-space(.)='Filed']"));
       await filedOption.click();
       await driver.sleep(400);
 

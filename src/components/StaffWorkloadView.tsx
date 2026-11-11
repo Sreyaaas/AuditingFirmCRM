@@ -35,7 +35,7 @@ export const StaffWorkloadView: React.FC<StaffWorkloadViewProps> = ({ staffList,
             <tr key={staff.id}>
               <td className="py-2">
                 <div className="flex items-center gap-2.5">
-                  <Avatar initials={staff.initials} size="sm" />
+                  <Avatar initials={staff.initials} seed={staff.name} size="sm" />
                   <div className="min-w-0">
                     <div className="font-medium text-fg">{staff.name}</div>
                     <div className="text-xs text-fg-subtle truncate">{staff.role}</div>

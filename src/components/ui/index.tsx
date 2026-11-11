@@ -6,7 +6,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { X, Search, type LucideIcon } from 'lucide-react';
+import { X, Search, Check, type LucideIcon } from 'lucide-react';
 
 export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
@@ -222,16 +222,25 @@ export const statusTone = (status?: string | null): Tone => {
 
 /* ------------------------------------------------------------- Avatar */
 
-export const Avatar: React.FC<{ initials: string; size?: 'xs' | 'sm' | 'md'; className?: string; title?: string }> = ({
+const avatarHue = (seed: string) => {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return `av-${h % 8}`;
+};
+
+export const Avatar: React.FC<{ initials: string; size?: 'xs' | 'sm' | 'md' | 'lg'; className?: string; title?: string; seed?: string }> = ({
   initials,
   size = 'sm',
   className,
   title,
+  seed,
 }) => (
   <span
     title={title}
     className={cn(
-      'inline-flex items-center justify-center rounded-full bg-muted text-fg-muted font-medium shrink-0 select-none',
+      'inline-flex items-center justify-center rounded-full font-semibold shrink-0 select-none',
+      avatarHue((seed || initials || '?').trim().toLowerCase()),
+      size === 'lg' && 'w-10 h-10 text-sm',
       size === 'xs' && 'w-5 h-5 text-[10px]',
       size === 'sm' && 'w-6 h-6 text-2xs',
       size === 'md' && 'w-8 h-8 text-xs',
@@ -306,15 +315,28 @@ export interface MetricProps {
   tone?: Tone;
   onClick?: () => void;
   className?: string;
+  /** Thin progress bar, 0–100. */
+  progress?: { value: number; tone?: Tone };
+  /** Stacked bar, e.g. receivables by age. Values are relative. */
+  segments?: { value: number; tone: Tone; label: string }[];
 }
 
-export const Metric: React.FC<MetricProps> = ({ label, value, hint, tone, onClick, className }) => {
+const barTone: Record<Tone, string> = {
+  neutral: 'bg-fg-faint',
+  info: 'bg-accent',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
+};
+
+export const Metric: React.FC<MetricProps> = ({ label, value, hint, tone, onClick, className, progress, segments }) => {
+  const segTotal = segments?.reduce((a, s) => a + Math.max(0, s.value), 0) || 0;
   const Comp: any = onClick ? 'button' : 'div';
   return (
     <Comp
       onClick={onClick}
       className={cn(
-        'text-left bg-surface px-4 py-3.5 min-w-0',
+        'text-left bg-surface px-4 py-3.5 min-w-0 flex flex-col justify-start items-stretch',
         onClick && 'transition-colors hover:bg-subtle focus-visible:z-10',
         className
       )}
@@ -323,6 +345,28 @@ export const Metric: React.FC<MetricProps> = ({ label, value, hint, tone, onClic
       <div className="mt-2 text-[22px] font-semibold text-fg num tracking-[-0.02em] leading-none">{value}</div>
       {hint && (
         <div className={cn('mt-2 text-xs truncate', tone === 'danger' || tone === 'warning' ? toneText[tone] : 'text-fg-subtle')}>{hint}</div>
+      )}
+      {progress && (
+        <div className="mt-3 h-1 w-full rounded-full bg-muted overflow-hidden" role="presentation">
+          <div
+            className={cn('h-full rounded-full transition-[width] duration-500', barTone[progress.tone || 'info'])}
+            style={{ width: `${Math.max(0, Math.min(100, progress.value))}%` }}
+          />
+        </div>
+      )}
+      {segments && segTotal > 0 && (
+        <div className="mt-3 flex h-1 w-full gap-px rounded-full overflow-hidden bg-muted" role="presentation">
+          {segments
+            .filter((s) => s.value > 0)
+            .map((s) => (
+              <div
+                key={s.label}
+                title={`${s.label}: ${Math.round((s.value / segTotal) * 100)}%`}
+                className={cn('h-full', barTone[s.tone])}
+                style={{ width: `${(s.value / segTotal) * 100}%` }}
+              />
+            ))}
+        </div>
       )}
     </Comp>
   );
@@ -406,7 +450,7 @@ export function Tabs<T extends string>({
           >
             {o.label}
             {o.count !== undefined && <span className="num text-2xs text-fg-faint">{o.count}</span>}
-            {active && <span className="absolute left-0 right-0 -bottom-px h-[1.5px] bg-fg rounded-full" />}
+            {active && <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-accent rounded-full" />}
           </button>
         );
       })}
@@ -564,7 +608,7 @@ export const DescriptionList: React.FC<{
 export const Progress: React.FC<{ value: number; tone?: Tone; className?: string }> = ({ value, tone = 'neutral', className }) => (
   <div className={cn('h-1 w-full rounded-full bg-muted overflow-hidden', className)}>
     <div
-      className={cn('h-full rounded-full transition-[width] duration-300', tone === 'neutral' ? 'bg-fg' : toneDot[tone])}
+      className={cn('h-full rounded-full transition-[width] duration-300', tone === 'neutral' ? 'bg-accent' : toneDot[tone])}
       style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
     />
   </div>
@@ -723,7 +767,7 @@ export const Menu: React.FC<{
                   >
                     {Icon && <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />}
                     <span className="flex-1 truncate">{it.label}</span>
-                    {it.selected && <span className="w-1.5 h-1.5 rounded-full bg-fg shrink-0" />}
+                    {it.selected && <Check className="w-3.5 h-3.5 shrink-0 text-fg" strokeWidth={2} />}
                   </button>
                 );
               })}

@@ -165,8 +165,19 @@ Dropdown lists remain in `practice_configs`.
 * Enforced twice: the UI only receives the `onDelete` / `onArchive` props for admins, and the database policies allow DELETE only for `is_admin()`. A delete that affects 0 rows is reported as an error.
 * Every delete or archive is written to the audit trail.
 
+## 6b. Review fixes and design pass (11 Nov 2026)
+* **Live app shows real data only.** Sample rows appear only when no database is configured. Empty or failed loads in connected mode return an empty list (with empty states), never sample rows, because edits to sample rows cannot be saved.
+* **Sign-out clears cached firm data** from the browser (`clearLocalDataCache`), keeping only theme and settings caches. Important on shared office PCs.
+* **Add debtor account:** the opening balance is stored as a single month entry, so recalculation no longer resets it to ₹0; after saving, debtors are reloaded so the row carries its database id (prevents a duplicate-insert error on the next payment); duplicate client names are refused.
+* **Overview:** past due dates show "N days overdue" (previously "Due today"); overdue tasks show "Nd overdue" (previously "Due in -Nd"); day counts use the start of today.
+* **WhatsApp:** the direct-chat button is labelled "Send to Client" (it opens the client's number, not the staff owner's).
+* **Menu:** selected item shows a check, not a dot.
+* **Design:** per-person avatar colours (`.av-0` … `.av-7`, stable by name, light/dark aware); KPI progress bars and a receivables ageing bar (`Metric` `progress` / `segments` props); time-of-day greeting; tinted due-date tiles (green done, red overdue, amber soon, accent later); "All caught up" state; accent-tinted active sidebar item and accent tab underline; split-screen login with a firm panel.
+* **Tests:** test 7 uses the header theme picker; test 9 matches the portal menu.
+
 ## 7. Known gaps / next steps
 * Bulk delete, and undo for deletes (use Archive when in doubt).
+* `src/utils/whatsapp.ts`: only `sendToGroup` is used; the other helpers are unused.
 * Monthly roll-over of debtor accounts (opening a new month without re-importing).
 * Clients, tasks and ITR rows still use the original `schema.sql` columns; tasks and ITR require
   a client selected from the Clients list.

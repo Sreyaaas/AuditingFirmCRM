@@ -262,9 +262,9 @@ Shameer & Associates`,
             icon={Send}
             onClick={handleOpenWhatsApp}
             disabled={!phone || !message.trim()}
-            title={!phone ? 'No phone number available' : 'Send direct message'}
+            title={!phone ? 'No phone number for this client' : 'Open a chat with the client'}
           >
-            Send to Owner
+            Send to Client
           </Button>
         </>
       }

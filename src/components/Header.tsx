@@ -198,7 +198,7 @@ export const Header: React.FC<HeaderProps> = ({
               isUserMenuOpen && 'bg-hover'
             )}
           >
-            <Avatar initials={initialsOf(currentUser.name)} size="sm" />
+            <Avatar initials={initialsOf(currentUser.name)} seed={currentUser.name} size="sm" />
             <span className="hidden sm:inline truncate max-w-[120px]">{currentUser.name}</span>
             <ChevronDown className="w-3.5 h-3.5 text-fg-subtle" strokeWidth={1.75} />
           </button>
@@ -208,7 +208,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
               <div className="absolute right-0 mt-1.5 w-64 bg-surface rounded-lg shadow-pop z-50 p-1 animate-pop-in" onClick={(e) => e.stopPropagation()}>
                 <div className="px-2.5 py-2.5 flex items-center gap-2.5">
-                  <Avatar initials={initialsOf(currentUser.name)} size="md" />
+                  <Avatar initials={initialsOf(currentUser.name)} seed={currentUser.name} size="md" />
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-fg truncate">{currentUser.name}</div>
                     <div className="text-xs text-fg-subtle truncate">{currentUser.email}</div>

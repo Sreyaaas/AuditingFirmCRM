@@ -216,7 +216,7 @@ export const StaffTicketDesk: React.FC<StaffTicketDeskProps> = ({
                         </Button>
                       ) : (
                         <div className="flex items-center gap-1.5">
-                          {assignedTo && <Avatar initials={assignedTo.initials} size="xs" />}
+                          {assignedTo && <Avatar initials={assignedTo.initials} seed={assignedTo.name} size="xs" />}
                           <Select
                             value={ticket.assignedStaffId || ''}
                             onChange={(e) => onAssignToStaff(ticket.id, e.target.value)}

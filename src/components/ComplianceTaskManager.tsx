@@ -338,7 +338,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                     <td className="text-fg whitespace-nowrap">{task.filingType}</td>
                     <td>
                       <div className="flex items-center gap-2 whitespace-nowrap">
-                        {staff && <Avatar initials={staff.initials} size="xs" />}
+                        {staff && <Avatar initials={staff.initials} seed={staff.name} size="xs" />}
                         <span className={staff ? 'text-fg' : 'text-fg-faint'}>{staff?.name || 'Unassigned'}</span>
                       </div>
                     </td>

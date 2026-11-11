@@ -57,6 +57,7 @@ import {
   updateTicketInDb,
   fetchActivityLogsFromDb,
   saveActivityLogToDb,
+  clearLocalDataCache,
   DEFAULT_PRACTICE_CONFIGS,
 } from './services/dbSyncService';
 import { isSupabaseConfigured } from './services/supabaseClient';
@@ -112,9 +113,9 @@ import type {
   UserProfile,
 } from './types/crm';
 
-/** In local mode or before remote tables are populated, the app runs on sample records. */
+/** Sample records are used only when no database is configured (local preview). */
 const LOCAL_MODE = !isSupabaseConfigured();
-const seed = <T,>(sample: T[]): T[] => sample;
+const seed = <T,>(sample: T[]): T[] => (LOCAL_MODE ? sample : []);
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -215,15 +216,15 @@ export function App() {
         loadRemoteSettings(),
       ]);
       setPracticeConfigs(cfg);
-      setClients(cl.length > 0 ? cl : SAMPLE_CLIENTS);
-      setMonthlyTasks(tk.length > 0 ? tk : SAMPLE_TASKS);
-      setProfiles(pr.length > 0 ? pr : SAMPLE_PROFILES);
-      setItrFilings(itr.length > 0 ? itr : SAMPLE_ITR);
-      setDebtors(deb.length > 0 ? deb : SAMPLE_DEBTORS);
-      setBillings(bil.length > 0 ? bil : SAMPLE_BILLINGS);
-      setGstCompliance((gst.length > 0 ? gst : SAMPLE_GST_RETURNS).map((i) => withGstPriority(i, settings.preferences.dueSoonDays)));
-      setTickets(tix.length > 0 ? tix : SAMPLE_TICKETS);
-      setActivityLogs(logs.length > 0 ? logs : SAMPLE_ACTIVITY_LOGS);
+      setClients(cl);
+      setMonthlyTasks(tk);
+      setProfiles(pr);
+      setItrFilings(itr);
+      setDebtors(deb);
+      setBillings(bil);
+      setGstCompliance(gst.map((i) => withGstPriority(i, settings.preferences.dueSoonDays)));
+      setTickets(tix);
+      setActivityLogs(logs);
       setPreferences(settings.preferences);
       setFirmProfile(settings.firmProfile);
       setTemplates(settings.templates);
@@ -325,6 +326,7 @@ export function App() {
   const handleLogout = useCallback(async () => {
     addActivityLog('Signed out', 'Session ended', undefined, 'Security');
     await signOut();
+    if (!LOCAL_MODE) clearLocalDataCache();
     setSession(null);
     setActiveTab('dashboard');
     setProfiles([]);
@@ -660,7 +662,8 @@ export function App() {
     showToast(`${newDebtor.clientName} added to debtors`);
     addActivityLog('Debtor added', `${newDebtor.clientName} (opening balance ₹${newDebtor.currentBalance.toLocaleString('en-IN')})`, newDebtor.clientName, 'Payment');
     const res = await saveDebtorToDb(newDebtor);
-    if (res.error) showToast(`Debtor was not saved: ${res.error}`, true);
+    if (res.error) return showToast(`Debtor was not saved: ${res.error}`, true);
+    if (!LOCAL_MODE) setDebtors(await fetchDebtorsFromDb());
   };
 
   const handleImportDebtors = async (result: DebtorWorkbookResult): Promise<{ error?: string }> => {
@@ -774,7 +777,7 @@ export function App() {
             {activeStaffFilter && (
               <div className="flex items-center justify-between gap-3 h-10 pl-2 pr-1.5 rounded-lg border border-line bg-surface text-sm shadow-xs">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Avatar initials={activeStaffFilter.initials} size="xs" />
+                  <Avatar initials={activeStaffFilter.initials} seed={activeStaffFilter.name} size="xs" />
                   <span className="text-fg-subtle">Showing work for</span>
                   <span className="font-medium text-fg truncate">{activeStaffFilter.name}</span>
                 </div>

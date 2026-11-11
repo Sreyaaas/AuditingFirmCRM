@@ -247,9 +247,9 @@ export const fetchProfilesFromDb = async (): Promise<UserProfile[]> => {
       .select('*')
       .order('name', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      if (error) console.error('Load failed (shameer_crm_profiles_local):', error?.message);
-      return readLocalListOrSeed('shameer_crm_profiles_local', SAMPLE_PROFILES);
+    if (error || !data) {
+      console.error('Load failed (shameer_crm_profiles_local):', error?.message);
+      return [];
     }
 
     const mapped: UserProfile[] = data.map((row: any) => ({
@@ -274,7 +274,7 @@ export const fetchProfilesFromDb = async (): Promise<UserProfile[]> => {
     return mapped;
   } catch (err) {
     console.error('Fetch profiles error:', err);
-    return readLocalListOrSeed('shameer_crm_profiles_local', SAMPLE_PROFILES);
+    return [];
   }
 };
 
@@ -359,9 +359,9 @@ export const fetchClientsFromDb = async (): Promise<Client[]> => {
       .select('*')
       .order('client_code', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      if (error) console.error('Load failed (shameer_crm_clients_local):', error?.message);
-      return readLocalListOrSeed('shameer_crm_clients_local', SAMPLE_CLIENTS);
+    if (error || !data) {
+      console.error('Load failed (shameer_crm_clients_local):', error?.message);
+      return [];
     }
 
     const mapped: Client[] = data.map((row: any) => ({
@@ -388,7 +388,7 @@ export const fetchClientsFromDb = async (): Promise<Client[]> => {
     return mapped;
   } catch (err) {
     console.error('Fetch clients error:', err);
-    return readLocalListOrSeed('shameer_crm_clients_local', SAMPLE_CLIENTS);
+    return [];
   }
 };
 
@@ -484,9 +484,9 @@ export const fetchTasksFromDb = async (): Promise<MonthlyTask[]> => {
       .select('*, clients(name, trade_name, gstin)')
       .order('due_date', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      if (error) console.error('Load failed (tasks):', error?.message);
-      return readLocalListOrSeed(TASKS_LOCAL_KEY, SAMPLE_TASKS);
+    if (error || !data) {
+      console.error('Load failed (tasks):', error?.message);
+      return [];
     }
 
     const mapped: MonthlyTask[] = data.map((t: any) => ({
@@ -514,7 +514,7 @@ export const fetchTasksFromDb = async (): Promise<MonthlyTask[]> => {
     return mapped;
   } catch (err) {
     console.error('Fetch tasks error:', err);
-    return readLocalListOrSeed(TASKS_LOCAL_KEY, SAMPLE_TASKS);
+    return [];
   }
 };
 
@@ -608,9 +608,9 @@ export const fetchItrFilingsFromDb = async (): Promise<ITRFiling[]> => {
       .select('*, clients(name, trade_name, entity_type)')
       .order('due_date', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      if (error) console.error('Load failed (itr_filings):', error?.message);
-      return readLocalListOrSeed('shameer_crm_itr_filings_v2', SAMPLE_ITR);
+    if (error || !data) {
+      console.error('Load failed (itr_filings):', error?.message);
+      return [];
     }
 
     const mapped: ITRFiling[] = data.map((row: any) => ({
@@ -636,7 +636,7 @@ export const fetchItrFilingsFromDb = async (): Promise<ITRFiling[]> => {
     return mapped;
   } catch (err) {
     console.error('Fetch ITR error:', err);
-    return readLocalListOrSeed('shameer_crm_itr_filings_v2', SAMPLE_ITR);
+    return [];
   }
 };
 
@@ -757,9 +757,9 @@ export const fetchDebtorsFromDb = async (): Promise<DebtorRecord[]> => {
 
   try {
     const { data, error } = await supabase.from('debtor_records').select('*').order('s_no', { ascending: true, nullsFirst: false });
-    if (error || !data || data.length === 0) {
-      if (error) console.error('Load failed (debtor_records):', error?.message);
-      return readLocalList(DEBTORS_LOCAL_KEY, SAMPLE_DEBTORS);
+    if (error || !data) {
+      console.error('Load failed (debtor_records):', error?.message);
+      return [];
     }
     return data.map((row: any, idx: number) =>
       recalcDebtor({
@@ -778,7 +778,7 @@ export const fetchDebtorsFromDb = async (): Promise<DebtorRecord[]> => {
     );
   } catch (err) {
     console.error('Fetch debtors error:', err);
-    return readLocalList(DEBTORS_LOCAL_KEY, SAMPLE_DEBTORS);
+    return [];
   }
 };
 
@@ -875,9 +875,9 @@ export const fetchBillingsFromDb = async (): Promise<OfficeBillingEntry[]> => {
   if (!isSupabaseConfigured()) return readLocalList(BILLINGS_LOCAL_KEY, SAMPLE_BILLINGS);
   try {
     const { data, error } = await supabase.from('office_billings').select('*').order('period', { ascending: false }).order('serial_no', { ascending: true });
-    if (error || !data || data.length === 0) {
-      if (error) console.error('Load failed (office_billings):', error?.message);
-      return readLocalList(BILLINGS_LOCAL_KEY, SAMPLE_BILLINGS);
+    if (error || !data) {
+      console.error('Load failed (office_billings):', error?.message);
+      return [];
     }
     return data.map((r: any) => ({
       id: r.id,
@@ -897,7 +897,7 @@ export const fetchBillingsFromDb = async (): Promise<OfficeBillingEntry[]> => {
     }));
   } catch (err) {
     console.error('Fetch billings error:', err);
-    return readLocalList(BILLINGS_LOCAL_KEY, SAMPLE_BILLINGS);
+    return [];
   }
 };
 
@@ -944,9 +944,9 @@ export const fetchGstReturnsFromDb = async (): Promise<GSTComplianceItem[]> => {
   if (!isSupabaseConfigured()) return readLocalList(GST_LOCAL_KEY, SAMPLE_GST_RETURNS).map((i) => withGstPriority(i));
   try {
     const { data, error } = await supabase.from('gst_returns').select('*').order('due_date', { ascending: true });
-    if (error || !data || data.length === 0) {
-      if (error) console.error('Load failed (gst_returns):', error?.message);
-      return readLocalList(GST_LOCAL_KEY, SAMPLE_GST_RETURNS).map((i) => withGstPriority(i));
+    if (error || !data) {
+      console.error('Load failed (gst_returns):', error?.message);
+      return [];
     }
     return data.map((r: any) =>
       withGstPriority({
@@ -969,7 +969,7 @@ export const fetchGstReturnsFromDb = async (): Promise<GSTComplianceItem[]> => {
     );
   } catch (err) {
     console.error('Fetch GST returns error:', err);
-    return readLocalList(GST_LOCAL_KEY, SAMPLE_GST_RETURNS).map((i) => withGstPriority(i));
+    return [];
   }
 };
 
@@ -1002,9 +1002,9 @@ export const fetchTicketsFromDb = async (): Promise<StaffTicket[]> => {
       .select('*, clients(trade_name)')
       .order('created_at', { ascending: false });
 
-    if (error || !data || data.length === 0) {
-      if (error) console.error('Load failed (shameer_crm_tickets_local):', error?.message);
-      return readLocalListOrSeed('shameer_crm_tickets_local', SAMPLE_TICKETS);
+    if (error || !data) {
+      console.error('Load failed (shameer_crm_tickets_local):', error?.message);
+      return [];
     }
 
     const mapped: StaffTicket[] = data.map((row: any) => ({
@@ -1033,7 +1033,7 @@ export const fetchTicketsFromDb = async (): Promise<StaffTicket[]> => {
     return mapped;
   } catch (err) {
     console.error('Fetch tickets error:', err);
-    return readLocalListOrSeed('shameer_crm_tickets_local', SAMPLE_TICKETS);
+    return [];
   }
 };
 
@@ -1127,9 +1127,9 @@ export const fetchActivityLogsFromDb = async (): Promise<ActivityLog[]> => {
       .order('timestamp', { ascending: false })
       .limit(50);
 
-    if (error || !data || data.length === 0) {
-      if (error) console.error('Load failed (shameer_crm_activity_logs_local):', error?.message);
-      return readLocalListOrSeed('shameer_crm_activity_logs_local', SAMPLE_ACTIVITY_LOGS);
+    if (error || !data) {
+      console.error('Load failed (shameer_crm_activity_logs_local):', error?.message);
+      return [];
     }
 
     const mapped: ActivityLog[] = data.map((row: any) => ({
@@ -1154,7 +1154,7 @@ export const fetchActivityLogsFromDb = async (): Promise<ActivityLog[]> => {
     return mapped;
   } catch (err) {
     console.error('Fetch activity logs error:', err);
-    return readLocalListOrSeed('shameer_crm_activity_logs_local', SAMPLE_ACTIVITY_LOGS);
+    return [];
   }
 };
 
@@ -1268,3 +1268,19 @@ export const deleteTaskFromDb = (id: string) => deleteRow('tasks', id);
 export const deleteItrFilingFromDb = (id: string) => deleteRow('itr_filings', id);
 export const deleteTicketFromDb = (id: string) => deleteRow('tickets', id);
 export const deleteDebtorFromDb = (id: string) => deleteRow('debtor_records', id);
+
+/**
+ * Removes locally cached copies of firm data (clients, tasks, fees, logs…).
+ * Called on sign-out so nothing remains in the browser of a shared office computer.
+ * Theme and settings caches are kept.
+ */
+export const clearLocalDataCache = () => {
+  try {
+    const keep = new Set(['sa_crm_preferences', 'sa_crm_firm_profile', 'sa_crm_whatsapp_templates', 'crm-active-theme']);
+    for (const key of Object.keys(localStorage)) {
+      if ((key.startsWith('shameer_crm_') || key.startsWith('sa_crm_')) && !keep.has(key)) localStorage.removeItem(key);
+    }
+  } catch {
+    /* storage unavailable */
+  }
+};

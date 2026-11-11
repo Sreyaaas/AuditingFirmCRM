@@ -94,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         aria-current={active ? 'page' : undefined}
         className={cn(
           'group w-full h-8 flex items-center gap-2.5 px-2.5 rounded-md text-sm transition-colors',
-          active ? 'bg-surface text-fg font-medium shadow-xs ring-1 ring-line' : 'text-fg-muted hover:text-fg hover:bg-hover'
+          active ? 'bg-accent/[0.09] text-fg font-medium' : 'text-fg-muted hover:text-fg hover:bg-hover'
         )}
       >
         <Icon
@@ -105,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {item.alert ? (
           <span className="num text-2xs font-semibold text-danger">{item.alert}</span>
         ) : item.count !== undefined && item.count !== null ? (
-          <span className={cn('num text-2xs', active ? 'text-fg-muted' : 'text-fg-faint')}>{item.count}</span>
+          <span className={cn('num text-2xs', active ? 'text-accent font-medium' : 'text-fg-faint')}>{item.count}</span>
         ) : null}
       </button>
     );

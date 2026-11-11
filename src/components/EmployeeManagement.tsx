@@ -206,7 +206,7 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
                 <tr key={emp.id}>
                   <td className="py-2">
                     <div className="flex items-center gap-2.5">
-                      <Avatar initials={emp.initials || emp.name.slice(0, 2).toUpperCase()} size="sm" />
+                      <Avatar initials={emp.initials || emp.name.slice(0, 2).toUpperCase()} seed={emp.name} size="sm" />
                       <div className="min-w-0">
                         <button
                           onClick={() => onSelectEmployeeWork?.(emp.name)}

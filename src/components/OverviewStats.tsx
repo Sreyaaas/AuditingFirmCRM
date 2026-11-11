@@ -6,9 +6,7 @@ import {
   ITRFiling, 
   UserProfile 
 } from '../types/crm';
-import { 
-  ArrowRight
-} from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Avatar, Badge, Button, Card, CardHeader, Metric, MetricGrid, PageHeader, Progress, Tone, cn, formatDate } from './ui';
 
 interface OverviewStatsProps {
@@ -117,10 +115,17 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
   const attentionCount =
     immediateRisks.length + (docsPendingCount > 0 ? 1 : 0) + (showFees && overdueDebtorsCount > 0 ? 1 : 0) + (itrPendingCount > 0 ? 1 : 0);
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const firstName = currentUser.name.split(/\s+/)[0];
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
+  const ageing = (bucket: string) => relevantDebtors.filter((d) => d.currentBalance > 0 && d.agingBucket === bucket).reduce((a, d) => a + d.currentBalance, 0);
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title={isAdmin ? 'Overview' : `Good day, ${currentUser.name}`}
+        title={`${greeting}, ${firstName}`}
         description={
           <span className="num">
             {formattedToday}{financialYear ? ` · FY ${financialYear}` : ''} · {totalClients} active clients
@@ -135,6 +140,12 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
           label="Fee receivables"
           value={`₹${totalReceivables.toLocaleString('en-IN')}`}
           hint={`${overdueDebtorsCount} ${overdueDebtorsCount === 1 ? 'account' : 'accounts'} outstanding`}
+          segments={[
+            { label: '0–30 days', value: ageing('0-30 Days'), tone: 'success' },
+            { label: '31–60 days', value: ageing('31-60 Days'), tone: 'warning' },
+            { label: '61–90 days', value: ageing('61-90 Days'), tone: 'danger' },
+            { label: '90+ days', value: ageing('90+ Days'), tone: 'danger' },
+          ]}
           onClick={() => onNavigateTab('debtors')}
         />
         )}
@@ -142,12 +153,14 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
           label="Monthly returns"
           value={recurringTotal}
           hint={`${filedCount} of ${recurringTotal} filed`}
+          progress={{ value: pct(filedCount, recurringTotal), tone: filedCount === recurringTotal && recurringTotal > 0 ? 'success' : 'info' }}
           onClick={() => onNavigateTab('monthly')}
         />
         <Metric
           label="ITR returns"
           value={itrTotal}
           hint={`${itrFiledCount} filed · ${itrPendingCount} pending`}
+          progress={{ value: pct(itrFiledCount, itrTotal), tone: itrPendingCount === 0 && itrTotal > 0 ? 'success' : 'info' }}
           onClick={() => onNavigateTab('itr')}
         />
         <Metric
@@ -177,11 +190,11 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
             immediateRisks.map((task) => (
               <AttentionRow
                 key={task.id}
-                tone="warning"
+                tone={task.daysRemaining < 0 ? 'danger' : 'warning'}
                 title={`${task.filingType} · ${task.tradeName}`}
                 tag={
-                  <Badge tone="warning" className="num">
-                    {task.daysRemaining === 0 ? 'Due today' : `Due in ${task.daysRemaining}d`}
+                  <Badge tone={task.daysRemaining < 0 ? 'danger' : 'warning'} className="num">
+                    {task.daysRemaining < 0 ? `${Math.abs(task.daysRemaining)}d overdue` : task.daysRemaining === 0 ? 'Due today' : `Due in ${task.daysRemaining}d`}
                   </Badge>
                 }
                 meta={`${staffList.find((s) => s.id === task.assignedStaffId)?.name || 'Unassigned'} · ${task.status} · Due ${formatDate(task.dueDate)}`}
@@ -189,6 +202,16 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
                 onClick={() => onNavigateTab('monthly')}
               />
             ))
+          ) : attentionCount === 0 ? (
+            <div className="flex items-center gap-3 px-4 py-5">
+              <div className="w-9 h-9 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5 text-success" strokeWidth={1.75} />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-fg">All caught up</div>
+                <div className="text-xs text-fg-subtle mt-0.5">Nothing due in the next {dueSoonDays} days, no documents pending and no overdue fees.</div>
+              </div>
+            </div>
           ) : (
             <AttentionRow
               tone="success"
@@ -248,9 +271,20 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
           />
           <div className="divide-y divide-line">
             {statutoryDeadlines.map((d, index) => {
-              const diffDays = Math.ceil((d.targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-              const isUrgent = diffDays <= 3;
+              const diffDays = Math.round((d.targetDate.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24));
               const { filed, total } = getDeadlineCompletion(d.returnTypeFilter);
+              const allFiled = total > 0 && filed === total;
+              const state = allFiled ? 'done' : diffDays < 0 ? 'late' : diffDays <= 3 ? 'soon' : 'later';
+              const statusText =
+                state === 'done'
+                  ? 'All filed'
+                  : diffDays < 0
+                    ? `${Math.abs(diffDays)} ${Math.abs(diffDays) === 1 ? 'day' : 'days'} overdue`
+                    : diffDays === 0
+                      ? 'Due today'
+                      : diffDays === 1
+                        ? 'Tomorrow'
+                        : `In ${diffDays} days`;
               const [day, mon] = d.formattedCutoff.split(' ');
 
               return (
@@ -259,17 +293,33 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
                   onClick={() => onNavigateTab('monthly')}
                   className="w-full text-left px-4 py-2.5 flex items-center gap-4 hover:bg-subtle transition-colors"
                 >
-                  <div className="w-10 shrink-0 text-center">
-                    <div className="num text-lg font-semibold text-fg leading-6">{day}</div>
-                    <div className="text-2xs uppercase tracking-wider text-fg-subtle">{mon}</div>
+                  <div
+                    className={cn(
+                      'w-11 h-11 shrink-0 rounded-lg flex flex-col items-center justify-center',
+                      state === 'done' && 'bg-success/10 text-success',
+                      state === 'late' && 'bg-danger/10 text-danger',
+                      state === 'soon' && 'bg-warning/10 text-warning',
+                      state === 'later' && 'bg-accent/10 text-accent'
+                    )}
+                  >
+                    <div className="num text-md font-semibold leading-5">{day}</div>
+                    <div className="text-[10px] font-medium uppercase tracking-wider opacity-80">{mon}</div>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium text-fg truncate">{d.title}</div>
                     <div className="text-xs text-fg-subtle truncate">{d.period}</div>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className={cn('num text-xs font-medium', isUrgent ? 'text-warning' : 'text-fg-muted')}>
-                      {diffDays <= 0 ? 'Due today' : `In ${diffDays} days`}
+                    <span
+                      className={cn(
+                        'num text-xs font-medium',
+                        state === 'done' && 'text-success',
+                        state === 'late' && 'text-danger',
+                        state === 'soon' && 'text-warning',
+                        state === 'later' && 'text-fg-muted'
+                      )}
+                    >
+                      {statusText}
                     </span>
                     {total > 0 && (
                       <span className="num text-2xs text-fg-subtle">
@@ -319,7 +369,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
                       }}
                       className="flex items-center gap-2.5 min-w-0 text-left group"
                     >
-                      <Avatar initials={staff.initials} size="sm" />
+                      <Avatar initials={staff.initials} seed={staff.name} size="sm" />
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-fg group-hover:underline underline-offset-2 truncate">{staff.name}</div>
                         <div className="text-xs text-fg-subtle truncate">

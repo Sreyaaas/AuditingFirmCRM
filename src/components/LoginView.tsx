@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Sun, Moon, ShieldAlert, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Eye, EyeOff, Sun, Moon, ShieldAlert, CheckCircle2, RefreshCw, CalendarClock, Wallet, Users } from 'lucide-react';
 import { changePassword, sendPasswordReset, signIn, passwordProblem, MIN_PASSWORD_LENGTH } from '../services/authService';
 import { Button, Card, Field, IconButton, Input, cn } from './ui';
 
@@ -9,21 +9,59 @@ interface ShellProps {
   children: React.ReactNode;
 }
 
+const HIGHLIGHTS = [
+  { icon: CalendarClock, title: 'Every due date in one place', text: 'GSTR-1, GSTR-3B, TDS and ITR deadlines, flagged before they slip.' },
+  { icon: Wallet, title: 'Fees followed up', text: 'Month-by-month balances with one-tap WhatsApp reminders.' },
+  { icon: Users, title: 'The whole team, in step', text: 'Clear owners for every client, task and call.' },
+];
+
 const AuthShell: React.FC<ShellProps> = ({ theme, onToggleTheme, children }) => (
-  <div className="min-h-screen bg-canvas text-fg flex flex-col">
-    <header className="h-14 px-6 flex items-center justify-between border-b border-line">
+  <div className="min-h-screen bg-canvas text-fg flex">
+    {/* Firm panel — solid theme ink, typography only */}
+    <aside className="hidden lg:flex w-[44%] max-w-[560px] shrink-0 flex-col justify-between bg-ink text-ink-fg px-12 py-10">
       <div className="flex items-center">
-        <img src="/logo-light.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain block dark:hidden max-w-[180px]" />
-        <img src="/logo-dark.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain hidden dark:block max-w-[180px]" />
+        {/* Inverse logo: white on the dark panel in light themes, dark on the light panel in dark themes */}
+        <img src="/logo-dark.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-8 w-auto object-contain block dark:hidden max-w-[200px]" />
+        <img src="/logo-light.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-8 w-auto object-contain hidden dark:block max-w-[200px]" />
       </div>
-      <IconButton icon={theme === 'light' ? Moon : Sun} label="Toggle Theme" onClick={onToggleTheme} />
-    </header>
-    <main className="flex-1 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-[380px]">{children}</div>
-    </main>
-    <footer className="h-12 px-6 flex items-center justify-center text-xs text-fg-faint border-t border-line">
-      Shameer &amp; Associates · Accountants and Practitioners
-    </footer>
+
+      <div className="max-w-sm">
+        <p className="text-2xs font-medium uppercase tracking-[0.14em] opacity-60">Accountants and Tax Practitioners</p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight leading-tight">Your clients, filings and fees — calmly in order.</h2>
+        <ul className="mt-10 space-y-6">
+          {HIGHLIGHTS.map(({ icon: Icon, title, text }) => (
+            <li key={title} className="flex gap-3.5">
+              <span className="w-8 h-8 rounded-md bg-ink-fg/10 flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4" strokeWidth={1.75} />
+              </span>
+              <div>
+                <div className="text-sm font-medium">{title}</div>
+                <div className="text-sm opacity-65 mt-0.5 leading-5">{text}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <p className="text-xs opacity-50">© {new Date().getFullYear()} Shameer &amp; Associates · Kerala</p>
+    </aside>
+
+    {/* Sign-in side */}
+    <div className="flex-1 flex flex-col min-w-0">
+      <header className="h-14 px-6 flex items-center justify-between">
+        <div className="flex items-center lg:invisible">
+          <img src="/logo-light.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain block dark:hidden max-w-[180px]" />
+          <img src="/logo-dark.png" alt="Shameer & Associates — Accountants and Practitioners" className="h-7 w-auto object-contain hidden dark:block max-w-[180px]" />
+        </div>
+        <IconButton icon={theme === 'light' ? Moon : Sun} label="Toggle Theme" onClick={onToggleTheme} />
+      </header>
+      <main className="flex-1 flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-[380px]">{children}</div>
+      </main>
+      <footer className="h-12 px-6 flex items-center justify-center text-xs text-fg-faint lg:hidden">
+        Shameer &amp; Associates · Accountants and Practitioners
+      </footer>
+    </div>
   </div>
 );
 

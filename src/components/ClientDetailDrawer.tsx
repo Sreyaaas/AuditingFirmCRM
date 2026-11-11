@@ -163,7 +163,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
               <div className="min-w-0">
                 <dt className="eyebrow">Owner</dt>
                 <dd className="mt-1 flex items-center gap-2">
-                  {staff && <Avatar initials={staff.initials} size="xs" />}
+                  {staff && <Avatar initials={staff.initials} seed={staff.name} size="xs" />}
                   <span className="text-sm text-fg">{staff?.name || 'Ameen'}</span>
                 </dd>
                 <dd className="text-xs text-fg-subtle mt-0.5 truncate">{staff?.role || 'Partner & Senior Practitioner'}</dd>

@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Download, MessageSquare, Plus, Upload, FileSpreadsheet, AlertTriangle, UserPlus } from 'lucide-react';
 import { DebtorRecord, GSTComplianceItem, OfficeBillingEntry, StaffMember, Client, EntityType, DebtorMonth } from '../types/crm';
 import { exportDebtorsAndGSTWorkbook } from '../utils/excelExport';
-import { closingOf, collectMonths, monthLabel, monthOf } from '../utils/debtors';
+import { closingOf, collectMonths, currentMonthKey, monthLabel, monthOf, recalcDebtor } from '../utils/debtors';
 import { DebtorWorkbookResult, parseDebtorWorkbookFile } from '../utils/debtorWorkbook';
 import {
   Badge,
@@ -112,6 +112,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   const [newEntityType, setNewEntityType] = useState<EntityType | ''>('Private Limited');
   const [newAssignedStaff, setNewAssignedStaff] = useState('');
   const [newOpeningBalance, setNewOpeningBalance] = useState('');
+  const [addAccountError, setAddAccountError] = useState<string | null>(null);
 
   // Import
   const fileRef = useRef<HTMLInputElement>(null);
@@ -204,29 +205,28 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
     if (!name || !onAddAccount) return;
 
     const openingAmt = Number(newOpeningBalance) || 0;
-    const activeMonths = months.length > 0 ? months : ['2026-08', '2026-09', '2026-10', '2026-11'];
-    const debtorMonths: DebtorMonth[] = activeMonths.map((m, idx) => {
-      const isLatest = idx === activeMonths.length - 1;
-      return {
-        month: m,
-        opening: isLatest ? openingAmt : 0,
-        received: 0,
-        billed: 0,
-      };
-    });
+    // One month entry carrying the opening balance. Earlier months are simply absent
+    // (shown as —), so recalculation never resets the balance to zero.
+    const startMonth = latestMonth || currentMonthKey();
+    const debtorMonths: DebtorMonth[] = [{ month: startMonth, opening: openingAmt, received: 0, billed: 0 }];
 
-    const newRecord: DebtorRecord = {
-      sNo: debtors.length + 1,
+    const newRecord: DebtorRecord = recalcDebtor({
+      sNo: debtors.reduce((max, d) => Math.max(max, d.sNo), 0) + 1,
       id: `deb-${Date.now()}`,
       clientName: name,
-      phone: newClientPhone.trim(),
-      entityType: newEntityType || 'Proprietorship',
-      assignedStaff: newAssignedStaff || (staffList[0]?.name || 'Susmi'),
+      phone: newClientPhone.trim() === '+91' ? '' : newClientPhone.trim(),
+      entityType: newEntityType,
+      assignedStaff: newAssignedStaff,
       currentBalance: openingAmt,
-      status: openingAmt > 0 ? 'Pending' : 'Cleared',
+      status: 'Pending',
       agingBucket: '0-30 Days',
       months: debtorMonths,
-    };
+    });
+
+    if (debtors.some((d) => d.clientName.trim().toLowerCase() === name.toLowerCase())) {
+      setAddAccountError(`${name} already has a fee account.`);
+      return;
+    }
 
     onAddAccount(newRecord);
     setIsAddAccountOpen(false);
@@ -277,7 +277,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
         actions={
           <>
             {canEdit && onAddAccount && (
-              <Button icon={Plus} onClick={() => setIsAddAccountOpen(true)}>
+              <Button icon={Plus} onClick={() => { setAddAccountError(null); setIsAddAccountOpen(true); }}>
                 Add Account
               </Button>
             )}
@@ -877,7 +877,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
         onClose={() => setIsAddAccountOpen(false)}
         size="md"
         title="Add debtor account"
-        description="Add a client to the rolling fee ledger with their opening balance"
+        description="Start a fee account with the amount the client owes today."
         footer={
           <>
             <Button variant="ghost" onClick={() => setIsAddAccountOpen(false)}>
@@ -890,8 +890,9 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
         }
       >
         <form id="add-debtor-account-form" onSubmit={submitAddAccount} className="space-y-4">
+          {addAccountError && <p className="text-sm text-danger">{addAccountError}</p>}
           {clients && clients.length > 0 && (
-            <Field label="Choose from Client Directory (optional)" hint="Select an existing client to prefill details">
+            <Field label="Existing client" hint="Optional — fills in the details below.">
               <Select
                 value={selectedClientId}
                 onChange={(e) => {
@@ -909,7 +910,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
                   }
                 }}
               >
-                <option value="custom">— New or Unregistered Client —</option>
+                <option value="custom">Not in the client list</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} ({c.entityType})
@@ -919,7 +920,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
             </Field>
           )}
 
-          <Field label="Client Name" required>
+          <Field label="Client name" required>
             <Input
               required
               autoFocus
@@ -930,7 +931,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Phone Number">
+            <Field label="Phone">
               <Input
                 value={newClientPhone}
                 onChange={(e) => setNewClientPhone(e.target.value)}
@@ -939,7 +940,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
               />
             </Field>
 
-            <Field label="Business Type">
+            <Field label="Entity type">
               <Select
                 value={newEntityType}
                 onChange={(e) => setNewEntityType(e.target.value as any)}
@@ -954,12 +955,12 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Handled By">
+            <Field label="Follow-up by">
               <Select
                 value={newAssignedStaff}
                 onChange={(e) => setNewAssignedStaff(e.target.value)}
               >
-                <option value="">Select staff</option>
+                <option value="">Nobody yet</option>
                 {staffList.map((s) => (
                   <option key={s.id} value={s.name}>
                     {s.name} ({s.role})
@@ -968,7 +969,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
               </Select>
             </Field>
 
-            <Field label="Opening Balance (₹)" hint="Starting balance brought forward">
+            <Field label="Amount owed today (₹)" hint="Leave blank if nothing is owed yet.">
               <Input
                 type="number"
                 step="any"

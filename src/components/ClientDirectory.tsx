@@ -193,7 +193,7 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                   </td>
                   <td className="whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      {staff && <Avatar initials={staff.initials} size="xs" />}
+                      {staff && <Avatar initials={staff.initials} seed={staff.name} size="xs" />}
                       <span className={staff ? 'text-fg' : 'text-fg-faint'}>{staff?.name || 'Unassigned'}</span>
                     </div>
                   </td>

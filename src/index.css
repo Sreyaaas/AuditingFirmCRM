@@ -333,6 +333,25 @@ html.dark {
   }
 }
 
+/* Person colours — soft, distinct hues so each team member is recognisable at a
+   glance. Muted enough to sit beside status colours without competing. */
+.av-0 { background: rgb(219 234 254); color: rgb(30 64 175); }
+.av-1 { background: rgb(220 252 231); color: rgb(22 101 52); }
+.av-2 { background: rgb(254 243 199); color: rgb(146 64 14); }
+.av-3 { background: rgb(237 233 254); color: rgb(91 33 182); }
+.av-4 { background: rgb(252 231 243); color: rgb(157 23 77); }
+.av-5 { background: rgb(204 251 241); color: rgb(17 94 89); }
+.av-6 { background: rgb(255 237 213); color: rgb(154 52 18); }
+.av-7 { background: rgb(224 231 255); color: rgb(55 48 163); }
+[data-theme$='-dark'] .av-0, html.dark .av-0 { background: rgb(30 58 138 / 0.55); color: rgb(191 219 254); }
+[data-theme$='-dark'] .av-1, html.dark .av-1 { background: rgb(20 83 45 / 0.55); color: rgb(187 247 208); }
+[data-theme$='-dark'] .av-2, html.dark .av-2 { background: rgb(120 53 15 / 0.55); color: rgb(253 230 138); }
+[data-theme$='-dark'] .av-3, html.dark .av-3 { background: rgb(76 29 149 / 0.55); color: rgb(221 214 254); }
+[data-theme$='-dark'] .av-4, html.dark .av-4 { background: rgb(131 24 67 / 0.55); color: rgb(251 207 232); }
+[data-theme$='-dark'] .av-5, html.dark .av-5 { background: rgb(19 78 74 / 0.55); color: rgb(153 246 228); }
+[data-theme$='-dark'] .av-6, html.dark .av-6 { background: rgb(124 45 18 / 0.55); color: rgb(254 215 170); }
+[data-theme$='-dark'] .av-7, html.dark .av-7 { background: rgb(49 46 129 / 0.55); color: rgb(199 210 254); }
+
 @layer utilities {
   .font-tabular,
   .tabular-nums {
