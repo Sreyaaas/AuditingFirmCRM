@@ -282,6 +282,19 @@ export function App() {
     [profiles, clients, monthlyTasks]
   );
 
+  const monthlyWorkTasks = useMemo(
+    () => monthlyTasks.filter((t) => !t.category || t.category === 'monthly' || t.category === 'weekly'),
+    [monthlyTasks]
+  );
+  const quarterlyTasks = useMemo(
+    () => monthlyTasks.filter((t) => t.category === 'quarterly'),
+    [monthlyTasks]
+  );
+  const otherAssignmentTasks = useMemo(
+    () => monthlyTasks.filter((t) => t.category === 'other'),
+    [monthlyTasks]
+  );
+
   // ------------------------------------------------------- UI state
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -755,19 +768,6 @@ export function App() {
 
   const activeStaffFilter = selectedStaffId ? staffList.find((s) => s.id === selectedStaffId) : null;
   const gstOverdueCount = gstCompliance.filter((i) => i.priorityLevel === 'overdue').length;
-
-  const monthlyWorkTasks = useMemo(
-    () => monthlyTasks.filter((t) => !t.category || t.category === 'monthly' || t.category === 'weekly'),
-    [monthlyTasks]
-  );
-  const quarterlyTasks = useMemo(
-    () => monthlyTasks.filter((t) => t.category === 'quarterly'),
-    [monthlyTasks]
-  );
-  const otherAssignmentTasks = useMemo(
-    () => monthlyTasks.filter((t) => t.category === 'other'),
-    [monthlyTasks]
-  );
 
   const restricted = (text: string) => (
     <Card className="max-w-md mx-auto mt-10">

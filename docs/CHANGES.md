@@ -223,3 +223,4 @@ Dropdown lists remain in `practice_configs`.
 * Removed dollar-signed receipt icon (`Receipt`) in favor of `ReceiptText` across the entire application.
 * Upgraded New Task modal category selector from a full-width segmented control to Apple/Vercel standard modal header underline tabs (`Tabs`).
 * Fixed invoice print preview overlap by auto-dismissing background drawers.
+* **Fixed React Error #310 on authentication:** Moved `monthlyWorkTasks`, `quarterlyTasks`, and `otherAssignmentTasks` `useMemo` hooks above the early return render gates in `src/App.tsx`. Previously, these hooks were executed only after sign-in, violating React's Rules of Hooks and causing a fatal blank screen crash upon user login.
