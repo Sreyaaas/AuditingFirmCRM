@@ -1,6 +1,8 @@
 import {
   LayoutGrid,
   CalendarClock,
+  CalendarRange,
+  Briefcase,
   ListChecks,
   FileText,
   Building2,
@@ -21,8 +23,10 @@ import {
 export const SECTIONS = {
   dashboard: { label: 'Overview', icon: LayoutGrid, hue: 0 },
   'gst-tracker': { label: 'Deadlines', icon: CalendarClock, hue: 6 },
-  monthly: { label: 'GST & Audit', icon: ListChecks, hue: 3 },
-  itr: { label: 'ITR Returns', icon: FileText, hue: 5 },
+  monthly: { label: 'Monthly Work', icon: ListChecks, hue: 3 },
+  quarterly: { label: 'Quarterly', icon: CalendarRange, hue: 6 },
+  itr: { label: 'Annual & ITR', icon: FileText, hue: 5 },
+  assignments: { label: 'Other Assignments', icon: Briefcase, hue: 4 },
   invoices: { label: 'Invoices', icon: Receipt, hue: 2 },
   clients: { label: 'Clients', icon: Building2, hue: 1 },
   debtors: { label: 'Debtors', icon: Wallet, hue: 2 },

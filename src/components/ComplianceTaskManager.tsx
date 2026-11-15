@@ -10,13 +10,17 @@ import {
 } from 'lucide-react';
 import { MonthlyTask, StaffMember, FilingStatus } from '../types/crm';
 import { Trash2 } from 'lucide-react';
-import { Avatar, Badge, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Menu, Modal, PageHeader, Pagination, SearchInput, Select, TableCard, Tabs, Tone, cn, nameInitials } from './ui';
+import { Avatar, Badge, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Menu, Modal, PageHeader, Pagination, SearchInput, Select, TableCard, Tabs, Tone, cn, nameInitials, type SectionId } from './ui';
 
 interface ComplianceTaskManagerProps {
   tasks: MonthlyTask[];
   staffList: StaffMember[];
   selectedStaffId: string | null;
   filingTypes?: string[];
+  section?: SectionId;
+  title?: string;
+  description?: string;
+  periodOptions?: string[];
   onUpdateStatus: (taskId: string, newStatus: FilingStatus, arn?: string) => void;
   /** Administrators only. */
   onDelete?: (taskId: string) => void;
@@ -39,6 +43,10 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   staffList,
   selectedStaffId,
   filingTypes = ['GSTR-1 (Sales)', 'GSTR-3B (Summary)', 'Statutory Audit', 'TDS Payment', 'PF & ESI', 'CMP-08', 'IFF'],
+  section = 'monthly',
+  title = 'Monthly Work',
+  description,
+  periodOptions,
   onUpdateStatus,
   dueSoonDays = 5,
   onOpenWhatsApp,
@@ -49,7 +57,8 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [filingTypeFilter, setFilingTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('Oct 2026');
+  const periods = periodOptions || ['Aug 2026', 'Sep 2026', 'Oct 2026', 'Nov 2026'];
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(periods[periods.length - 2] || periods[0] || 'Oct 2026');
   const [staffFilterState, setStaffFilterState] = useState<string>(selectedStaffId || 'all');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [openStatusMenuId, setOpenStatusMenuId] = useState<string | null>(null);
@@ -58,8 +67,6 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   const [arnInput, setArnInput] = useState('');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 12;
-
-  const periods = ['Aug 2026', 'Sep 2026', 'Oct 2026', 'Nov 2026'];
 
   const handlePeriodPrev = () => {
     const idx = periods.indexOf(selectedPeriod);
@@ -169,7 +176,9 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
 
   const statusBadgeTone: Record<FilingStatus, Tone> = {
     Filed: 'success',
+    Completed: 'success',
     'Draft Ready': 'info',
+    'Under Review': 'info',
     'In Progress': 'neutral',
     'Docs Pending': 'warning',
     Overdue: 'danger',
@@ -196,8 +205,9 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   return (
     <div className="space-y-4">
       <PageHeader
-        section="monthly" title="GST & Audit"
-        description={`${tasks.length} tasks · Monthly GST, TDS and payroll returns`}
+        section={section}
+        title={title}
+        description={description || `${tasks.length} tasks · Compliance & filing workflow`}
         actions={
           <>
             <div className="flex items-center h-8 rounded-md border border-line bg-surface shadow-xs">

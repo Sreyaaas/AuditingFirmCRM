@@ -489,26 +489,50 @@ export const fetchTasksFromDb = async (): Promise<MonthlyTask[]> => {
       return [];
     }
 
-    const mapped: MonthlyTask[] = data.map((t: any) => ({
-      id: t.id,
-      clientId: t.client_id,
-      clientName: t.clients?.name || t.client_name || 'Client',
-      tradeName: t.clients?.trade_name || t.clients?.name || 'Client',
-      gstin: t.clients?.gstin || t.gstin || '',
-      filingType: t.filing_type,
-      period: t.period,
-      assignedStaffId: t.assigned_staff_id || 'staff-ameen',
-      status: t.status,
-      dueDate: t.due_date,
-      daysRemaining: Math.ceil((new Date(t.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-      arnNumber: t.arn_number,
-      taxPayable: Number(t.tax_payable) || 0,
-      turnoverReported: Number(t.turnover_reported) || 0,
-      docsReceived: Boolean(t.docs_received),
-      phone: t.phone || '',
-      notes: t.notes || '',
-      lastUpdated: 'Synced with Supabase cloud'
-    }));
+    const mapped: MonthlyTask[] = data.map((t: any) => {
+      let cat = t.category;
+      let fy = t.financial_year;
+      let asTitle = t.assignment_title;
+      let fee = Number(t.estimated_fee) || undefined;
+      let cleanNotes = t.notes || '';
+
+      // Parse metadata from notes if stored as fallback
+      if (cleanNotes.startsWith('[Category:')) {
+        const match = cleanNotes.match(/^\[Category:\s*([a-z]+)(?:\s*\|\s*FY:\s*([^\]|]+))?(?:\s*\|\s*Assignment:\s*([^\]|]+))?(?:\s*\|\s*Fee:\s*([^\]]+))?\]\s*(.*)/i);
+        if (match) {
+          if (!cat) cat = match[1].toLowerCase();
+          if (!fy) fy = match[2]?.trim();
+          if (!asTitle) asTitle = match[3]?.trim();
+          if (!fee && match[4]) fee = Number(match[4].trim()) || undefined;
+          cleanNotes = match[5]?.trim() || '';
+        }
+      }
+
+      return {
+        id: t.id,
+        clientId: t.client_id,
+        clientName: t.clients?.name || t.client_name || 'Client',
+        tradeName: t.clients?.trade_name || t.clients?.name || 'Client',
+        gstin: t.clients?.gstin || t.gstin || '',
+        filingType: t.filing_type,
+        period: t.period,
+        assignedStaffId: t.assigned_staff_id || 'staff-ameen',
+        status: t.status,
+        dueDate: t.due_date,
+        daysRemaining: Math.ceil((new Date(t.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+        arnNumber: t.arn_number,
+        taxPayable: Number(t.tax_payable) || 0,
+        turnoverReported: Number(t.turnover_reported) || 0,
+        docsReceived: Boolean(t.docs_received),
+        phone: t.phone || '',
+        notes: cleanNotes,
+        category: cat || 'monthly',
+        financialYear: fy || undefined,
+        assignmentTitle: asTitle || undefined,
+        estimatedFee: fee,
+        lastUpdated: 'Synced with Supabase cloud',
+      };
+    });
 
     localStorage.setItem(TASKS_LOCAL_KEY, JSON.stringify(mapped));
     return mapped;
@@ -529,7 +553,10 @@ export const saveTaskToDb = async (task: MonthlyTask): Promise<{ success: boolea
       const clientUuid = ensureUuid(task.clientId, 'client');
       const staffUuid = ensureUuid(task.assignedStaffId, 'staff');
 
-      const dbPayload = {
+      const metaTag = `[Category: ${task.category || 'monthly'}${task.financialYear ? ` | FY: ${task.financialYear}` : ''}${task.assignmentTitle ? ` | Assignment: ${task.assignmentTitle}` : ''}${task.estimatedFee ? ` | Fee: ${task.estimatedFee}` : ''}]`;
+      const combinedNotes = task.notes ? `${metaTag} ${task.notes}` : metaTag;
+
+      const dbPayload: any = {
         client_id: clientUuid,
         filing_type: task.filingType,
         period: task.period,
@@ -541,11 +568,35 @@ export const saveTaskToDb = async (task: MonthlyTask): Promise<{ success: boolea
         turnover_reported: task.turnoverReported || 0,
         docs_received: task.docsReceived || false,
         phone: task.phone || null,
+        category: task.category || 'monthly',
+        financial_year: task.financialYear || null,
+        assignment_title: task.assignmentTitle || null,
+        estimated_fee: task.estimatedFee || 0,
         notes: task.notes || null,
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase.from('tasks').insert([dbPayload]);
+      let { error } = await supabase.from('tasks').insert([dbPayload]);
+      if (error && (error.message.includes('category') || error.message.includes('financial_year') || error.message.includes('column'))) {
+        // Fallback for schema without new columns: persist in notes
+        const fallbackPayload: any = {
+          client_id: clientUuid,
+          filing_type: task.filingType,
+          period: task.period,
+          assigned_staff_id: staffUuid,
+          status: task.status,
+          due_date: task.dueDate,
+          arn_number: task.arnNumber || null,
+          tax_payable: task.taxPayable || 0,
+          turnover_reported: task.turnoverReported || 0,
+          docs_received: task.docsReceived || false,
+          phone: task.phone || null,
+          notes: combinedNotes,
+          updated_at: new Date().toISOString()
+        };
+        const fallbackRes = await supabase.from('tasks').insert([fallbackPayload]);
+        error = fallbackRes.error;
+      }
       if (error) {
         return { success: false, error: error.message };
       }

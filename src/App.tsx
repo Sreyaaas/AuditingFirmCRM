@@ -24,6 +24,8 @@ import { PracticeConfigManager } from './components/PracticeConfigManager';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { InvoiceGeneratorModal } from './components/InvoiceGeneratorModal';
 import { InvoicesManager } from './components/InvoicesManager';
+import { OtherAssignmentsManager } from './components/OtherAssignmentsManager';
+import { TaskCategory } from './types/crm';
 import { Avatar, Button, Card, EmptyState, PageHeader } from './components/ui';
 
 import {
@@ -166,6 +168,7 @@ export function App() {
   const [authReady, setAuthReady] = useState(LOCAL_MODE);
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [initialTaskCategory, setInitialTaskCategory] = useState<TaskCategory>('monthly');
 
   useEffect(() => {
     if (LOCAL_MODE) return;
@@ -752,6 +755,20 @@ export function App() {
 
   const activeStaffFilter = selectedStaffId ? staffList.find((s) => s.id === selectedStaffId) : null;
   const gstOverdueCount = gstCompliance.filter((i) => i.priorityLevel === 'overdue').length;
+
+  const monthlyWorkTasks = useMemo(
+    () => monthlyTasks.filter((t) => !t.category || t.category === 'monthly' || t.category === 'weekly'),
+    [monthlyTasks]
+  );
+  const quarterlyTasks = useMemo(
+    () => monthlyTasks.filter((t) => t.category === 'quarterly'),
+    [monthlyTasks]
+  );
+  const otherAssignmentTasks = useMemo(
+    () => monthlyTasks.filter((t) => t.category === 'other'),
+    [monthlyTasks]
+  );
+
   const restricted = (text: string) => (
     <Card className="max-w-md mx-auto mt-10">
       <EmptyState icon={ShieldAlert} title="Restricted" description={text} />
@@ -775,9 +792,13 @@ export function App() {
         setActiveTab={setActiveTab}
         staffList={staffList}
         currentUser={currentUser}
+        selectedStaffId={selectedStaffId}
+        setSelectedStaffId={setSelectedStaffId}
         canViewFees={canViewFees}
-        monthlyTaskCount={monthlyTasks.length}
+        monthlyTaskCount={monthlyWorkTasks.length}
+        quarterlyTaskCount={quarterlyTasks.length}
         itrCount={itrFilings.length}
+        otherAssignmentsCount={otherAssignmentTasks.length}
         totalClientsCount={activeClients.length}
         debtorsCount={debtors.filter((d) => d.currentBalance > 0).length}
         invoicesCount={billings.length}
@@ -801,7 +822,10 @@ export function App() {
           onSelectTheme={setActiveTheme}
           colourAccents={colourAccents}
           onToggleColourAccents={setColourAccents}
-          onOpenNewTask={() => setIsNewTaskOpen(true)}
+          onOpenNewTask={() => {
+            setInitialTaskCategory('monthly');
+            setIsNewTaskOpen(true);
+          }}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
         />
 
@@ -870,15 +894,53 @@ export function App() {
 
             {activeTab === 'monthly' && (
               <ComplianceTaskManager
-                tasks={monthlyTasks}
+                tasks={monthlyWorkTasks}
                 staffList={staffList}
                 selectedStaffId={selectedStaffId}
+                section="monthly"
+                title="Monthly Work"
+                description={`${monthlyWorkTasks.length} tasks · Monthly GST, TDS and payroll returns`}
                 filingTypes={practiceConfigs.filing_types}
                 dueSoonDays={preferences.dueSoonDays}
                 onUpdateStatus={handleUpdateMonthlyStatus}
                 onDelete={isAdmin ? handleDeleteTask : undefined}
                 onOpenWhatsApp={(task) => openWhatsApp({ task })}
                 onSelectClient={handleSelectClient}
+              />
+            )}
+
+            {activeTab === 'quarterly' && (
+              <ComplianceTaskManager
+                tasks={quarterlyTasks}
+                staffList={staffList}
+                selectedStaffId={selectedStaffId}
+                section="quarterly"
+                title="Quarterly Compliance"
+                description={`${quarterlyTasks.length} tasks · Quarterly GST (QRMP/CMP-08) and TDS returns`}
+                periodOptions={['Q1 (Apr-Jun)', 'Q2 (Jul-Sep)', 'Q3 (Oct-Dec)', 'Q4 (Jan-Mar)']}
+                filingTypes={['GST (QRMP / CMP-08)', 'TDS Return (24Q - Salary)', 'TDS Return (26Q - Non-Salary)', 'TDS Return (27Q)', 'CMP-08']}
+                dueSoonDays={preferences.dueSoonDays}
+                onUpdateStatus={handleUpdateMonthlyStatus}
+                onDelete={isAdmin ? handleDeleteTask : undefined}
+                onOpenWhatsApp={(task) => openWhatsApp({ task })}
+                onSelectClient={handleSelectClient}
+              />
+            )}
+
+            {activeTab === 'assignments' && (
+              <OtherAssignmentsManager
+                tasks={otherAssignmentTasks}
+                staffList={staffList}
+                selectedStaffId={selectedStaffId}
+                isAdmin={isAdmin}
+                onUpdateStatus={handleUpdateMonthlyStatus}
+                onDelete={isAdmin ? handleDeleteTask : undefined}
+                onOpenWhatsApp={(task) => openWhatsApp({ task })}
+                onSelectClient={handleSelectClient}
+                onNewAssignment={() => {
+                  setInitialTaskCategory('other');
+                  setIsNewTaskOpen(true);
+                }}
               />
             )}
 
@@ -1110,6 +1172,7 @@ export function App() {
         onClose={() => setIsNewTaskOpen(false)}
         clients={activeClients}
         staffList={staffList}
+        initialCategory={initialTaskCategory}
         filingTypes={practiceConfigs.filing_types}
         onAddTask={handleAddTask}
       />

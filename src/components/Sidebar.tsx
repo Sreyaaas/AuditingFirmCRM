@@ -2,6 +2,8 @@ import React from 'react';
 import {
   LayoutGrid,
   CalendarClock,
+  CalendarRange,
+  Briefcase,
   ListChecks,
   FileText,
   Building2,
@@ -25,7 +27,9 @@ interface SidebarProps {
   selectedStaffId?: string | null;
   setSelectedStaffId?: (id: string | null) => void;
   monthlyTaskCount: number;
+  quarterlyTaskCount?: number;
   itrCount: number;
+  otherAssignmentsCount?: number;
   totalClientsCount: number;
   debtorsCount: number;
   invoicesCount?: number;
@@ -51,7 +55,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   staffList = [],
   currentUser,
   monthlyTaskCount,
+  quarterlyTaskCount,
   itrCount,
+  otherAssignmentsCount,
   totalClientsCount,
   debtorsCount,
   invoicesCount,
@@ -65,9 +71,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const workspace: NavItem[] = [
     { id: 'dashboard', label: 'Overview', icon: LayoutGrid },
-    { id: 'gst-tracker', label: 'Deadlines', icon: CalendarClock, alert: gstOverdueCount || null },
-    { id: 'monthly', label: 'GST & Audit', icon: ListChecks, count: monthlyTaskCount },
-    { id: 'itr', label: 'ITR Returns', icon: FileText, count: itrCount },
+    { id: 'monthly', label: 'Monthly Work', icon: ListChecks, count: monthlyTaskCount },
+    { id: 'quarterly', label: 'Quarterly', icon: CalendarRange, count: quarterlyTaskCount },
+    { id: 'itr', label: 'Annual & ITR', icon: FileText, count: itrCount },
+    { id: 'assignments', label: 'Other Assignments', icon: Briefcase, count: otherAssignmentsCount },
   ];
 
   const relationships: NavItem[] = [

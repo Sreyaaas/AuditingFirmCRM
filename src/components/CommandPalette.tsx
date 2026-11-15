@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, FileText, Wallet, Users, PhoneCall, Plus, Sun, Moon, LayoutGrid, CalendarClock, ListChecks, Building2, CornerDownLeft } from 'lucide-react';
+import { Search, FileText, Wallet, Users, PhoneCall, Plus, Sun, Moon, LayoutGrid, CalendarClock, CalendarRange, Briefcase, ListChecks, Building2, CornerDownLeft } from 'lucide-react';
 import { Kbd, cn } from './ui';
 import { Client, UserProfile } from '../types/crm';
 
@@ -58,8 +58,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const navigationItems = [
     { id: 'nav-dashboard', label: 'Overview', category: 'Go to', icon: LayoutGrid, action: () => onNavigateTab('dashboard') },
     { id: 'nav-gst', label: 'Deadlines', category: 'Go to', icon: CalendarClock, action: () => onNavigateTab('gst-tracker') },
-    { id: 'nav-monthly', label: 'GST & Audit', category: 'Go to', icon: ListChecks, action: () => onNavigateTab('monthly') },
-    { id: 'nav-itr', label: 'ITR Returns', category: 'Go to', icon: FileText, action: () => onNavigateTab('itr') },
+    { id: 'nav-monthly', label: 'Monthly Work', category: 'Go to', icon: ListChecks, action: () => onNavigateTab('monthly') },
+    { id: 'nav-quarterly', label: 'Quarterly', category: 'Go to', icon: CalendarRange, action: () => onNavigateTab('quarterly') },
+    { id: 'nav-itr', label: 'Annual & ITR', category: 'Go to', icon: FileText, action: () => onNavigateTab('itr') },
+    { id: 'nav-assignments', label: 'Other Assignments', category: 'Go to', icon: Briefcase, action: () => onNavigateTab('assignments') },
     { id: 'nav-clients', label: 'Clients', category: 'Go to', icon: Building2, action: () => onNavigateTab('clients') },
     ...(canViewFees ? [{ id: 'nav-debtors', label: 'Debtors', category: 'Go to', icon: Wallet, action: () => onNavigateTab('debtors') }] : []),
     { id: 'nav-calls', label: 'Calls & Tickets', category: 'Go to', icon: PhoneCall, action: () => onNavigateTab('staff') },

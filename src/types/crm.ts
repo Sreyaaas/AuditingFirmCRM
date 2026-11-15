@@ -31,7 +31,8 @@ export interface ActivityLog {
   category: 'Filing' | 'Payment' | 'Account' | 'Task' | 'Client' | 'Security';
 }
 
-export type FilingStatus = 'Docs Pending' | 'In Progress' | 'Draft Ready' | 'Filed' | 'Overdue';
+export type FilingStatus = 'Docs Pending' | 'In Progress' | 'Draft Ready' | 'Filed' | 'Overdue' | 'Under Review' | 'Completed';
+export type TaskCategory = 'monthly' | 'quarterly' | 'annual' | 'weekly' | 'other';
 export type ITRStatus = 'Docs Pending' | '26AS Reconciled' | 'Draft Computation' | 'Client Confirmed' | 'Filed & e-Verified';
 export type EntityType = 'Private Limited' | 'LLP' | 'Partnership' | 'Proprietorship' | 'Individual';
 export type DebtAgingBucket = '0-30 Days' | '31-60 Days' | '61-90 Days' | '90+ Days';
@@ -99,6 +100,10 @@ export interface MonthlyTask {
   phone: string;
   notes?: string;
   docsReceived: boolean;
+  category?: TaskCategory;
+  assignmentTitle?: string; // For "Other Assignments" (e.g. "Share Transfer")
+  financialYear?: string;   // e.g. "2021-22", "2026-27"
+  estimatedFee?: number;
 }
 
 export interface ITRFiling {
