@@ -6,6 +6,7 @@ import {
   FileText,
   Building2,
   Wallet,
+  Receipt,
   PhoneCall,
   Users,
   History,
@@ -27,6 +28,7 @@ interface SidebarProps {
   itrCount: number;
   totalClientsCount: number;
   debtorsCount: number;
+  invoicesCount?: number;
   gstOverdueCount?: number;
   unassignedTicketsCount?: number;
   /** Admins, and staff granted fee access, see Debtors. */
@@ -52,6 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   itrCount,
   totalClientsCount,
   debtorsCount,
+  invoicesCount,
   gstOverdueCount = 0,
   unassignedTicketsCount = 0,
   canViewFees = true,
@@ -69,7 +72,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const relationships: NavItem[] = [
     { id: 'clients', label: 'Clients', icon: Building2, count: totalClientsCount },
-    ...(canViewFees ? [{ id: 'debtors', label: 'Debtors', icon: Wallet, count: debtorsCount }] : []),
+    ...(canViewFees
+      ? [
+          { id: 'invoices', label: 'Invoices', icon: Receipt, count: invoicesCount },
+          { id: 'debtors', label: 'Debtors', icon: Wallet, count: debtorsCount },
+        ]
+      : []),
     { id: 'staff', label: 'Calls & Tickets', icon: PhoneCall, alert: unassignedTicketsCount || null },
   ];
 

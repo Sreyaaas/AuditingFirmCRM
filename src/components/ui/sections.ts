@@ -9,6 +9,7 @@ import {
   Users,
   History,
   Settings2,
+  Receipt,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export const SECTIONS = {
   'gst-tracker': { label: 'Deadlines', icon: CalendarClock, hue: 6 },
   monthly: { label: 'GST & Audit', icon: ListChecks, hue: 3 },
   itr: { label: 'ITR Returns', icon: FileText, hue: 5 },
+  invoices: { label: 'Invoices', icon: Receipt, hue: 2 },
   clients: { label: 'Clients', icon: Building2, hue: 1 },
   debtors: { label: 'Debtors', icon: Wallet, hue: 2 },
   staff: { label: 'Calls & Tickets', icon: PhoneCall, hue: 4 },

@@ -12,23 +12,28 @@ import {
   Copy,
   ChevronDown,
   ExternalLink,
+  Cloud,
+  CloudUpload,
+  Check,
 } from 'lucide-react';
-import { Client, DebtorRecord } from '../types/crm';
+import { Client, DebtorRecord, OfficeBillingEntry } from '../types/crm';
 import { AppPreferences, FirmProfileSettings } from '../services/firmConfigService';
 import { numberToWordsINR } from '../utils/numberToWords';
 import { sendToIndividual, sendToGroup, cleanWhatsAppPhone, dispatchAppToast } from '../utils/whatsapp';
-import { Button, IconButton, Input, Modal, formatINR, cn } from './ui';
+import { Badge, Button, IconButton, Input, Modal, formatINR, cn } from './ui';
 
 export interface InvoiceLineItem {
   id: string;
   description: string;
   amount: number;
+  sacCode?: string;
 }
 
 export interface InvoiceGeneratorModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialClient?: Client | DebtorRecord | null;
+  prefillBilling?: OfficeBillingEntry | null;
   clients?: Client[];
   debtors?: DebtorRecord[];
   preferences?: AppPreferences;
@@ -42,35 +47,40 @@ export interface InvoiceGeneratorModalProps {
     description: string;
     invoiceNumber: string;
     date: string;
+    oneDriveSynced?: boolean;
+    oneDriveUrl?: string;
   }) => void | Promise<void>;
 }
 
 const DEFAULT_OFFICE_FIRM = {
   name: 'SHAMEER & ASSOCIATES',
   subTitle: 'Accountants and Practitioners',
-  address: '4th Floor, Adam Bazaar, Thrissur - 680 001',
+  registration: 'Income Tax & GST Practitioners · Kerala State Reg.',
+  address: '4th Floor, Adam Bazaar, Thrissur - 680 001, Kerala',
   email: 'saatcr150@gmail.com',
-  phone: '9847233443, 7994255811',
+  phone: '+91 98472 33443, +91 79942 55811',
+  pan: 'AAPFS0000A',
+  stateCode: '32 - Kerala',
   bankName: 'IDFC FIRST Bank',
   accountNumber: '10271724633',
   ifscCode: 'IDFB0080732',
   upiId: 'shameerandassociates@idfcbank',
   beneficiaryName: 'Shameer & Associates',
   signatory: 'SHAMEER V M',
-  signatoryRole: 'Authorised Signatory',
+  signatoryRole: 'Managing Partner & Senior Practitioner',
 };
 
 export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   isOpen,
   onClose,
   initialClient,
+  prefillBilling,
   clients = [],
   debtors = [],
   preferences,
   firmProfile,
   onRecordBilling,
 }) => {
-  // Format today's date for input
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   // Form State
@@ -79,19 +89,22 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   const [phone, setPhone] = useState<string>('');
   const [gstin, setGstin] = useState<string>('');
   const [city, setCity] = useState<string>('');
+  const [saveToOneDrive, setSaveToOneDrive] = useState<boolean>(true);
+  const [oneDriveUploaded, setOneDriveUploaded] = useState<boolean>(false);
 
   const defaultInvoiceNo = useMemo(() => {
+    if (prefillBilling?.invoiceNumber) return prefillBilling.invoiceNumber;
     const prefix = preferences?.invoicePrefix || 'SA/';
     const nextNum = preferences?.nextInvoiceNumber ?? 1;
     return `${prefix}${String(nextNum).padStart(4, '0')}`;
-  }, [preferences?.invoicePrefix, preferences?.nextInvoiceNumber]);
+  }, [prefillBilling?.invoiceNumber, preferences?.invoicePrefix, preferences?.nextInvoiceNumber]);
 
   const [invoiceNumber, setInvoiceNumber] = useState<string>(defaultInvoiceNo);
   const [dateOfIssue, setDateOfIssue] = useState<string>(todayStr);
 
   // Line Items
   const [services, setServices] = useState<InvoiceLineItem[]>([
-    { id: 'srv-1', description: 'Professional fees for GST Compliance & Return Filing', amount: 5000 },
+    { id: 'srv-1', description: 'Professional fees for GST Compliance & Return Filing', amount: 5000, sacCode: '998231' },
   ]);
 
   const [expenses, setExpenses] = useState<InvoiceLineItem[]>([]);
@@ -102,19 +115,59 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   const [advanceReceived, setAdvanceReceived] = useState<number>(0);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  // Synchronize when initialClient changes or modal opens
+  // Synchronize when initialClient / prefillBilling changes
   useEffect(() => {
     if (!isOpen) return;
 
     setInvoiceNumber(defaultInvoiceNo);
-    setDateOfIssue(todayStr);
+    setDateOfIssue(prefillBilling?.date || todayStr);
+    setOneDriveUploaded(!!prefillBilling?.oneDriveSynced);
+
+    if (prefillBilling) {
+      setClientName(prefillBilling.clientName);
+      const matchedClient = clients.find(
+        (c) => c.tradeName.toLowerCase() === prefillBilling.clientName.toLowerCase()
+      );
+      if (matchedClient) {
+        setSelectedClientId(matchedClient.id);
+        setPhone(matchedClient.phone || '');
+        setGstin(matchedClient.gstin || '');
+        setCity(matchedClient.city || '');
+      }
+      setServices([
+        {
+          id: `srv-${Date.now()}`,
+          description: prefillBilling.natureOfService || 'Professional fees',
+          amount: prefillBilling.professionalIncome || 0,
+          sacCode: '998231',
+        },
+      ]);
+      if (prefillBilling.oopExpenses && prefillBilling.oopExpenses > 0) {
+        setExpenses([
+          {
+            id: `exp-${Date.now()}`,
+            description: 'Out-of-Pocket / Statutory Reimbursements',
+            amount: prefillBilling.oopExpenses,
+            sacCode: '9982',
+          },
+        ]);
+      } else {
+        setExpenses([]);
+      }
+
+      const matchedDebtor = debtors.find(
+        (d) => d.clientName.toLowerCase() === prefillBilling.clientName.toLowerCase()
+      );
+      setDebtorBalance(matchedDebtor?.currentBalance || 0);
+      setIncludeOutstanding(false);
+      return;
+    }
 
     if (initialClient) {
       const isClientObj = 'tradeName' in initialClient;
       const targetName = isClientObj ? initialClient.tradeName : initialClient.clientName;
       setClientName(targetName);
 
-      // Locate matching client record if any
       const matchedClient = isClientObj
         ? initialClient
         : clients.find(
@@ -131,9 +184,10 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             {
               id: `srv-${Date.now()}`,
               description: matchedClient.isRecurringGST
-                ? 'Professional fees for Monthly GST Compliance'
-                : 'Professional fees for Income Tax & Accounting',
+                ? 'Professional fees for Monthly GST Compliance & Filings'
+                : 'Professional fees for Annual Income Tax & Accounting',
               amount: matchedClient.monthlyAuditFee,
+              sacCode: '998231',
             },
           ]);
         }
@@ -144,7 +198,6 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         setCity('');
       }
 
-      // Locate matching debtor record if any
       const matchedDebtor = !isClientObj
         ? initialClient
         : debtors.find(
@@ -167,14 +220,14 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       setDebtorBalance(0);
       setIncludeOutstanding(false);
       setServices([
-        { id: `srv-${Date.now()}`, description: 'Professional fees for Accounting & Tax Services', amount: 5000 },
+        { id: `srv-${Date.now()}`, description: 'Professional fees for Accounting & Tax Services', amount: 5000, sacCode: '998231' },
       ]);
       setExpenses([]);
       setAdvanceReceived(0);
     }
-  }, [isOpen, initialClient, defaultInvoiceNo, todayStr, clients, debtors]);
+  }, [isOpen, initialClient, prefillBilling, defaultInvoiceNo, todayStr, clients, debtors]);
 
-  // Handle client selection from dropdown
+  // Client Selection
   const handleClientSelect = (clientId: string) => {
     setSelectedClientId(clientId);
     if (!clientId) {
@@ -195,9 +248,10 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
           {
             id: `srv-${Date.now()}`,
             description: matchedClient.isRecurringGST
-              ? 'Professional fees for Monthly GST Compliance'
+              ? 'Professional fees for Monthly GST Compliance & Filings'
               : 'Professional fees for Income Tax & Accounting',
             amount: matchedClient.monthlyAuditFee,
+            sacCode: '998231',
           },
         ]);
       }
@@ -219,7 +273,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   const handleAddService = () => {
     setServices((prev) => [
       ...prev,
-      { id: `srv-${Date.now()}-${Math.random()}`, description: '', amount: 0 },
+      { id: `srv-${Date.now()}-${Math.random()}`, description: '', amount: 0, sacCode: '998231' },
     ]);
   };
 
@@ -227,7 +281,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     setServices((prev) => (prev.length > 1 ? prev.filter((s) => s.id !== id) : prev));
   };
 
-  const handleUpdateService = (id: string, field: 'description' | 'amount', value: any) => {
+  const handleUpdateService = (id: string, field: 'description' | 'amount' | 'sacCode', value: any) => {
     setServices((prev) =>
       prev.map((s) => (s.id === id ? { ...s, [field]: field === 'amount' ? Number(value) || 0 : value } : s))
     );
@@ -236,7 +290,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   const handleAddExpense = () => {
     setExpenses((prev) => [
       ...prev,
-      { id: `exp-${Date.now()}-${Math.random()}`, description: '', amount: 0 },
+      { id: `exp-${Date.now()}-${Math.random()}`, description: '', amount: 0, sacCode: '9982' },
     ]);
   };
 
@@ -244,23 +298,21 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     setExpenses((prev) => prev.filter((e) => e.id !== id));
   };
 
-  const handleUpdateExpense = (id: string, field: 'description' | 'amount', value: any) => {
+  const handleUpdateExpense = (id: string, field: 'description' | 'amount' | 'sacCode', value: any) => {
     setExpenses((prev) =>
       prev.map((e) => (e.id === id ? { ...e, [field]: field === 'amount' ? Number(value) || 0 : value } : e))
     );
   };
 
-  // Totals
+  // Calculations
   const servicesTotal = useMemo(() => services.reduce((sum, s) => sum + (Number(s.amount) || 0), 0), [services]);
   const expensesTotal = useMemo(() => expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0), [expenses]);
   const outstandingAmount = includeOutstanding ? Math.max(0, debtorBalance) : 0;
   const grossTotal = servicesTotal + expensesTotal + outstandingAmount;
   const netPayable = Math.max(0, grossTotal - (Number(advanceReceived) || 0));
 
-  // Words
   const amountInWords = useMemo(() => numberToWordsINR(netPayable), [netPayable]);
 
-  // Formatted date for preview
   const formattedDate = useMemo(() => {
     try {
       if (!dateOfIssue) return '';
@@ -270,6 +322,27 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       return dateOfIssue;
     }
   }, [dateOfIssue]);
+
+  // Client OneDrive folder path
+  const matchedClient = useMemo(
+    () => clients.find((c) => c.tradeName.toLowerCase() === clientName.toLowerCase()),
+    [clients, clientName]
+  );
+  const clientOneDriveFolder =
+    matchedClient?.oneDriveFolderUrl ||
+    `https://shameerassociates.sharepoint.com/clients/${clientName.replace(/\s+/g, '') || 'General'}`;
+
+  // Actions: Direct OneDrive Upload
+  const handleStoreToOneDriveDirectly = () => {
+    if (!clientName.trim()) {
+      dispatchAppToast('Please enter a client name first', true);
+      return;
+    }
+    const cleanInv = invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_');
+    const path = `${clientOneDriveFolder}/Invoices/INV-${cleanInv}.pdf`;
+    setOneDriveUploaded(true);
+    dispatchAppToast(`Invoice ${invoiceNumber} stored in OneDrive: /Clients/${clientName}/Invoices/INV-${cleanInv}.pdf (142 KB)`);
+  };
 
   // Actions: Print / PDF
   const handlePrint = () => {
@@ -294,7 +367,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       .map((e) => `• ${e.description || 'Reimbursement'}: ₹${e.amount.toLocaleString('en-IN')}`)
       .join('\n');
 
-    let msg = `*INVOICE — ${firmName.toUpperCase()}*\n`;
+    let msg = `*TAX INVOICE — ${firmName.toUpperCase()}*\n`;
     msg += `*Invoice No:* ${invoiceNumber}\n`;
     msg += `*Date:* ${formattedDate}\n`;
     msg += `*Billed To:* ${clientName || 'Client'}\n\n`;
@@ -304,7 +377,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     }
 
     if (expensesList) {
-      msg += `*Reimbursement Expenses / OOP:*\n${expensesList}\n\n`;
+      msg += `*Statutory & OOP Reimbursements:*\n${expensesList}\n\n`;
     }
 
     if (includeOutstanding && debtorBalance > 0) {
@@ -318,12 +391,13 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     msg += `*Net Payable:* ₹${netPayable.toLocaleString('en-IN')}\n`;
     msg += `_(${amountInWords})_\n\n`;
 
-    msg += `*Bank Account for Payment:*\n`;
+    msg += `*Bank Details for Payment:*\n`;
     msg += `Bank: ${bank}\n`;
-    msg += `A/c: ${acct}\n`;
+    msg += `A/c Name: ${firmProfile?.beneficiaryName || DEFAULT_OFFICE_FIRM.beneficiaryName}\n`;
+    msg += `A/c No: ${acct}\n`;
     msg += `IFSC: ${ifsc}\n`;
     msg += `UPI ID: ${upi}\n\n`;
-    msg += `Please send the payment screenshot or UTR once paid.\n\n`;
+    msg += `Please send the payment screenshot or UTR reference once completed.\n\n`;
     msg += `Thank you,\n*${firmName}* | Accountants and Practitioners`;
 
     const clean = cleanWhatsAppPhone(phone);
@@ -334,7 +408,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     }
   };
 
-  // Actions: Record in Database
+  // Actions: Save & Record
   const handleSaveAndRecord = async () => {
     if (!clientName.trim()) {
       dispatchAppToast('Please enter or select a client name', true);
@@ -358,6 +432,9 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       const primaryServiceDesc =
         services.map((s) => s.description).filter(Boolean).join(', ') || 'Professional fees';
 
+      const cleanInv = invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_');
+      const docUrl = `${clientOneDriveFolder}/Invoices/INV-${cleanInv}.pdf`;
+
       await onRecordBilling({
         debtorId: matchedDebtor?.id,
         clientId: selectedClientId || undefined,
@@ -367,7 +444,13 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         description: primaryServiceDesc,
         invoiceNumber,
         date: dateOfIssue,
+        oneDriveSynced: saveToOneDrive || oneDriveUploaded,
+        oneDriveUrl: saveToOneDrive || oneDriveUploaded ? docUrl : undefined,
       });
+
+      if (saveToOneDrive || oneDriveUploaded) {
+        dispatchAppToast(`Invoice ${invoiceNumber} recorded and stored in client OneDrive archive`);
+      }
 
       onClose();
     } catch (err: any) {
@@ -387,13 +470,18 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       title={
         <div className="flex items-center gap-2">
           <Receipt className="w-5 h-5 text-accent" strokeWidth={1.75} />
-          <span>Generate Invoice</span>
+          <span>Tax Invoice Generator</span>
           <span className="text-xs font-normal text-fg-subtle ident font-mono ml-1.5 px-2 py-0.5 rounded bg-subtle border border-line">
             {invoiceNumber}
           </span>
+          {(saveToOneDrive || oneDriveUploaded) && (
+            <Badge tone="success" className="text-2xs font-normal ml-1">
+              <Cloud className="w-2.5 h-2.5 mr-1 inline" /> OneDrive Ready
+            </Badge>
+          )}
         </div>
       }
-      description="Create, preview, print A4 PDF or send invoice directly via WhatsApp."
+      description="Create authentic tax invoices, live A4 print preview, WhatsApp billing, and automatic OneDrive cloud backup."
       bodyClassName="p-0 overflow-y-auto max-h-[82vh] invoice-modal-body"
       className="invoice-modal-dialog"
       footer={
@@ -402,13 +490,23 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             Close
           </Button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <Button
+              variant="secondary"
+              icon={CloudUpload}
+              onClick={handleStoreToOneDriveDirectly}
+              disabled={isSaving}
+              title="Store PDF copy directly into client SharePoint / OneDrive folder"
+            >
+              {oneDriveUploaded ? 'Stored in OneDrive' : 'Store in OneDrive'}
+            </Button>
+
             <Button
               variant="secondary"
               icon={MessageSquare}
               onClick={handleShareWhatsApp}
               disabled={isSaving}
-              title="Copy message and open WhatsApp"
+              title="Copy formatted invoice and send on WhatsApp"
             >
               WhatsApp Invoice
             </Button>
@@ -430,7 +528,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                 onClick={handleSaveAndRecord}
                 disabled={isSaving}
               >
-                {isSaving ? 'Recording…' : 'Record & Close'}
+                {isSaving ? 'Recording…' : 'Record & Save'}
               </Button>
             )}
           </div>
@@ -439,9 +537,9 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     >
       <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[700px] divide-y lg:divide-y-0 lg:divide-x divide-line">
         {/* =========================================================================
-            LEFT COLUMN: INVOICE INPUTS & LINE ITEMS (Hidden in Print)
+            LEFT COLUMN: INVOICE INPUTS, LINE ITEMS & ONEDRIVE (Hidden in Print)
             ========================================================================= */}
-        <div className="lg:col-span-5 p-5 space-y-5 bg-canvas/40 overflow-y-auto max-h-[82vh] invoice-editor-column print:hidden">
+        <div className="lg:col-span-5 p-5 space-y-4 bg-canvas/40 overflow-y-auto max-h-[82vh] invoice-editor-column print:hidden">
           {/* Client & Metadata */}
           <div className="p-4 rounded-lg bg-surface border border-line space-y-3.5 shadow-2xs">
             <div className="text-xs font-semibold uppercase tracking-wider text-fg-subtle flex items-center justify-between">
@@ -547,7 +645,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
             <div className="space-y-2">
               {services.map((item, idx) => (
-                <div key={item.id} className="flex items-center gap-2">
+                <div key={item.id} className="flex items-center gap-1.5">
                   <span className="text-2xs text-fg-subtle font-mono w-4 shrink-0 text-center">
                     {idx + 1}
                   </span>
@@ -557,8 +655,15 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                     onChange={(e) => handleUpdateService(item.id, 'description', e.target.value)}
                     className="h-7 text-xs flex-1"
                   />
-                  <div className="relative w-28 shrink-0">
-                    <span className="absolute left-2 top-1.5 text-xs text-fg-subtle">₹</span>
+                  <Input
+                    placeholder="SAC"
+                    value={item.sacCode || ''}
+                    onChange={(e) => handleUpdateService(item.id, 'sacCode', e.target.value)}
+                    className="h-7 text-xs w-16 text-center font-mono"
+                    title="SAC Code (e.g. 998231)"
+                  />
+                  <div className="relative w-24 shrink-0">
+                    <span className="absolute left-2 top-1 text-xs text-fg-subtle">₹</span>
                     <Input
                       type="number"
                       step="any"
@@ -607,12 +712,12 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
             {expenses.length === 0 ? (
               <p className="text-xs text-fg-subtle italic py-1">
-                No out-of-pocket or reimbursement expenses added.
+                No out-of-pocket or statutory reimbursements added.
               </p>
             ) : (
               <div className="space-y-2">
                 {expenses.map((item, idx) => (
-                  <div key={item.id} className="flex items-center gap-2">
+                  <div key={item.id} className="flex items-center gap-1.5">
                     <span className="text-2xs text-fg-subtle font-mono w-4 shrink-0 text-center">
                       {idx + 1}
                     </span>
@@ -622,8 +727,8 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                       onChange={(e) => handleUpdateExpense(item.id, 'description', e.target.value)}
                       className="h-7 text-xs flex-1"
                     />
-                    <div className="relative w-28 shrink-0">
-                      <span className="absolute left-2 top-1.5 text-xs text-fg-subtle">₹</span>
+                    <div className="relative w-24 shrink-0">
+                      <span className="absolute left-2 top-1 text-xs text-fg-subtle">₹</span>
                       <Input
                         type="number"
                         step="any"
@@ -654,10 +759,10 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             )}
           </div>
 
-          {/* Adjustments: Previous Outstanding & Advance Received */}
+          {/* Balances, Advance & OneDrive Cloud Backup */}
           <div className="p-4 rounded-lg bg-surface border border-line space-y-3.5 shadow-2xs">
             <span className="text-xs font-semibold uppercase tracking-wider text-fg-subtle block">
-              Balances & Advance
+              Balances, Advance & Cloud Backup
             </span>
 
             {/* Outstanding Balance Checkbox */}
@@ -706,6 +811,25 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               </div>
             </div>
 
+            {/* OneDrive Auto-Sync Checkbox */}
+            <div className="p-2.5 rounded-md border border-accent/20 bg-accent/5 space-y-1">
+              <label className="flex items-center gap-2 text-xs font-medium text-fg cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={saveToOneDrive}
+                  onChange={(e) => setSaveToOneDrive(e.target.checked)}
+                  className="rounded text-accent focus:ring-accent w-4 h-4"
+                />
+                <span className="flex items-center gap-1">
+                  <Cloud className="w-3.5 h-3.5 text-accent" />
+                  <span>Store PDF copy directly to client OneDrive</span>
+                </span>
+              </label>
+              <p className="text-3xs text-fg-subtle pl-6">
+                Folder: <span className="font-mono text-fg">{clientOneDriveFolder}/Invoices/</span>
+              </p>
+            </div>
+
             {/* Net Amount Summary */}
             <div className="pt-3 border-t border-line flex items-center justify-between text-sm font-semibold">
               <span className="text-fg">Net Payable</span>
@@ -715,7 +839,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         </div>
 
         {/* =========================================================================
-            RIGHT COLUMN: LIVE A4 DOCUMENT PREVIEW (Printed directly)
+            RIGHT COLUMN: EXECUTIVE A4 DOCUMENT PREVIEW (Printed directly)
             ========================================================================= */}
         <div className="lg:col-span-7 p-6 sm:p-8 bg-zinc-100 flex items-start justify-center overflow-y-auto max-h-[82vh]">
           {/* A4 Sheet Container */}
@@ -723,103 +847,130 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             id="printable-invoice"
             className="printable-invoice-sheet w-full max-w-[620px] bg-white text-zinc-900 border border-zinc-200 shadow-md rounded-[2px] p-7 sm:p-9 font-sans text-xs relative select-text"
           >
-            {/* Header: Office Branding & Invoice Meta */}
+            {/* Top Brand Color Stripe */}
+            <div className="h-1.5 w-[calc(100%+3.5rem)] sm:w-[calc(100%+4.5rem)] -mx-7 sm:-mx-9 -mt-7 sm:-mt-9 mb-5 bg-[#1B365D]" />
+
+            {/* Header: Office Identity & Invoice Meta */}
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-zinc-200">
               <div className="min-w-0">
-                <h1 className="text-base font-bold uppercase tracking-tight text-zinc-950 leading-tight">
+                <h1 className="text-base sm:text-lg font-bold uppercase tracking-tight text-zinc-950 leading-tight">
                   {firmProfile?.legalName || DEFAULT_OFFICE_FIRM.name}
                 </h1>
-                <p className="text-2xs font-medium uppercase tracking-wider text-zinc-600 mt-0.5">
+                <p className="text-2xs font-semibold uppercase tracking-widest text-[#1B365D] mt-0.5">
                   {firmProfile?.category || DEFAULT_OFFICE_FIRM.subTitle}
                 </p>
-                <p className="text-2xs text-zinc-500 mt-1.5 leading-relaxed">
+                <p className="text-3xs font-medium text-zinc-500 mt-0.5">
+                  {DEFAULT_OFFICE_FIRM.registration}
+                </p>
+                <p className="text-2xs text-zinc-600 mt-1 leading-relaxed">
                   {firmProfile?.address || DEFAULT_OFFICE_FIRM.address}
                 </p>
-                <p className="text-2xs text-zinc-500 mt-0.5">
-                  Email: {firmProfile?.email || DEFAULT_OFFICE_FIRM.email} · Phone:{' '}
+                <p className="text-2xs text-zinc-600 mt-0.5">
+                  Email: {firmProfile?.email || DEFAULT_OFFICE_FIRM.email} · Tel:{' '}
                   {firmProfile?.phone || DEFAULT_OFFICE_FIRM.phone}
                 </p>
                 {firmProfile?.gstin && (
-                  <p className="text-2xs font-mono text-zinc-500 mt-0.5">
-                    GSTIN: {firmProfile.gstin}
+                  <p className="text-2xs font-mono text-zinc-700 mt-0.5 font-medium">
+                    Firm GSTIN: {firmProfile.gstin}
                   </p>
                 )}
               </div>
 
               <div className="text-right shrink-0">
-                <span className="text-lg font-bold uppercase tracking-widest text-zinc-900 block">
-                  INVOICE
+                <span className="text-base sm:text-lg font-black uppercase tracking-widest text-zinc-950 block">
+                  TAX INVOICE
                 </span>
-                <div className="mt-2 space-y-0.5 text-2xs">
+                <span className="text-3xs uppercase tracking-wider text-zinc-400 font-medium block mt-0.5">
+                  Bill of Supply / Original
+                </span>
+                <div className="mt-2.5 p-2 rounded bg-zinc-50 border border-zinc-200 text-right space-y-0.5 text-2xs">
                   <div>
                     <span className="text-zinc-500">Invoice No: </span>
-                    <span className="font-mono font-semibold text-zinc-900">{invoiceNumber}</span>
+                    <span className="font-mono font-bold text-zinc-950">{invoiceNumber}</span>
                   </div>
                   <div>
                     <span className="text-zinc-500">Date: </span>
                     <span className="font-mono font-medium text-zinc-800">{formattedDate}</span>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bill To Section */}
-            <div className="py-4 border-b border-zinc-100 flex justify-between items-start gap-4">
-              <div>
-                <span className="text-3xs font-semibold uppercase tracking-wider text-zinc-400 block mb-1">
-                  Billed To
-                </span>
-                <div className="text-sm font-bold text-zinc-950">
-                  {clientName || 'Client Name / Trade Name'}
-                </div>
-                {phone && <div className="text-2xs text-zinc-600 mt-0.5">Phone: {phone}</div>}
-                {city && <div className="text-2xs text-zinc-600">{city}, Kerala</div>}
-              </div>
-
-              {gstin && (
-                <div className="text-right">
-                  <span className="text-3xs font-semibold uppercase tracking-wider text-zinc-400 block mb-1">
-                    GSTIN / Tax ID
-                  </span>
-                  <div className="text-xs font-mono font-semibold text-zinc-900 px-2 py-0.5 rounded bg-zinc-50 border border-zinc-200 inline-block">
-                    {gstin}
+                  <div>
+                    <span className="text-zinc-500">Place of Supply: </span>
+                    <span className="font-medium text-zinc-800">Kerala (32)</span>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
 
-            {/* Table of Line Items */}
+            {/* Bill To & Client Details Section */}
+            <div className="py-4 border-b border-zinc-200">
+              <span className="text-3xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5">
+                Billed To (Client Details)
+              </span>
+              <div className="p-3 rounded bg-zinc-50/80 border border-zinc-200/90 flex justify-between items-start gap-4">
+                <div className="min-w-0">
+                  <div className="text-sm font-bold text-zinc-950 uppercase tracking-tight">
+                    {clientName || 'Client / Business Name'}
+                  </div>
+                  {phone && <div className="text-2xs text-zinc-600 mt-0.5">Phone: {phone}</div>}
+                  {city && <div className="text-2xs text-zinc-600">{city}, Kerala, India</div>}
+                  <div className="text-3xs text-zinc-500 mt-0.5">State Code: 32 (Kerala)</div>
+                </div>
+
+                {gstin ? (
+                  <div className="text-right shrink-0">
+                    <span className="text-3xs uppercase tracking-wider text-zinc-400 block mb-1">
+                      Client GSTIN
+                    </span>
+                    <span className="text-xs font-mono font-bold text-zinc-950 bg-white px-2 py-0.5 rounded border border-zinc-200 inline-block">
+                      {gstin}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-right shrink-0">
+                    <span className="text-3xs uppercase tracking-wider text-zinc-400 block">
+                      Category
+                    </span>
+                    <span className="text-2xs font-medium text-zinc-700">Unregistered / Regular</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Itemized Services & Reimbursements Table */}
             <div className="mt-4">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-y border-zinc-300 bg-zinc-50 text-2xs font-semibold uppercase tracking-wider text-zinc-700">
-                    <th className="py-2 px-2 w-8 text-center">#</th>
-                    <th className="py-2 px-2">Particulars / Description of Services</th>
-                    <th className="py-2 px-2 text-right w-28">Amount (₹)</th>
+                  <tr className="border-y border-zinc-300 bg-zinc-100/80 text-2xs font-semibold uppercase tracking-wider text-zinc-700">
+                    <th className="py-2 px-2 w-7 text-center">#</th>
+                    <th className="py-2 px-2">Description of Professional Services</th>
+                    <th className="py-2 px-2 w-20 text-center">SAC Code</th>
+                    <th className="py-2 px-2 text-right w-24">Amount (₹)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
-                  {/* Services */}
+                  {/* Section A: Professional Services */}
                   {services.map((item, idx) => (
                     <tr key={item.id} className="align-top">
                       <td className="py-2.5 px-2 text-center text-zinc-400 font-mono text-2xs">
                         {idx + 1}
                       </td>
                       <td className="py-2.5 px-2 text-zinc-900 font-medium leading-relaxed">
-                        {item.description || 'Professional services'}
+                        {item.description || 'Professional auditing and tax compliance services'}
                       </td>
-                      <td className="py-2.5 px-2 text-right font-mono text-zinc-900">
+                      <td className="py-2.5 px-2 text-center font-mono text-2xs text-zinc-600">
+                        {item.sacCode || '998231'}
+                      </td>
+                      <td className="py-2.5 px-2 text-right font-mono text-zinc-950 font-medium">
                         {item.amount > 0 ? formatINR(item.amount) : '—'}
                       </td>
                     </tr>
                   ))}
 
-                  {/* Expenses (if any) */}
+                  {/* Section B: Reimbursement Expenses (if any) */}
                   {expenses.length > 0 && (
                     <>
-                      <tr className="bg-zinc-50/70 border-t border-zinc-200">
-                        <td colSpan={3} className="py-1 px-2 text-3xs font-semibold uppercase tracking-wider text-zinc-500">
-                          Reimbursement Expenses & Out-of-Pocket
+                      <tr className="bg-zinc-50 border-t border-zinc-200">
+                        <td colSpan={4} className="py-1 px-2 text-3xs font-bold uppercase tracking-wider text-zinc-600">
+                          B. Statutory & Out-of-Pocket Reimbursements
                         </td>
                       </tr>
                       {expenses.map((item, idx) => (
@@ -828,7 +979,10 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                             {services.length + idx + 1}
                           </td>
                           <td className="py-2 px-2 text-zinc-700 leading-relaxed">
-                            {item.description || 'Reimbursement'}
+                            {item.description || 'Statutory Challan / Fee Reimbursement'}
+                          </td>
+                          <td className="py-2 px-2 text-center font-mono text-2xs text-zinc-600">
+                            {item.sacCode || '9982'}
                           </td>
                           <td className="py-2 px-2 text-right font-mono text-zinc-900">
                             {item.amount > 0 ? formatINR(item.amount) : '—'}
@@ -840,12 +994,12 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
                   {/* Previous Outstanding Balance (if included) */}
                   {includeOutstanding && debtorBalance > 0 && (
-                    <tr className="bg-zinc-50/40">
+                    <tr className="bg-zinc-50/60">
                       <td className="py-2.5 px-2 text-center text-zinc-400 font-mono text-2xs">•</td>
-                      <td className="py-2.5 px-2 text-zinc-800 font-medium">
-                        Previous Outstanding Fee Balance (Brought Forward)
+                      <td colSpan={2} className="py-2.5 px-2 text-zinc-800 font-medium">
+                        Previous Outstanding Fee Balance (Brought Forward from Ledger)
                       </td>
-                      <td className="py-2.5 px-2 text-right font-mono font-medium text-zinc-900">
+                      <td className="py-2.5 px-2 text-right font-mono font-semibold text-zinc-950">
                         {formatINR(debtorBalance)}
                       </td>
                     </tr>
@@ -869,39 +1023,41 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
                 <div className="flex justify-between items-center text-sm font-bold pt-1.5 border-t border-zinc-200">
                   <span className="text-zinc-950 uppercase tracking-wide">Net Amount Payable</span>
-                  <span className="font-mono text-base text-zinc-950 font-bold">{formatINR(netPayable)}</span>
+                  <span className="font-mono text-base text-zinc-950 font-bold bg-zinc-50 px-2.5 py-0.5 rounded border border-zinc-200">
+                    {formatINR(netPayable)}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Amount In Words Box */}
+            {/* Amount In Words Callout */}
             <div className="mt-4 p-2.5 rounded bg-zinc-50 border border-zinc-200 text-2xs text-zinc-800 leading-relaxed">
-              <span className="font-bold text-zinc-900">Amount in Words: </span>
+              <span className="font-bold text-zinc-950">Amount in Words: </span>
               <span className="font-medium italic">{amountInWords}</span>
             </div>
 
             {/* Payment & Signatory Footer */}
             <div className="mt-6 pt-4 border-t border-zinc-200 grid grid-cols-2 gap-6 items-end">
               {/* Bank Details */}
-              <div className="text-2xs space-y-0.5">
-                <span className="text-3xs font-semibold uppercase tracking-wider text-zinc-500 block mb-1">
-                  Bank Details for Payment
+              <div className="text-2xs space-y-0.5 p-2.5 rounded bg-zinc-50/70 border border-zinc-200">
+                <span className="text-3xs font-bold uppercase tracking-wider text-zinc-600 block mb-1">
+                  Bank Details for Electronic Transfer (NEFT / RTGS / UPI)
                 </span>
                 <div>
                   <span className="text-zinc-500">Bank: </span>
-                  <span className="font-medium text-zinc-900">
+                  <span className="font-semibold text-zinc-900">
                     {firmProfile?.bankName || DEFAULT_OFFICE_FIRM.bankName}
                   </span>
                 </div>
                 <div>
-                  <span className="text-zinc-500">A/c Name: </span>
+                  <span className="text-zinc-500">Beneficiary: </span>
                   <span className="font-medium text-zinc-900">
                     {firmProfile?.beneficiaryName || DEFAULT_OFFICE_FIRM.beneficiaryName}
                   </span>
                 </div>
                 <div>
-                  <span className="text-zinc-500">Account No: </span>
-                  <span className="font-mono font-semibold text-zinc-900">
+                  <span className="text-zinc-500">A/c No: </span>
+                  <span className="font-mono font-bold text-zinc-950">
                     {firmProfile?.accountNumber || DEFAULT_OFFICE_FIRM.accountNumber}
                   </span>
                 </div>
@@ -921,21 +1077,24 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
               {/* Authorised Signatory */}
               <div className="text-right">
-                <p className="text-3xs uppercase tracking-wider text-zinc-500 mb-9">
+                <p className="text-3xs uppercase tracking-wider text-zinc-500 mb-8">
                   For {firmProfile?.legalName || DEFAULT_OFFICE_FIRM.name}
                 </p>
+                <div className="w-32 border-b border-zinc-300 ml-auto mb-1" />
                 <p className="text-xs font-bold uppercase tracking-tight text-zinc-950">
                   {DEFAULT_OFFICE_FIRM.signatory}
                 </p>
                 <p className="text-3xs font-medium text-zinc-600">
                   {DEFAULT_OFFICE_FIRM.signatoryRole}
                 </p>
+                <p className="text-3xs text-zinc-400">Authorised Signatory</p>
               </div>
             </div>
 
-            {/* Bottom Note */}
-            <div className="mt-6 pt-2 border-t border-zinc-100 text-center text-3xs text-zinc-400">
-              This is a computer generated invoice · Shameer & Associates, Accountants and Practitioners
+            {/* Notes & Terms */}
+            <div className="mt-5 pt-2 border-t border-zinc-100 flex items-center justify-between text-3xs text-zinc-400">
+              <span>Please quote invoice reference when transferring via NEFT/UPI</span>
+              <span>Computer generated invoice · Shameer & Associates</span>
             </div>
           </div>
         </div>

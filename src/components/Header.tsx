@@ -27,6 +27,7 @@ const TAB_TITLES: Record<string, string> = {
   'gst-tracker': 'Deadlines',
   monthly: 'GST & Audit',
   itr: 'ITR Returns',
+  invoices: 'Invoices',
   clients: 'Clients',
   debtors: 'Debtors',
   staff: 'Calls & Tickets',

@@ -23,6 +23,7 @@ import { LoginView, SetNewPasswordView } from './components/LoginView';
 import { PracticeConfigManager } from './components/PracticeConfigManager';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { InvoiceGeneratorModal } from './components/InvoiceGeneratorModal';
+import { InvoicesManager } from './components/InvoicesManager';
 import { Avatar, Button, Card, EmptyState, PageHeader } from './components/ui';
 
 import {
@@ -291,6 +292,7 @@ export function App() {
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [invoiceModalTarget, setInvoiceModalTarget] = useState<Client | DebtorRecord | null>(null);
+  const [invoicePrefillBilling, setInvoicePrefillBilling] = useState<OfficeBillingEntry | null>(null);
   const [toast, setToast] = useState<{ message: string; error?: boolean } | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const toastTimer = useRef<number>();
@@ -636,14 +638,24 @@ export function App() {
     reportSave(await saveDebtorToDb(updated), 'Payment');
   };
 
-  const handleAddDebtorBilling = async (debtorId: string, amount: number, description: string) => {
+  const handleAddDebtorBilling = async (
+    debtorId: string,
+    amount: number,
+    description: string,
+    oopExpenses = 0,
+    invoiceNoOverride?: string,
+    oneDriveSynced?: boolean,
+    oneDriveUrl?: string
+  ) => {
     const record = debtors.find((d) => d.id === debtorId);
     if (!record) return;
-    const updated = applyBilling(record, amount);
+    const totalAmount = amount + (oopExpenses || 0);
+    const updated = applyBilling(record, totalAmount);
     setDebtors((prev) => prev.map((d) => (d.id === debtorId ? updated : d)));
 
     const period = updated.months[updated.months.length - 1]?.month || currentMonthKey();
-    const invoiceNumber = `${preferences.invoicePrefix}${String(preferences.nextInvoiceNumber).padStart(4, '0')}`;
+    const invoiceNumber =
+      invoiceNoOverride || `${preferences.invoicePrefix}${String(preferences.nextInvoiceNumber).padStart(4, '0')}`;
     const entry: OfficeBillingEntry = {
       id: `bill-${Date.now()}`,
       serialNo: billings.filter((b) => b.period === period).length + 1,
@@ -651,16 +663,21 @@ export function App() {
       clientName: record.clientName,
       natureOfService: description,
       professionalIncome: amount,
-      oopExpenses: 0,
+      oopExpenses: oopExpenses || 0,
       user: currentUser?.name || '',
       billingStatus: 'Billed',
       invoiceNumber,
       period,
+      oneDriveSynced: !!oneDriveSynced,
+      oneDriveUrl: oneDriveUrl || undefined,
+      oneDriveSyncedAt: oneDriveSynced ? new Date().toISOString() : undefined,
     };
     setBillings((prev) => [entry, ...prev]);
-    handleSavePreferences({ ...preferences, nextInvoiceNumber: preferences.nextInvoiceNumber + 1 });
-    showToast(`Invoice ${invoiceNumber} · ₹${amount.toLocaleString('en-IN')} billed to ${record.clientName}`);
-    addActivityLog('Fee billed', `${invoiceNumber} · ₹${amount.toLocaleString('en-IN')} for ${description}`, record.clientName, 'Payment');
+    if (!invoiceNoOverride || invoiceNoOverride === `${preferences.invoicePrefix}${String(preferences.nextInvoiceNumber).padStart(4, '0')}`) {
+      handleSavePreferences({ ...preferences, nextInvoiceNumber: preferences.nextInvoiceNumber + 1 });
+    }
+    showToast(`Invoice ${invoiceNumber} · ₹${totalAmount.toLocaleString('en-IN')} billed to ${record.clientName}`);
+    addActivityLog('Fee billed', `${invoiceNumber} · ₹${totalAmount.toLocaleString('en-IN')} for ${description}`, record.clientName, 'Payment');
     const [a, b] = await Promise.all([saveDebtorToDb(updated), saveBillingToDb(entry)]);
     reportSave(a, 'Balance');
     reportSave(b, 'Invoice');
@@ -763,6 +780,7 @@ export function App() {
         itrCount={itrFilings.length}
         totalClientsCount={activeClients.length}
         debtorsCount={debtors.filter((d) => d.currentBalance > 0).length}
+        invoicesCount={billings.length}
         gstOverdueCount={gstOverdueCount}
         unassignedTicketsCount={tickets.filter((t) => t.status === 'Unassigned').length}
         isMobileOpen={isMobileSidebarOpen}
@@ -901,6 +919,29 @@ export function App() {
                 }}
               />
             )}
+
+            {activeTab === 'invoices' &&
+              (canViewFees ? (
+                <InvoicesManager
+                  billings={billings}
+                  clients={clients}
+                  debtors={debtors}
+                  canEdit={canEditFees}
+                  onOpenInvoiceModal={(clientOrDebtor, prefill) => {
+                    setInvoiceModalTarget(clientOrDebtor || null);
+                    setInvoicePrefillBilling(prefill || null);
+                    setIsInvoiceModalOpen(true);
+                  }}
+                  onUpdateBilling={async (updated) => {
+                    setBillings((prev) =>
+                      prev.map((b) => (b.id === updated.id || b.invoiceNumber === updated.invoiceNumber ? updated : b))
+                    );
+                    saveBillingToDb(updated);
+                  }}
+                />
+              ) : (
+                restricted('Invoices and billing registers are visible to administrators and staff given fee access.')
+              ))}
 
             {activeTab === 'debtors' &&
               (canViewFees ? (
@@ -1088,8 +1129,10 @@ export function App() {
         onClose={() => {
           setIsInvoiceModalOpen(false);
           setInvoiceModalTarget(null);
+          setInvoicePrefillBilling(null);
         }}
         initialClient={invoiceModalTarget}
+        prefillBilling={invoicePrefillBilling}
         clients={clients}
         debtors={debtors}
         preferences={preferences}
@@ -1098,8 +1141,12 @@ export function App() {
           if (billingData.debtorId) {
             handleAddDebtorBilling(
               billingData.debtorId,
-              billingData.amount + (billingData.oopExpenses || 0),
-              billingData.description
+              billingData.amount,
+              billingData.description,
+              billingData.oopExpenses,
+              billingData.invoiceNumber,
+              billingData.oneDriveSynced,
+              billingData.oneDriveUrl
             );
           } else {
             const debtor = debtors.find(
@@ -1108,8 +1155,12 @@ export function App() {
             if (debtor) {
               handleAddDebtorBilling(
                 debtor.id,
-                billingData.amount + (billingData.oopExpenses || 0),
-                billingData.description
+                billingData.amount,
+                billingData.description,
+                billingData.oopExpenses,
+                billingData.invoiceNumber,
+                billingData.oneDriveSynced,
+                billingData.oneDriveUrl
               );
             }
           }

@@ -165,6 +165,10 @@ export interface OfficeBillingEntry {
   /** Register month the entry belongs to, 'YYYY-MM'. */
   period?: string;
   id?: string;
+  /** OneDrive / SharePoint backup status and file link. */
+  oneDriveSynced?: boolean;
+  oneDriveUrl?: string;
+  oneDriveSyncedAt?: string;
 }
 
 export type GSTPriorityLevel = 'overdue' | 'due-2-days' | 'upcoming' | 'filed';
