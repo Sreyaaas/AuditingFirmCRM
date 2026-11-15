@@ -8,7 +8,7 @@ import {
   FileText,
   Building2,
   Wallet,
-  Receipt,
+  ReceiptText,
   PhoneCall,
   Users,
   History,
@@ -79,9 +79,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const relationships: NavItem[] = [
     { id: 'clients', label: 'Clients', icon: Building2, count: totalClientsCount },
+    { id: 'invoices', label: 'Invoices', icon: ReceiptText, count: invoicesCount },
     ...(canViewFees
       ? [
-          { id: 'invoices', label: 'Invoices', icon: Receipt, count: invoicesCount },
           { id: 'debtors', label: 'Debtors', icon: Wallet, count: debtorsCount },
         ]
       : []),

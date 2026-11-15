@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Receipt,
+  ReceiptText,
   Plus,
   Search,
   Cloud,
@@ -360,7 +360,7 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
               <tr>
                 <td colSpan={11} className="!h-auto py-10">
                   <EmptyState
-                    icon={Receipt}
+                    icon={ReceiptText}
                     title="No invoices found"
                     description={
                       searchQuery

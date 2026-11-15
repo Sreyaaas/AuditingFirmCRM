@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Download, MessageSquare, Plus, Upload, FileSpreadsheet, AlertTriangle, UserPlus, CalendarPlus, Receipt } from 'lucide-react';
+import { Download, MessageSquare, Plus, Upload, FileSpreadsheet, AlertTriangle, UserPlus, CalendarPlus, ReceiptText } from 'lucide-react';
 import { DebtorRecord, GSTComplianceItem, OfficeBillingEntry, StaffMember, Client, EntityType, DebtorMonth } from '../types/crm';
 import { AppPreferences, FirmProfileSettings } from '../services/firmConfigService';
 import { exportDebtorsAndGSTWorkbook } from '../utils/excelExport';
@@ -306,7 +306,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
               <>
                 <Button
                   variant="secondary"
-                  icon={Receipt}
+                  icon={ReceiptText}
                   onClick={() => {
                     const defaultTarget = debtors.find((d) => d.currentBalance > 0) || debtors[0] || null;
                     setInvoiceFor(defaultTarget);

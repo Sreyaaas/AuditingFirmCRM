@@ -218,3 +218,8 @@ Dropdown lists remain in `practice_configs`.
 * Moved theme selection out of company Preferences into a dedicated "Appearance" section at the end of Settings navigation, styled as a compact, responsive 5-column swatch picker without bulky cards.
 * Added office-grade Invoice Generator modal (`InvoiceGeneratorModal`) with live A4 preview, Indian numbering currency words (`numberToWordsINR`), `@media print` A4 PDF export, and direct WhatsApp invoice delivery matching Shameer & Associates' office invoice template. Wired to "Create Invoice" in Debtors and "Generate Invoice" in Client Directory / Client Drawer.
 * Added dedicated Invoices module (`InvoicesManager`) to sidebar navigation (`invoices`), showing all generated invoices, KPI summaries, and simulated Microsoft 365 SharePoint / OneDrive document cloud archiving. Elevated A4 invoice preview with SAC codes, tax practitioner credentials, brand bar, and payment details.
+* Standardized invoice typography to **Plus Jakarta Sans** with executive medium (500) and semi-bold (600) weights, eliminating thin/spindly text, strengthening label and ink contrast, and adding Google Fonts weights 400–800.
+* Replaced confusing "Record in Ledger" button with "Save Invoice", and streamlined print/export options to high-resolution "Download PDF" (retiring the "Print Office Printer" duplicate).
+* Removed dollar-signed receipt icon (`Receipt`) in favor of `ReceiptText` across the entire application.
+* Upgraded New Task modal category selector from a full-width segmented control to Apple/Vercel standard modal header underline tabs (`Tabs`).
+* Fixed invoice print preview overlap by auto-dismissing background drawers.

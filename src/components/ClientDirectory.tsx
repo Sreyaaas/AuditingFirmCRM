@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, MoreHorizontal, Plus, Receipt } from 'lucide-react';
+import { MessageSquare, MoreHorizontal, Plus, ReceiptText } from 'lucide-react';
 import { Client, StaffMember } from '../types/crm';
 import { NewClientModal } from './NewClientModal';
 import { Avatar, Badge, Button, ConfirmDialog, EmptyState, IconButton, Menu, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, formatINR, nameInitials } from './ui';
@@ -212,7 +212,7 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                     <div className="flex items-center justify-end gap-1">
                       {onGenerateInvoice && (
                         <IconButton
-                          icon={Receipt}
+                          icon={ReceiptText}
                           label="Generate Invoice"
                           size="sm"
                           onClick={() => onGenerateInvoice(client)}

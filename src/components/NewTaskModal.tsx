@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ListChecks, Briefcase, Calendar } from 'lucide-react';
-import { Button, Field, Input, Modal, Select, Segmented, Textarea } from './ui';
+import { Button, Field, Input, Modal, Select, Tabs, Textarea } from './ui';
 import { Client, MonthlyTask, StaffMember, FilingStatus, TaskCategory } from '../types/crm';
 
 interface NewTaskModalProps {
@@ -16,7 +16,7 @@ interface NewTaskModalProps {
 const CATEGORY_OPTIONS: { value: TaskCategory; label: string }[] = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'quarterly', label: 'Quarterly' },
-  { value: 'annual', label: 'Annual' },
+  { value: 'annual', label: 'Annual & ITR' },
   { value: 'weekly', label: 'Weekly' },
   { value: 'other', label: 'Other Assignments' },
 ];
@@ -190,7 +190,15 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
       size="lg"
       icon={category === 'other' ? Briefcase : ListChecks}
       title={category === 'other' ? 'New client assignment' : 'New compliance task'}
-      description="Create authentic engagements matching Shameer & Associates service taxonomy."
+      description="Create tasks and assignments for the firm."
+      subheader={
+        <Tabs
+          className="border-b-0 -mb-px"
+          value={category}
+          onChange={handleCategoryChange}
+          options={CATEGORY_OPTIONS}
+        />
+      }
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -202,19 +210,7 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
         </>
       }
     >
-      <form id="new-task-form" onSubmit={handleSubmit} className="space-y-4">
-        {/* Category Tabs */}
-        <div>
-          <label className="text-xs font-medium text-fg mb-1.5 block">Service Category</label>
-          <Segmented
-            options={CATEGORY_OPTIONS}
-            value={category}
-            onChange={handleCategoryChange}
-            size="md"
-            className="w-full justify-between"
-          />
-        </div>
-
+      <form id="new-task-form" onSubmit={handleSubmit} className="space-y-4 pt-1">
         {/* Client Selection */}
         <Field label="Client" required hint={clients.length === 0 ? 'Add the client on the Clients page first.' : undefined}>
           <Select required autoFocus value={clientId} onChange={(e) => chooseClient(e.target.value)}>
@@ -239,8 +235,8 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
 
         {/* Dynamic Fields Based on Category */}
         {category === 'other' ? (
-          <div className="space-y-4 p-3.5 rounded-lg border border-line bg-subtle/40">
-            <Field label="Assignment Title" required hint="Specialized engagement, incorporation, or secretarial work.">
+          <>
+            <Field label="Assignment Title" required hint="Specialized assignment, incorporation, or secretarial work.">
               <Input
                 required
                 value={assignmentTitle}
@@ -257,7 +253,7 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
                 placeholder="Scope of work, documents checklist, or client notes…"
               />
             </Field>
-          </div>
+          </>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Service / Return" required>

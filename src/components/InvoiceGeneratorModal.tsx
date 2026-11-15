@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   FileText,
-  Printer,
   Download,
   MessageSquare,
   Plus,
   Trash2,
   Building2,
   Calendar,
-  Receipt,
   CheckCircle2,
   Copy,
   ChevronDown,
@@ -72,6 +70,8 @@ const DEFAULT_OFFICE_FIRM = {
   signatory: 'SHAMEER V M',
   signatoryRole: 'Managing Partner & Senior Practitioner',
 };
+
+export const INVOICE_FONT_STACK = '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
 export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   isOpen,
@@ -403,7 +403,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               padding: 0 !important;
               background: #ffffff !important;
               color: #09090b !important;
-              font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif !important;
+              font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
@@ -549,7 +549,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     }
 
     if (!onRecordBilling) {
-      handlePrint();
+      handleDownloadPdf();
       return;
     }
 
@@ -578,12 +578,14 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       });
 
       if (saveToOneDrive || oneDriveUploaded) {
-        dispatchAppToast(`Invoice ${invoiceNumber} recorded and stored in client OneDrive archive`);
+        dispatchAppToast(`Invoice ${invoiceNumber} saved and stored in client OneDrive`);
+      } else {
+        dispatchAppToast(`Invoice ${invoiceNumber} saved`);
       }
 
       onClose();
     } catch (err: any) {
-      dispatchAppToast(err?.message || 'Failed to record invoice', true);
+      dispatchAppToast(err?.message || 'Failed to save invoice', true);
     } finally {
       setIsSaving(false);
     }
@@ -598,7 +600,6 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       size="2xl"
       title={
         <div className="flex items-center gap-2">
-          <Receipt className="w-5 h-5 text-accent" strokeWidth={1.75} />
           <span>Tax Invoice Generator</span>
           <span className="text-xs font-normal text-fg-subtle ident font-mono ml-1.5 px-2 py-0.5 rounded bg-subtle border border-line">
             {invoiceNumber}
@@ -642,15 +643,17 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               WhatsApp Invoice
             </Button>
 
-            <Button
-              variant="secondary"
-              icon={Printer}
-              onClick={handlePrint}
-              disabled={isSaving}
-              title="Print document on office printer"
-            >
-              Print (Office Printer)
-            </Button>
+            {onRecordBilling && (
+              <Button
+                variant="secondary"
+                icon={CheckCircle2}
+                onClick={handleSaveAndRecord}
+                disabled={isSaving}
+                title="Save this invoice to the client account and invoices register"
+              >
+                {isSaving ? 'Saving…' : 'Save Invoice'}
+              </Button>
+            )}
 
             <Button
               variant="primary"
@@ -661,18 +664,6 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             >
               Download PDF
             </Button>
-
-            {onRecordBilling && (
-              <Button
-                variant="secondary"
-                icon={CheckCircle2}
-                onClick={handleSaveAndRecord}
-                disabled={isSaving}
-                title="Record billing entry in practice ledger"
-              >
-                {isSaving ? 'Recording…' : 'Record in Ledger'}
-              </Button>
-            )}
           </div>
         </div>
       }
@@ -921,7 +912,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
               {includeOutstanding && (
                 <div className="flex items-center justify-between pl-6 pt-1">
-                  <span className="text-2xs text-fg-subtle">Debtor ledger balance:</span>
+                  <span className="text-2xs text-fg-subtle">Current account balance:</span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-2xs text-fg-subtle">₹</span>
                     <input
@@ -983,7 +974,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         {/* =========================================================================
             RIGHT COLUMN: EXECUTIVE A4 DOCUMENT PREVIEW (Printed directly)
             ========================================================================= */}
-        <div className="lg:col-span-7 p-6 sm:p-8 bg-zinc-100 flex items-start justify-center overflow-y-auto max-h-[82vh] print:p-0 print:bg-white print:overflow-visible print:max-h-none print:block">
+        <div className="lg:col-span-7 p-6 sm:p-8 bg-zinc-100 flex flex-col items-center justify-start overflow-y-auto max-h-[82vh] print:p-0 print:bg-white print:overflow-visible print:max-h-none print:block">
           {/* A4 sheet: printed and exported as PDF exactly as shown.
               Colours are fixed (not theme tokens) because this is a paper document. */}
           {(() => {
@@ -1002,24 +993,25 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               ifsc: firmProfile?.ifscCode || DEFAULT_OFFICE_FIRM.ifscCode,
               upi: firmProfile?.upiId || DEFAULT_OFFICE_FIRM.upiId,
             };
-            const INK = '#111827';
-            const MUTED = '#6B7280';
-            const RULE = '#E5E7EB';
+            const INK = '#0F172A';
+            const MUTED = '#374151';
+            const RULE = '#E2E8F0';
             const BRAND = '#1B365D';
-            const mono = { fontFamily: '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace', fontVariantNumeric: 'tabular-nums' as const };
-            const label: React.CSSProperties = { fontSize: 9.5, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: MUTED };
+            const mono = { fontFamily: '"JetBrains Mono", "SF Mono", Menlo, Consolas, monospace', fontVariantNumeric: 'tabular-nums' as const };
+            const label: React.CSSProperties = { fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: MUTED };
             const showSac = [...services, ...expenses].some((s) => s.sacCode);
-            const cell: React.CSSProperties = { padding: '11px 0', borderBottom: `1px solid ${RULE}`, verticalAlign: 'top' };
+            const cell: React.CSSProperties = { padding: '12px 0', borderBottom: `1px solid ${RULE}`, verticalAlign: 'top', fontSize: 12 };
             let n = 0;
             return (
               <div
                 id="printable-invoice"
                 className="printable-invoice-sheet w-full max-w-[680px] bg-white select-text shadow-sm"
                 style={{
-                  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif',
+                  fontFamily: INVOICE_FONT_STACK,
                   color: INK,
-                  fontSize: 11.5,
-                  lineHeight: 1.55,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  lineHeight: 1.6,
                   padding: '48px 52px 40px',
                   minHeight: 962,
                   display: 'flex',
@@ -1030,8 +1022,8 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                 {/* Letterhead */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 }}>
                   <img src="/logo-light.png" alt={firm.name} style={{ height: 52, width: 'auto', objectFit: 'contain' }} />
-                  <div style={{ textAlign: 'right', fontSize: 10.5, color: MUTED, lineHeight: 1.6 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: INK }}>{firm.name}</div>
+                  <div style={{ textAlign: 'right', fontSize: 11, color: MUTED, lineHeight: 1.6, fontWeight: 500 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: INK }}>{firm.name}</div>
                     <div>{firm.category}</div>
                     <div>{firm.address}</div>
                     <div>{firm.phone}</div>
@@ -1040,42 +1032,42 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                 </div>
 
                 {/* Title and invoice facts */}
-                <div style={{ marginTop: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
+                <div style={{ marginTop: 38, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
                   <div>
-                    <div style={{ fontSize: 26, fontWeight: 300, letterSpacing: '-0.01em', color: BRAND }}>Invoice</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', color: BRAND }}>Invoice</div>
                     <div style={{ ...label, marginTop: 4 }}>Original for recipient</div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', columnGap: 20, rowGap: 4, fontSize: 11 }}>
-                    <span style={{ color: MUTED }}>Invoice no.</span>
-                    <span style={{ ...mono, fontWeight: 600, textAlign: 'right' }}>{invoiceNumber}</span>
-                    <span style={{ color: MUTED }}>Date of issue</span>
-                    <span style={{ ...mono, textAlign: 'right' }}>{formattedDate}</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', columnGap: 20, rowGap: 5, fontSize: 11.5 }}>
+                    <span style={{ color: MUTED, fontWeight: 600 }}>Invoice no.</span>
+                    <span style={{ ...mono, fontWeight: 700, textAlign: 'right', color: INK }}>{invoiceNumber}</span>
+                    <span style={{ color: MUTED, fontWeight: 600 }}>Date of issue</span>
+                    <span style={{ ...mono, fontWeight: 600, textAlign: 'right', color: INK }}>{formattedDate}</span>
                     {firm.gstin && (
                       <>
-                        <span style={{ color: MUTED }}>Our GSTIN</span>
-                        <span style={{ ...mono, textAlign: 'right' }}>{firm.gstin}</span>
+                        <span style={{ color: MUTED, fontWeight: 600 }}>Our GSTIN</span>
+                        <span style={{ ...mono, fontWeight: 600, textAlign: 'right', color: INK }}>{firm.gstin}</span>
                       </>
                     )}
                     {firm.pan && (
                       <>
-                        <span style={{ color: MUTED }}>Our PAN</span>
-                        <span style={{ ...mono, textAlign: 'right' }}>{firm.pan}</span>
+                        <span style={{ color: MUTED, fontWeight: 600 }}>Our PAN</span>
+                        <span style={{ ...mono, fontWeight: 600, textAlign: 'right', color: INK }}>{firm.pan}</span>
                       </>
                     )}
                   </div>
                 </div>
 
                 {/* Billed to */}
-                <div style={{ marginTop: 28, padding: '18px 20px', background: '#F8FAFC', borderRadius: 6, display: 'flex', justifyContent: 'space-between', gap: 24 }}>
+                <div style={{ marginTop: 28, padding: '18px 20px', background: '#F8FAFC', borderRadius: 6, display: 'flex', justifyContent: 'space-between', gap: 24, border: `1px solid ${RULE}` }}>
                   <div>
                     <div style={label}>Billed to</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6 }}>{clientName || 'Client name'}</div>
-                    {phone && <div style={{ ...mono, color: MUTED, marginTop: 2, fontSize: 11 }}>{phone}</div>}
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: INK, marginTop: 6 }}>{clientName || 'Client name'}</div>
+                    {phone && <div style={{ ...mono, color: MUTED, fontWeight: 500, marginTop: 3, fontSize: 11.5 }}>{phone}</div>}
                   </div>
                   {gstin && (
                     <div style={{ textAlign: 'right' }}>
                       <div style={label}>GSTIN</div>
-                      <div style={{ ...mono, fontWeight: 600, marginTop: 6 }}>{gstin}</div>
+                      <div style={{ ...mono, fontWeight: 700, color: INK, marginTop: 6, fontSize: 12 }}>{gstin}</div>
                     </div>
                   )}
                 </div>
@@ -1084,66 +1076,66 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 32 }}>
                   <thead>
                     <tr>
-                      <th style={{ ...label, textAlign: 'left', width: 28, paddingBottom: 10, borderBottom: `1.5px solid ${INK}` }}>#</th>
-                      <th style={{ ...label, textAlign: 'left', paddingBottom: 10, borderBottom: `1.5px solid ${INK}` }}>Description</th>
-                      {showSac && <th style={{ ...label, textAlign: 'left', width: 72, paddingBottom: 10, borderBottom: `1.5px solid ${INK}` }}>SAC</th>}
-                      <th style={{ ...label, textAlign: 'right', width: 120, paddingBottom: 10, borderBottom: `1.5px solid ${INK}` }}>Amount (₹)</th>
+                      <th style={{ ...label, textAlign: 'left', width: 28, paddingBottom: 10, borderBottom: `2px solid ${INK}` }}>#</th>
+                      <th style={{ ...label, textAlign: 'left', paddingBottom: 10, borderBottom: `2px solid ${INK}` }}>Description</th>
+                      {showSac && <th style={{ ...label, textAlign: 'left', width: 72, paddingBottom: 10, borderBottom: `2px solid ${INK}` }}>SAC</th>}
+                      <th style={{ ...label, textAlign: 'right', width: 120, paddingBottom: 10, borderBottom: `2px solid ${INK}` }}>Amount (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {services.map((item) => (
                       <tr key={item.id}>
-                        <td style={{ ...cell, ...mono, color: MUTED }}>{String(++n).padStart(2, '0')}</td>
-                        <td style={{ ...cell, fontWeight: 500, paddingRight: 16 }}>{item.description || '—'}</td>
-                        {showSac && <td style={{ ...cell, ...mono, color: MUTED }}>{item.sacCode || ''}</td>}
-                        <td style={{ ...cell, ...mono, textAlign: 'right' }}>{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
+                        <td style={{ ...cell, ...mono, color: MUTED, fontWeight: 600 }}>{String(++n).padStart(2, '0')}</td>
+                        <td style={{ ...cell, fontWeight: 600, paddingRight: 16, color: INK }}>{item.description || '—'}</td>
+                        {showSac && <td style={{ ...cell, ...mono, color: MUTED, fontWeight: 500 }}>{item.sacCode || ''}</td>}
+                        <td style={{ ...cell, ...mono, textAlign: 'right', fontWeight: 600, color: INK }}>{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
                       </tr>
                     ))}
                     {expenses.length > 0 && (
                       <tr>
                         <td />
-                        <td colSpan={showSac ? 3 : 2} style={{ ...label, paddingTop: 18, paddingBottom: 4 }}>Reimbursement of expenses</td>
+                        <td colSpan={showSac ? 3 : 2} style={{ ...label, paddingTop: 18, paddingBottom: 6 }}>Reimbursement expenses :</td>
                       </tr>
                     )}
                     {expenses.map((item) => (
                       <tr key={item.id}>
-                        <td style={{ ...cell, ...mono, color: MUTED }}>{String(++n).padStart(2, '0')}</td>
-                        <td style={{ ...cell, paddingRight: 16 }}>{item.description || '—'}</td>
-                        {showSac && <td style={{ ...cell, ...mono, color: MUTED }}>{item.sacCode || ''}</td>}
-                        <td style={{ ...cell, ...mono, textAlign: 'right' }}>{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
+                        <td style={cell} />
+                        <td style={{ ...cell, fontWeight: 600, paddingRight: 16, color: INK }}>{item.description || '—'}</td>
+                        {showSac && <td style={{ ...cell, ...mono, color: MUTED, fontWeight: 500 }}>{item.sacCode || ''}</td>}
+                        <td style={{ ...cell, ...mono, textAlign: 'right', fontWeight: 600, color: INK }}>{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
                       </tr>
                     ))}
                     {includeOutstanding && debtorBalance > 0 && (
                       <tr>
-                        <td style={{ ...cell, ...mono, color: MUTED }}>{String(++n).padStart(2, '0')}</td>
-                        <td style={{ ...cell, paddingRight: 16 }}>Previous balance outstanding as on {formattedDate}</td>
+                        <td style={cell} />
+                        <td style={{ ...cell, fontWeight: 600, paddingRight: 16, color: INK }}>Outstanding as on {formattedDate}</td>
                         {showSac && <td style={cell} />}
-                        <td style={{ ...cell, ...mono, textAlign: 'right' }}>{formatINR(debtorBalance)}</td>
+                        <td style={{ ...cell, ...mono, textAlign: 'right', fontWeight: 600, color: INK }}>{formatINR(debtorBalance)}</td>
                       </tr>
                     )}
                   </tbody>
                 </table>
 
                 {/* Totals */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-                  <div style={{ width: 280 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: MUTED }}>
-                      <span>Subtotal</span>
-                      <span style={{ ...mono, color: INK }}>{formatINR(grossTotal)}</span>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
+                  <div style={{ width: 290 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: MUTED, fontWeight: 500 }}>
+                      <span style={{ fontWeight: 600 }}>Subtotal</span>
+                      <span style={{ ...mono, fontWeight: 600, color: INK }}>{formatINR(grossTotal)}</span>
                     </div>
                     {advanceReceived > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: MUTED }}>
-                        <span>Less: advance received</span>
-                        <span style={{ ...mono, color: INK }}>−{formatINR(advanceReceived)}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: MUTED, fontWeight: 500 }}>
+                        <span style={{ fontWeight: 600 }}>Less: advance received</span>
+                        <span style={{ ...mono, fontWeight: 600, color: INK }}>−{formatINR(advanceReceived)}</span>
                       </div>
                     )}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8, padding: '12px 0', borderTop: `1.5px solid ${INK}` }}>
-                      <span style={{ fontWeight: 600 }}>Amount payable</span>
-                      <span style={{ ...mono, fontSize: 18, fontWeight: 600, color: BRAND }}>{formatINR(netPayable)}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8, padding: '12px 0', borderTop: `2px solid ${INK}` }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: INK }}>Amount payable</span>
+                      <span style={{ ...mono, fontSize: 19, fontWeight: 700, color: BRAND }}>{formatINR(netPayable)}</span>
                     </div>
                   </div>
                 </div>
-                <div style={{ marginTop: 6, fontSize: 11, color: MUTED, textAlign: 'right' }}>
+                <div style={{ marginTop: 6, fontSize: 11, color: MUTED, textAlign: 'right', fontWeight: 500 }}>
                   <span style={{ fontStyle: 'italic' }}>{amountInWords}</span>
                 </div>
 
@@ -1153,35 +1145,31 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                 <div style={{ marginTop: 40, paddingTop: 22, borderTop: `1px solid ${RULE}`, display: 'grid', gridTemplateColumns: '1fr auto', gap: 32, alignItems: 'end' }}>
                   <div>
                     <div style={label}>Payment details</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: 16, whiteSpace: 'nowrap', rowGap: 3, marginTop: 8, fontSize: 11 }}>
-                      <span style={{ color: MUTED }}>Account name</span>
-                      <span style={{ fontWeight: 500 }}>{firm.beneficiary}</span>
-                      <span style={{ color: MUTED }}>Bank</span>
-                      <span>{firm.bank}{firm.branch ? `, ${firm.branch}` : ''}</span>
-                      <span style={{ color: MUTED }}>Account no.</span>
-                      <span style={mono}>{firm.account}</span>
-                      <span style={{ color: MUTED }}>IFSC</span>
-                      <span style={mono}>{firm.ifsc}</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: 16, whiteSpace: 'nowrap', rowGap: 4, marginTop: 8, fontSize: 11.5, fontWeight: 500 }}>
+                      <span style={{ color: MUTED, fontWeight: 600 }}>Account name</span>
+                      <span style={{ fontWeight: 600, color: INK }}>{firm.beneficiary}</span>
+                      <span style={{ color: MUTED, fontWeight: 600 }}>Bank</span>
+                      <span style={{ color: INK, fontWeight: 500 }}>{firm.bank}{firm.branch ? `, ${firm.branch}` : ''}</span>
+                      <span style={{ color: MUTED, fontWeight: 600 }}>Account no.</span>
+                      <span style={{ ...mono, fontWeight: 600, color: INK }}>{firm.account}</span>
+                      <span style={{ color: MUTED, fontWeight: 600 }}>IFSC</span>
+                      <span style={{ ...mono, fontWeight: 600, color: INK }}>{firm.ifsc}</span>
                       {firm.upi && (
                         <>
-                          <span style={{ color: MUTED }}>UPI</span>
-                          <span style={mono}>{firm.upi}</span>
+                          <span style={{ color: MUTED, fontWeight: 600 }}>UPI</span>
+                          <span style={{ ...mono, fontWeight: 600, color: INK }}>{firm.upi}</span>
                         </>
                       )}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', minWidth: 190 }}>
-                    <div style={{ fontSize: 10.5, color: MUTED }}>For {firm.name}</div>
-                    <div style={{ height: 52 }} />
-                    <div style={{ borderTop: `1px solid ${INK}`, paddingTop: 6 }}>
-                      <div style={{ fontWeight: 600 }}>Shameer V M</div>
-                      <div style={{ fontSize: 10.5, color: MUTED }}>Authorised signatory</div>
+                    <div style={{ fontSize: 11, color: MUTED, fontWeight: 600 }}>For {firm.name}</div>
+                    <div style={{ height: 48 }} />
+                    <div style={{ borderTop: `1.5px solid ${INK}`, paddingTop: 6 }}>
+                      <div style={{ fontWeight: 700, fontSize: 12, color: INK }}>Shameer V M</div>
+                      <div style={{ fontSize: 10.5, color: MUTED, fontWeight: 600 }}>Authorised signatory</div>
                     </div>
                   </div>
-                </div>
-
-                <div style={{ marginTop: 28, textAlign: 'center', fontSize: 10, color: MUTED }}>
-                  Thank you for your business. This is a computer-generated invoice.
                 </div>
               </div>
             );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, Copy, Check, MessageSquare, Receipt } from 'lucide-react';
+import { ExternalLink, Copy, Check, MessageSquare, ReceiptText } from 'lucide-react';
 import { Client, MonthlyTask, ITRFiling, StaffMember, StaffTicket, DebtorRecord } from '../types/crm';
 import { Avatar, Badge, Button, DescriptionList, EmptyState, Modal, SearchInput, Segmented, Tabs, cn, formatDate, formatINR, statusTone } from './ui';
 
@@ -128,7 +128,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
           {onGenerateInvoice && (
             <Button
               variant="secondary"
-              icon={Receipt}
+              icon={ReceiptText}
               onClick={() => {
                 onClose();
                 onGenerateInvoice(client);
@@ -272,7 +272,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                       <Button
                         size="sm"
                         variant="secondary"
-                        icon={Receipt}
+                        icon={ReceiptText}
                         onClick={() => {
                           onClose();
                           onGenerateInvoice(client);

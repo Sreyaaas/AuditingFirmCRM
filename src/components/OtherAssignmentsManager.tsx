@@ -138,7 +138,7 @@ export const OtherAssignmentsManager: React.FC<OtherAssignmentsManagerProps> = (
       <PageHeader
         section="assignments"
         title="Other Assignments"
-        description={`${tasks.length} client engagements · Secretarial, incorporation, deed amendments, and ad-hoc filings`}
+        description={`${tasks.length} client assignments · Secretarial, incorporation, deed amendments, and ad-hoc filings`}
         actions={
           <div className="flex items-center gap-2">
             {!selectedStaffId && (
@@ -186,11 +186,11 @@ export const OtherAssignmentsManager: React.FC<OtherAssignmentsManagerProps> = (
 
       {/* KPI Metric Strip */}
       <MetricGrid className="grid-cols-2 lg:grid-cols-5">
-        <Metric label="Total Engagements" value={tasks.length} hint="All active & historical" />
+        <Metric label="Total Assignments" value={tasks.length} hint="All active & historical" />
         <Metric label="In Progress" value={inProgressCount} hint="Active assignment execution" tone="warning" />
         <Metric label="Under Review" value={underReviewCount} hint="Partner review pending" tone="info" />
-        <Metric label="Completed" value={completedCount} hint="Engagements fulfilled" tone="success" />
-        <Metric label="Total Engagement Value" value={formatINR(totalEstimatedFees)} hint="Estimated professional fees" />
+        <Metric label="Completed" value={completedCount} hint="Assignments fulfilled" tone="success" />
+        <Metric label="Total Value" value={formatINR(totalEstimatedFees)} hint="Estimated professional fees" />
       </MetricGrid>
 
       {/* Table Card */}
