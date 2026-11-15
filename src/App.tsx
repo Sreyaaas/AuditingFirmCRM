@@ -22,6 +22,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { LoginView, SetNewPasswordView } from './components/LoginView';
 import { PracticeConfigManager } from './components/PracticeConfigManager';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
+import { InvoiceGeneratorModal } from './components/InvoiceGeneratorModal';
 import { Avatar, Button, Card, EmptyState, PageHeader } from './components/ui';
 
 import {
@@ -288,6 +289,8 @@ export function App() {
   const [whatsAppGST, setWhatsAppGST] = useState<GSTComplianceItem | null>(null);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceModalTarget, setInvoiceModalTarget] = useState<Client | DebtorRecord | null>(null);
   const [toast, setToast] = useState<{ message: string; error?: boolean } | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const toastTimer = useRef<number>();
@@ -887,6 +890,10 @@ export function App() {
                 onArchive={isAdmin ? handleArchiveClient : undefined}
                 onDelete={isAdmin ? handleDeleteClient : undefined}
                 onSelectClient={handleSelectClient}
+                onGenerateInvoice={(c) => {
+                  setInvoiceModalTarget(c);
+                  setIsInvoiceModalOpen(true);
+                }}
                 onOpenWhatsAppForClient={(c) => {
                   const task = monthlyTasks.find((t) => t.clientId === c.id);
                   if (task) openWhatsApp({ task });
@@ -903,6 +910,8 @@ export function App() {
                   staffList={staffList}
                   selectedStaffId={selectedStaffId}
                   clients={clients}
+                  preferences={preferences}
+                  firmProfile={firmProfile}
                   canEdit={canEditFees}
                   canImport={isAdmin}
                   gstCompliance={gstCompliance}
@@ -1048,6 +1057,10 @@ export function App() {
           setIsDrawerOpen(false);
           openWhatsApp({ task: item });
         }}
+        onGenerateInvoice={(c) => {
+          setInvoiceModalTarget(c);
+          setIsInvoiceModalOpen(true);
+        }}
       />
 
       <NewTaskModal
@@ -1069,6 +1082,39 @@ export function App() {
       />
 
       <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} email={currentUser.email} onChanged={() => showToast('Password changed')} />
+
+      <InvoiceGeneratorModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => {
+          setIsInvoiceModalOpen(false);
+          setInvoiceModalTarget(null);
+        }}
+        initialClient={invoiceModalTarget}
+        clients={clients}
+        debtors={debtors}
+        preferences={preferences}
+        firmProfile={firmProfile}
+        onRecordBilling={async (billingData) => {
+          if (billingData.debtorId) {
+            handleAddDebtorBilling(
+              billingData.debtorId,
+              billingData.amount + (billingData.oopExpenses || 0),
+              billingData.description
+            );
+          } else {
+            const debtor = debtors.find(
+              (d) => d.clientName.toLowerCase() === billingData.clientName.toLowerCase()
+            );
+            if (debtor) {
+              handleAddDebtorBilling(
+                debtor.id,
+                billingData.amount + (billingData.oopExpenses || 0),
+                billingData.description
+              );
+            }
+          }
+        }}
+      />
     </div>
   );
 }

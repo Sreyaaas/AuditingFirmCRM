@@ -1,10 +1,12 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Download, MessageSquare, Plus, Upload, FileSpreadsheet, AlertTriangle, UserPlus, CalendarPlus } from 'lucide-react';
+import { Download, MessageSquare, Plus, Upload, FileSpreadsheet, AlertTriangle, UserPlus, CalendarPlus, Receipt } from 'lucide-react';
 import { DebtorRecord, GSTComplianceItem, OfficeBillingEntry, StaffMember, Client, EntityType, DebtorMonth } from '../types/crm';
+import { AppPreferences, FirmProfileSettings } from '../services/firmConfigService';
 import { exportDebtorsAndGSTWorkbook } from '../utils/excelExport';
 import { closingOf, collectMonths, currentMonthKey, monthLabel, monthOf, nextMonthKey, recalcDebtor } from '../utils/debtors';
 import { DebtorWorkbookResult, parseDebtorWorkbookFile } from '../utils/debtorWorkbook';
 import { Badge, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Metric, MetricGrid, Modal, PageHeader, SearchInput, Segmented, Select, TableCard, Tabs, Toolbar, Tone, cn, formatDate, formatINR, Avatar, nameInitials } from './ui';
+import { InvoiceGeneratorModal } from './InvoiceGeneratorModal';
 
 interface DebtorsManagerProps {
   debtors: DebtorRecord[];
@@ -12,6 +14,8 @@ interface DebtorsManagerProps {
   staffList: StaffMember[];
   selectedStaffId: string | null;
   clients?: Client[];
+  preferences?: AppPreferences;
+  firmProfile?: FirmProfileSettings;
   /** May record payments and bills. */
   canEdit: boolean;
   /** May replace data from an Excel workbook (admins). */
@@ -56,6 +60,8 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   staffList,
   selectedStaffId,
   clients = [],
+  preferences,
+  firmProfile,
   canEdit,
   canImport,
   gstCompliance,
@@ -98,6 +104,8 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   const [paymentRef, setPaymentRef] = useState('');
   const [billingFor, setBillingFor] = useState<DebtorRecord | null>(null);
   const [billingService, setBillingService] = useState('GST filing');
+  const [invoiceFor, setInvoiceFor] = useState<DebtorRecord | null>(null);
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
 
   // Add Account
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
@@ -295,17 +303,30 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
               </Button>
             )}
             {canEdit && hasData && (
-              <Button
-                variant="primary"
-                icon={Plus}
-                onClick={() => {
-                  setQuickPayId(debtors.find((d) => d.currentBalance > 0)?.id || debtors[0]?.id || '');
-                  setAmountInput('');
-                  setIsQuickPayOpen(true);
-                }}
-              >
-                Record Payment
-              </Button>
+              <>
+                <Button
+                  variant="secondary"
+                  icon={Receipt}
+                  onClick={() => {
+                    const defaultTarget = debtors.find((d) => d.currentBalance > 0) || debtors[0] || null;
+                    setInvoiceFor(defaultTarget);
+                    setIsInvoiceOpen(true);
+                  }}
+                >
+                  Create Invoice
+                </Button>
+                <Button
+                  variant="primary"
+                  icon={Plus}
+                  onClick={() => {
+                    setQuickPayId(debtors.find((d) => d.currentBalance > 0)?.id || debtors[0]?.id || '');
+                    setAmountInput('');
+                    setIsQuickPayOpen(true);
+                  }}
+                >
+                  Record Payment
+                </Button>
+              </>
             )}
           </>
         }
@@ -490,8 +511,8 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
                                 <Button
                                   size="sm"
                                   onClick={() => {
-                                    setBillingFor(d);
-                                    setAmountInput('');
+                                    setInvoiceFor(d);
+                                    setIsInvoiceOpen(true);
                                   }}
                                 >
                                   Bill
@@ -825,6 +846,29 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
           </Field>
         </form>
       </Modal>
+
+      {/* Full A4 Invoice Generator */}
+      <InvoiceGeneratorModal
+        isOpen={isInvoiceOpen}
+        onClose={() => {
+          setIsInvoiceOpen(false);
+          setInvoiceFor(null);
+        }}
+        initialClient={invoiceFor}
+        clients={clients}
+        debtors={debtors}
+        preferences={preferences}
+        firmProfile={firmProfile}
+        onRecordBilling={async (billingData) => {
+          if (billingData.debtorId && onAddBilling) {
+            onAddBilling(
+              billingData.debtorId,
+              billingData.amount + (billingData.oopExpenses || 0),
+              billingData.description
+            );
+          }
+        }}
+      />
 
       {/* Import preview */}
       <Modal

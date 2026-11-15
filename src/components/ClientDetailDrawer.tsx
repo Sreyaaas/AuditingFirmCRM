@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, Copy, Check, MessageSquare } from 'lucide-react';
+import { ExternalLink, Copy, Check, MessageSquare, Receipt } from 'lucide-react';
 import { Client, MonthlyTask, ITRFiling, StaffMember, StaffTicket, DebtorRecord } from '../types/crm';
 import { Avatar, Badge, Button, DescriptionList, EmptyState, Modal, SearchInput, Segmented, Tabs, cn, formatDate, formatINR, statusTone } from './ui';
 
@@ -14,6 +14,7 @@ interface ClientDetailDrawerProps {
   tickets?: StaffTicket[];
   staffList?: StaffMember[];
   onOpenWhatsApp: (taskOrItr: any) => void;
+  onGenerateInvoice?: (client: Client) => void;
 }
 
 
@@ -28,6 +29,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
   tickets = [],
   staffList = [],
   onOpenWhatsApp,
+  onGenerateInvoice,
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'onedrive' | 'compliance' | 'tickets'>('profile');
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -121,6 +123,15 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
+          {onGenerateInvoice && (
+            <Button
+              variant="secondary"
+              icon={Receipt}
+              onClick={() => onGenerateInvoice(client)}
+            >
+              Generate Invoice
+            </Button>
+          )}
           <Button variant="primary" icon={MessageSquare} onClick={() => onOpenWhatsApp(task || client)}>
             Message on WhatsApp
           </Button>
@@ -248,7 +259,26 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
 
           {debtor && (
             <section className={cn((task || itrFiling) && 'pt-5 border-t border-line')}>
-              <SectionTitle right={<Badge tone={statusTone(debtor.status)} dot>{debtor.status}</Badge>}>Fees</SectionTitle>
+              <SectionTitle
+                right={
+                  <div className="flex items-center gap-2">
+                    <Badge tone={statusTone(debtor.status)} dot>{debtor.status}</Badge>
+                    {onGenerateInvoice && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        icon={Receipt}
+                        onClick={() => onGenerateInvoice(client)}
+                        className="h-6 text-2xs px-2"
+                      >
+                        Invoice
+                      </Button>
+                    )}
+                  </div>
+                }
+              >
+                Fees
+              </SectionTitle>
               <DescriptionList
                 columns={3}
                 items={[

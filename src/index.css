@@ -418,3 +418,82 @@ html[data-accents='off'] :is(.av-0, .av-1, .av-2, .av-3, .av-4, .av-5, .av-6, .a
   background: rgb(var(--c-muted));
   color: rgb(var(--c-fg-muted));
 }
+
+/* ==========================================================================
+   A4 INVOICE PRINT STYLES
+   ========================================================================== */
+@page {
+  size: A4 portrait;
+  margin: 10mm 12mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  aside,
+  header,
+  nav,
+  .print\:hidden,
+  .no-print {
+    display: none !important;
+  }
+
+  .fixed.inset-0.z-50 {
+    position: static !important;
+    padding: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  [role="dialog"] {
+    position: static !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    display: block !important;
+    border-radius: 0 !important;
+  }
+
+  .invoice-modal-header,
+  .invoice-modal-footer,
+  .invoice-editor-column {
+    display: none !important;
+  }
+
+  .invoice-modal-body {
+    overflow: visible !important;
+    max-height: none !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .printable-invoice-sheet {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #09090b !important;
+    box-shadow: none !important;
+    border: none !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}

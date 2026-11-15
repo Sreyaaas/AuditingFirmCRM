@@ -519,13 +519,14 @@ export interface ModalProps {
   title: React.ReactNode;
   description?: React.ReactNode;
   icon?: LucideIcon;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   footer?: React.ReactNode;
   headerExtra?: React.ReactNode;
   /** Rendered flush beneath the header (e.g. Tabs). */
   subheader?: React.ReactNode;
   children: React.ReactNode;
   bodyClassName?: string;
+  className?: string;
 }
 
 const modalSizes = {
@@ -533,6 +534,7 @@ const modalSizes = {
   md: 'max-w-2xl',
   lg: 'max-w-3xl',
   xl: 'max-w-5xl',
+  '2xl': 'max-w-6xl',
 };
 
 export const Modal: React.FC<ModalProps> = ({
@@ -547,6 +549,7 @@ export const Modal: React.FC<ModalProps> = ({
   subheader,
   children,
   bodyClassName,
+  className,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -574,7 +577,8 @@ export const Modal: React.FC<ModalProps> = ({
         aria-modal="true"
         className={cn(
           'w-full max-h-[92vh] bg-surface rounded-xl shadow-dialog flex flex-col overflow-hidden animate-dialog-in',
-          modalSizes[size]
+          modalSizes[size],
+          className
         )}
       >
         <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3.5 border-b border-line shrink-0">
