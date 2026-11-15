@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   FileText,
   Printer,
+  Download,
   MessageSquare,
   Plus,
   Trash2,
@@ -16,6 +17,8 @@ import {
   CloudUpload,
   Check,
 } from 'lucide-react';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 import { Client, DebtorRecord, OfficeBillingEntry } from '../types/crm';
 import { AppPreferences, FirmProfileSettings } from '../services/firmConfigService';
 import { numberToWordsINR } from '../utils/numberToWords';
@@ -448,6 +451,33 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     }
   };
 
+  // Actions: Direct High-Resolution PDF Download
+  const handleDownloadPdf = () => {
+    const element = document.getElementById('printable-invoice');
+    if (!element) return;
+
+    // Format smart filename: e.g. "Invoice_A65-26_Mavex_Mentr_31Oct2026.pdf"
+    const cleanInv = invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_');
+    const cleanClient = (clientName || 'Client').replace(/[^a-zA-Z0-9]/g, '_');
+    const cleanDate = (formattedDate || 'Date').replace(/\s+/g, '');
+    const filename = `Invoice_${cleanInv}_${cleanClient}_${cleanDate}.pdf`;
+
+    const opt = {
+      margin: [8, 8, 8, 8],
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    };
+
+    const pdfGenerator = typeof html2pdf === 'function' ? html2pdf : (html2pdf as any)?.default;
+    if (pdfGenerator) {
+      pdfGenerator().set(opt).from(element).save();
+    } else {
+      window.print();
+    }
+  };
+
   // Actions: WhatsApp
   const handleShareWhatsApp = async () => {
     const firmName = firmProfile?.legalName || DEFAULT_OFFICE_FIRM.name;
@@ -588,7 +618,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       footer={
         <div className="flex items-center justify-between w-full print:hidden invoice-modal-footer">
           <Button variant="ghost" onClick={onClose} disabled={isSaving}>
-            Close
+            Cancel
           </Button>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -617,19 +647,30 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               icon={Printer}
               onClick={handlePrint}
               disabled={isSaving}
-              title="Open browser print dialog for A4 PDF"
+              title="Print document on office printer"
             >
-              Print / Save PDF
+              Print (Office Printer)
+            </Button>
+
+            <Button
+              variant="primary"
+              icon={Download}
+              onClick={handleDownloadPdf}
+              disabled={isSaving}
+              title="Download high-resolution A4 PDF document directly"
+            >
+              Download PDF
             </Button>
 
             {onRecordBilling && (
               <Button
-                variant="primary"
+                variant="secondary"
                 icon={CheckCircle2}
                 onClick={handleSaveAndRecord}
                 disabled={isSaving}
+                title="Record billing entry in practice ledger"
               >
-                {isSaving ? 'Recording…' : 'Record & Save'}
+                {isSaving ? 'Recording…' : 'Record in Ledger'}
               </Button>
             )}
           </div>
@@ -946,256 +987,136 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
           {/* A4 Sheet Container */}
           <div
             id="printable-invoice"
-            className="printable-invoice-sheet w-full max-w-[620px] bg-white text-zinc-900 border border-zinc-200 shadow-md rounded-[2px] p-7 sm:p-9 font-sans text-xs relative select-text"
+            className="w-full max-w-[650px] bg-white text-black p-8 font-sans text-xs select-text border border-zinc-300 shadow-sm"
+            style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif' }}
           >
-            {/* Top Brand Color Stripe */}
-            <div className="h-1.5 w-[calc(100%+3.5rem)] sm:w-[calc(100%+4.5rem)] -mx-7 sm:-mx-9 -mt-7 sm:-mt-9 mb-5 bg-[#1B365D]" />
-
-            {/* Header: Office Identity & Invoice Meta */}
-            <div className="flex items-start justify-between gap-4 pb-4 border-b border-zinc-200">
-              <div className="min-w-0">
-                <h1 className="text-base sm:text-lg font-bold uppercase tracking-tight text-zinc-950 leading-tight">
-                  {firmProfile?.legalName || DEFAULT_OFFICE_FIRM.name}
+            {/* 1. Header: Firm Legal Identity */}
+            <div className="flex justify-between items-start border-b-2 border-black pb-3">
+              <div>
+                <h1 className="text-base font-bold uppercase tracking-wide text-black">
+                  SHAMEER &amp; ASSOCIATES
                 </h1>
-                <p className="text-2xs font-semibold uppercase tracking-widest text-[#1B365D] mt-0.5">
-                  {firmProfile?.category || DEFAULT_OFFICE_FIRM.subTitle}
+                <p className="text-2xs font-semibold uppercase tracking-wider text-zinc-700">
+                  Accountants and Practitioners
                 </p>
-                <p className="text-3xs font-medium text-zinc-500 mt-0.5">
-                  {DEFAULT_OFFICE_FIRM.registration}
+                <p className="text-3xs text-zinc-600 mt-1">
+                  4th Floor, Adam Bazaar, Thrissur, Kerala - 680 001
                 </p>
-                <p className="text-2xs text-zinc-600 mt-1 leading-relaxed">
-                  {firmProfile?.address || DEFAULT_OFFICE_FIRM.address}
+                <p className="text-3xs text-zinc-600">
+                  Email: saatcr150@gmail.com | Tel: +91 98472 33443, +91 79942 55811
                 </p>
-                <p className="text-2xs text-zinc-600 mt-0.5">
-                  Email: {firmProfile?.email || DEFAULT_OFFICE_FIRM.email} · Tel:{' '}
-                  {firmProfile?.phone || DEFAULT_OFFICE_FIRM.phone}
-                </p>
-                {firmProfile?.gstin && (
-                  <p className="text-2xs font-mono text-zinc-700 mt-0.5 font-medium">
-                    Firm GSTIN: {firmProfile.gstin}
-                  </p>
-                )}
               </div>
-
-              <div className="text-right shrink-0">
-                <span className="text-base sm:text-lg font-black uppercase tracking-widest text-zinc-950 block">
-                  TAX INVOICE
-                </span>
-                <span className="text-3xs uppercase tracking-wider text-zinc-400 font-medium block mt-0.5">
-                  Bill of Supply / Original
-                </span>
-                <div className="mt-2.5 p-2 rounded bg-zinc-50 border border-zinc-200 text-right space-y-0.5 text-2xs">
-                  <div>
-                    <span className="text-zinc-500">Invoice No: </span>
-                    <span className="font-mono font-bold text-zinc-950">{invoiceNumber}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500">Date: </span>
-                    <span className="font-mono font-medium text-zinc-800">{formattedDate}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500">Place of Supply: </span>
-                    <span className="font-medium text-zinc-800">Kerala (32)</span>
-                  </div>
+              <div className="text-right">
+                <h2 className="text-lg font-black tracking-widest text-black">INVOICE</h2>
+                <p className="text-3xs uppercase tracking-wider text-zinc-500 font-medium">Original for Recipient</p>
+                <div className="mt-2 text-2xs space-y-0.5">
+                  <div><span className="text-zinc-600">Invoice No:</span> <strong className="font-mono text-black">{invoiceNumber}</strong></div>
+                  <div><span className="text-zinc-600">Date:</span> <span className="font-mono text-black">{formattedDate}</span></div>
                 </div>
               </div>
             </div>
 
-            {/* Bill To & Client Details Section */}
-            <div className="py-4 border-b border-zinc-200">
-              <span className="text-3xs font-bold uppercase tracking-wider text-zinc-400 block mb-1.5">
-                Billed To (Client Details)
-              </span>
-              <div className="p-3 rounded bg-zinc-50/80 border border-zinc-200/90 flex justify-between items-start gap-4">
-                <div className="min-w-0">
-                  <div className="text-sm font-bold text-zinc-950 uppercase tracking-tight">
-                    {clientName || 'Client / Business Name'}
-                  </div>
-                  {phone && <div className="text-2xs text-zinc-600 mt-0.5">Phone: {phone}</div>}
-                  {city && <div className="text-2xs text-zinc-600">{city}, Kerala, India</div>}
-                  <div className="text-3xs text-zinc-500 mt-0.5">State Code: 32 (Kerala)</div>
-                </div>
-
-                {gstin ? (
-                  <div className="text-right shrink-0">
-                    <span className="text-3xs uppercase tracking-wider text-zinc-400 block mb-1">
-                      Client GSTIN
-                    </span>
-                    <span className="text-xs font-mono font-bold text-zinc-950 bg-white px-2 py-0.5 rounded border border-zinc-200 inline-block">
-                      {gstin}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="text-right shrink-0">
-                    <span className="text-3xs uppercase tracking-wider text-zinc-400 block">
-                      Category
-                    </span>
-                    <span className="text-2xs font-medium text-zinc-700">Unregistered / Regular</span>
-                  </div>
-                )}
+            {/* 2. Bill To Section */}
+            <div className="py-3 border-b border-black flex justify-between items-start">
+              <div>
+                <span className="text-3xs font-bold uppercase tracking-wider text-zinc-500 block mb-0.5">Bill To:</span>
+                <div className="text-sm font-bold text-black uppercase">{clientName || 'Client'}</div>
+                {phone && <div className="text-2xs text-zinc-600 mt-0.5">Phone: {phone}</div>}
               </div>
+              {gstin && (
+                <div className="text-right">
+                  <span className="text-3xs font-bold uppercase tracking-wider text-zinc-500 block mb-0.5">Client GSTIN:</span>
+                  <span className="font-mono font-bold text-xs text-black">{gstin}</span>
+                </div>
+              )}
             </div>
 
-            {/* Itemized Services & Reimbursements Table */}
-            <div className="mt-4">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-y border-zinc-300 bg-zinc-100/80 text-2xs font-semibold uppercase tracking-wider text-zinc-700">
-                    <th className="py-2 px-2 w-7 text-center">#</th>
-                    <th className="py-2 px-2">Description of Professional Services</th>
-                    <th className="py-2 px-2 w-20 text-center">SAC Code</th>
-                    <th className="py-2 px-2 text-right w-24">Amount (₹)</th>
+            {/* 3. Formal Ledger Grid Table */}
+            <table className="w-full border-collapse border border-black mt-3 text-2xs">
+              <thead>
+                <tr className="border-b border-black bg-zinc-100 font-bold uppercase">
+                  <th className="border-r border-black p-1.5 w-8 text-center">Item</th>
+                  <th className="border-r border-black p-1.5 text-left">Particulars</th>
+                  <th className="p-1.5 text-right w-28">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Professional Services */}
+                {services.map((item, idx) => (
+                  <tr key={item.id} className="border-b border-zinc-300">
+                    <td className="border-r border-black p-1.5 text-center font-mono">{idx + 1}</td>
+                    <td className="border-r border-black p-1.5 font-medium">{item.description}</td>
+                    <td className="p-1.5 text-right font-mono font-semibold">{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-200">
-                  {/* Section A: Professional Services */}
-                  {services.map((item, idx) => (
-                    <tr key={item.id} className="align-top">
-                      <td className="py-2.5 px-2 text-center text-zinc-400 font-mono text-2xs">
-                        {idx + 1}
-                      </td>
-                      <td className="py-2.5 px-2 text-zinc-900 font-medium leading-relaxed">
-                        {item.description || 'Professional auditing and tax compliance services'}
-                      </td>
-                      <td className="py-2.5 px-2 text-center font-mono text-2xs text-zinc-600">
-                        {item.sacCode || '998231'}
-                      </td>
-                      <td className="py-2.5 px-2 text-right font-mono text-zinc-950 font-medium">
-                        {item.amount > 0 ? formatINR(item.amount) : '—'}
+                ))}
+
+                {/* Reimbursement Expenses */}
+                {expenses.length > 0 && (
+                  <>
+                    <tr className="border-b border-black bg-zinc-50">
+                      <td className="border-r border-black p-1"></td>
+                      <td colSpan={2} className="p-1 text-3xs font-bold uppercase tracking-wider text-zinc-700">
+                        Reimbursement expenses :
                       </td>
                     </tr>
-                  ))}
-
-                  {/* Section B: Reimbursement Expenses (if any) */}
-                  {expenses.length > 0 && (
-                    <>
-                      <tr className="bg-zinc-50 border-t border-zinc-200">
-                        <td colSpan={4} className="py-1 px-2 text-3xs font-bold uppercase tracking-wider text-zinc-600">
-                          B. Statutory & Out-of-Pocket Reimbursements
-                        </td>
+                    {expenses.map((item) => (
+                      <tr key={item.id} className="border-b border-zinc-300">
+                        <td className="border-r border-black p-1.5 text-center font-mono">—</td>
+                        <td className="border-r border-black p-1.5 text-zinc-800">{item.description}</td>
+                        <td className="p-1.5 text-right font-mono">{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
                       </tr>
-                      {expenses.map((item, idx) => (
-                        <tr key={item.id} className="align-top">
-                          <td className="py-2 px-2 text-center text-zinc-400 font-mono text-2xs">
-                            {services.length + idx + 1}
-                          </td>
-                          <td className="py-2 px-2 text-zinc-700 leading-relaxed">
-                            {item.description || 'Statutory Challan / Fee Reimbursement'}
-                          </td>
-                          <td className="py-2 px-2 text-center font-mono text-2xs text-zinc-600">
-                            {item.sacCode || '9982'}
-                          </td>
-                          <td className="py-2 px-2 text-right font-mono text-zinc-900">
-                            {item.amount > 0 ? formatINR(item.amount) : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </>
-                  )}
-
-                  {/* Previous Outstanding Balance (if included) */}
-                  {includeOutstanding && debtorBalance > 0 && (
-                    <tr className="bg-zinc-50/60">
-                      <td className="py-2.5 px-2 text-center text-zinc-400 font-mono text-2xs">•</td>
-                      <td colSpan={2} className="py-2.5 px-2 text-zinc-800 font-medium">
-                        Previous Outstanding Fee Balance (Brought Forward from Ledger)
-                      </td>
-                      <td className="py-2.5 px-2 text-right font-mono font-semibold text-zinc-950">
-                        {formatINR(debtorBalance)}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-
-              {/* Totals Summary */}
-              <div className="mt-3 border-t-2 border-zinc-900 pt-2 space-y-1">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-zinc-600">Subtotal / Gross Amount</span>
-                  <span className="font-mono text-zinc-900 font-semibold">{formatINR(grossTotal)}</span>
-                </div>
-
-                {advanceReceived > 0 && (
-                  <div className="flex justify-between items-center text-xs text-zinc-600">
-                    <span>Less: Advance Received</span>
-                    <span className="font-mono text-danger font-medium">- {formatINR(advanceReceived)}</span>
-                  </div>
+                    ))}
+                  </>
                 )}
 
-                <div className="flex justify-between items-center text-sm font-bold pt-1.5 border-t border-zinc-200">
-                  <span className="text-zinc-950 uppercase tracking-wide">Net Amount Payable</span>
-                  <span className="font-mono text-base text-zinc-950 font-bold bg-zinc-50 px-2.5 py-0.5 rounded border border-zinc-200">
-                    {formatINR(netPayable)}
-                  </span>
-                </div>
-              </div>
-            </div>
+                {/* Previous Outstanding */}
+                {includeOutstanding && debtorBalance > 0 && (
+                  <tr className="border-b border-black">
+                    <td className="border-r border-black p-1.5 text-center font-mono">•</td>
+                    <td className="border-r border-black p-1.5 font-medium">Outstanding as on {formattedDate}</td>
+                    <td className="p-1.5 text-right font-mono font-bold">{formatINR(debtorBalance)}</td>
+                  </tr>
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-black font-bold">
+                  <td colSpan={2} className="border-r border-black p-1.5 text-right uppercase">Total</td>
+                  <td className="p-1.5 text-right font-mono">{formatINR(grossTotal)}</td>
+                </tr>
+                {advanceReceived > 0 && (
+                  <tr className="border-t border-zinc-300">
+                    <td colSpan={2} className="border-r border-black p-1 text-right text-zinc-600">Less: Advance received</td>
+                    <td className="p-1 text-right font-mono font-medium text-zinc-700">- {formatINR(advanceReceived)}</td>
+                  </tr>
+                )}
+                <tr className="border-t-2 border-black font-black text-xs bg-zinc-50">
+                  <td colSpan={2} className="border-r border-black p-2 text-right uppercase">Net Amount Payable</td>
+                  <td className="p-2 text-right font-mono">{formatINR(netPayable)}</td>
+                </tr>
+              </tfoot>
+            </table>
 
-            {/* Amount In Words Callout */}
-            <div className="mt-4 p-2.5 rounded bg-zinc-50 border border-zinc-200 text-2xs text-zinc-800 leading-relaxed">
-              <span className="font-bold text-zinc-950">Amount in Words: </span>
+            {/* 4. Amount in Words */}
+            <div className="mt-2.5 p-1.5 border border-black text-2xs leading-relaxed">
+              <span className="font-bold">Amount in words: </span>
               <span className="font-medium italic">{amountInWords}</span>
             </div>
 
-            {/* Payment & Signatory Footer */}
-            <div className="mt-6 pt-4 border-t border-zinc-200 grid grid-cols-2 gap-6 items-end">
-              {/* Bank Details */}
-              <div className="text-2xs space-y-0.5 p-2.5 rounded bg-zinc-50/70 border border-zinc-200">
-                <span className="text-3xs font-bold uppercase tracking-wider text-zinc-600 block mb-1">
-                  Bank Details for Electronic Transfer (NEFT / RTGS / UPI)
-                </span>
-                <div>
-                  <span className="text-zinc-500">Bank: </span>
-                  <span className="font-semibold text-zinc-900">
-                    {firmProfile?.bankName || DEFAULT_OFFICE_FIRM.bankName}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-zinc-500">Beneficiary: </span>
-                  <span className="font-medium text-zinc-900">
-                    {firmProfile?.beneficiaryName || DEFAULT_OFFICE_FIRM.beneficiaryName}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-zinc-500">A/c No: </span>
-                  <span className="font-mono font-bold text-zinc-950">
-                    {firmProfile?.accountNumber || DEFAULT_OFFICE_FIRM.accountNumber}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-zinc-500">IFSC Code: </span>
-                  <span className="font-mono font-medium text-zinc-900">
-                    {firmProfile?.ifscCode || DEFAULT_OFFICE_FIRM.ifscCode}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-zinc-500">UPI ID: </span>
-                  <span className="font-mono text-zinc-900">
-                    {firmProfile?.upiId || DEFAULT_OFFICE_FIRM.upiId}
-                  </span>
-                </div>
+            {/* 5. Bank Details & Signatory */}
+            <div className="mt-4 pt-3 border-t border-black grid grid-cols-2 gap-4">
+              <div className="text-3xs space-y-0.5">
+                <span className="font-bold uppercase tracking-wider block mb-1">Bank Account details</span>
+                <div><span className="text-zinc-500">Bank:</span> <strong>IDFC Bank</strong></div>
+                <div><span className="text-zinc-500">Beneficiary:</span> <strong>SHAMEER AND ASSOCIATES</strong></div>
+                <div><span className="text-zinc-500">Account number:</span> <strong className="font-mono">10271724633</strong></div>
+                <div><span className="text-zinc-500">IFSC:</span> <strong className="font-mono">IDFB0080732</strong></div>
+                <div><span className="text-zinc-500">UPI Id:</span> <strong className="font-mono">shameerandassociates@idfcbank</strong></div>
               </div>
-
-              {/* Authorised Signatory */}
-              <div className="text-right">
-                <p className="text-3xs uppercase tracking-wider text-zinc-500 mb-8">
-                  For {firmProfile?.legalName || DEFAULT_OFFICE_FIRM.name}
-                </p>
-                <div className="w-32 border-b border-zinc-300 ml-auto mb-1" />
-                <p className="text-xs font-bold uppercase tracking-tight text-zinc-950">
-                  {DEFAULT_OFFICE_FIRM.signatory}
-                </p>
-                <p className="text-3xs font-medium text-zinc-600">
-                  {DEFAULT_OFFICE_FIRM.signatoryRole}
-                </p>
-                <p className="text-3xs text-zinc-400">Authorised Signatory</p>
+              <div className="text-right flex flex-col justify-end">
+                <div className="w-36 border-b border-black ml-auto mb-1" />
+                <p className="text-xs font-bold uppercase text-black">SHAMEER V M</p>
+                <p className="text-3xs font-medium text-zinc-600">Authorised Signatory</p>
               </div>
-            </div>
-
-            {/* Notes & Terms */}
-            <div className="mt-5 pt-2 border-t border-zinc-100 flex items-center justify-between text-3xs text-zinc-400">
-              <span>Please quote invoice reference when transferring via NEFT/UPI</span>
-              <span>Computer generated invoice · Shameer & Associates</span>
             </div>
           </div>
         </div>
