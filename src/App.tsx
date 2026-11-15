@@ -1099,6 +1099,7 @@ export function App() {
           openWhatsApp({ task: item });
         }}
         onGenerateInvoice={(c) => {
+          setIsDrawerOpen(false);
           setInvoiceModalTarget(c);
           setIsInvoiceModalOpen(true);
         }}

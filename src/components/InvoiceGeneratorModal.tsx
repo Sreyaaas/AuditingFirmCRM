@@ -346,7 +346,106 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
   // Actions: Print / PDF
   const handlePrint = () => {
-    window.print();
+    const printContent = document.getElementById('printable-invoice');
+    if (!printContent) {
+      window.print();
+      return;
+    }
+
+    try {
+      // Remove any stale print iframe
+      const oldFrame = document.getElementById('invoice-print-frame');
+      if (oldFrame) oldFrame.remove();
+
+      // Create an isolated hidden iframe
+      const iframe = document.createElement('iframe');
+      iframe.id = 'invoice-print-frame';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.title = 'Print Invoice';
+
+      document.body.appendChild(iframe);
+
+      const frameDoc = iframe.contentWindow?.document || iframe.contentDocument;
+      if (!frameDoc) {
+        iframe.remove();
+        window.print();
+        return;
+      }
+
+      // Collect all active styles
+      const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map((el) => el.outerHTML)
+        .join('\n');
+
+      frameDoc.open();
+      frameDoc.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <title>Tax Invoice - ${invoiceNumber || 'Document'}</title>
+          ${styles}
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 10mm 12mm;
+            }
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #ffffff !important;
+              color: #09090b !important;
+              font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .printable-invoice-sheet {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              box-shadow: none !important;
+              border: none !important;
+              background: #ffffff !important;
+              color: #09090b !important;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+          </style>
+        </head>
+        <body>
+          <div style="padding: 10px 0;">
+            ${printContent.outerHTML}
+          </div>
+        </body>
+        </html>
+      `);
+      frameDoc.close();
+
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (e) {
+          console.warn('Iframe print error, falling back to window.print():', e);
+          window.print();
+        } finally {
+          setTimeout(() => {
+            try {
+              iframe.remove();
+            } catch {}
+          }, 3000);
+        }
+      }, 350);
+    } catch (err) {
+      console.warn('Print preparation error:', err);
+      window.print();
+    }
   };
 
   // Actions: WhatsApp
@@ -483,7 +582,9 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       }
       description="Create authentic tax invoices, live A4 print preview, WhatsApp billing, and automatic OneDrive cloud backup."
       bodyClassName="p-0 overflow-y-auto max-h-[82vh] invoice-modal-body"
+      backdropClassName="invoice-modal-backdrop"
       className="invoice-modal-dialog"
+      headerClassName="print:hidden invoice-modal-header"
       footer={
         <div className="flex items-center justify-between w-full print:hidden invoice-modal-footer">
           <Button variant="ghost" onClick={onClose} disabled={isSaving}>
@@ -841,7 +942,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         {/* =========================================================================
             RIGHT COLUMN: EXECUTIVE A4 DOCUMENT PREVIEW (Printed directly)
             ========================================================================= */}
-        <div className="lg:col-span-7 p-6 sm:p-8 bg-zinc-100 flex items-start justify-center overflow-y-auto max-h-[82vh]">
+        <div className="lg:col-span-7 p-6 sm:p-8 bg-zinc-100 flex items-start justify-center overflow-y-auto max-h-[82vh] print:p-0 print:bg-white print:overflow-visible print:max-h-none print:block">
           {/* A4 Sheet Container */}
           <div
             id="printable-invoice"

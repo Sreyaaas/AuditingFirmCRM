@@ -85,6 +85,8 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size="md"
+      backdropClassName="print:hidden"
+      className="print:hidden"
       title={client.tradeName}
       description={
         <div className="flex flex-wrap items-center gap-1.5 mt-1">
@@ -127,7 +129,10 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
             <Button
               variant="secondary"
               icon={Receipt}
-              onClick={() => onGenerateInvoice(client)}
+              onClick={() => {
+                onClose();
+                onGenerateInvoice(client);
+              }}
             >
               Generate Invoice
             </Button>
@@ -268,7 +273,10 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                         size="sm"
                         variant="secondary"
                         icon={Receipt}
-                        onClick={() => onGenerateInvoice(client)}
+                        onClick={() => {
+                          onClose();
+                          onGenerateInvoice(client);
+                        }}
                         className="h-6 text-2xs px-2"
                       >
                         Invoice

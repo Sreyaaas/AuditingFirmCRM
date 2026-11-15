@@ -527,6 +527,8 @@ export interface ModalProps {
   children: React.ReactNode;
   bodyClassName?: string;
   className?: string;
+  backdropClassName?: string;
+  headerClassName?: string;
 }
 
 const modalSizes = {
@@ -550,6 +552,8 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   bodyClassName,
   className,
+  backdropClassName,
+  headerClassName,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -566,7 +570,10 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-[2px] animate-fade-in"
+      className={cn(
+        'fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-[2px] animate-fade-in',
+        backdropClassName
+      )}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -581,7 +588,7 @@ export const Modal: React.FC<ModalProps> = ({
           className
         )}
       >
-        <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3.5 border-b border-line shrink-0">
+        <div className={cn('flex items-start justify-between gap-4 px-5 pt-4 pb-3.5 border-b border-line shrink-0', headerClassName)}>
           <div className="flex items-start gap-3 min-w-0">
             {Icon && (
               <div className="w-8 h-8 rounded-md border border-line bg-subtle flex items-center justify-center shrink-0">
@@ -601,7 +608,7 @@ export const Modal: React.FC<ModalProps> = ({
         {subheader && <div className="px-5 border-b border-line shrink-0">{subheader}</div>}
         <div className={cn('flex-1 overflow-y-auto px-5 py-4', bodyClassName)}>{children}</div>
         {footer && (
-          <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-line bg-subtle/60 shrink-0">{footer}</div>
+          <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-line bg-subtle/60 shrink-0 print:hidden">{footer}</div>
         )}
       </div>
     </div>

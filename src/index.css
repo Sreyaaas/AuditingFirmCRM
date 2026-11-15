@@ -445,20 +445,33 @@ html[data-accents='off'] :is(.av-0, .av-1, .av-2, .av-3, .av-4, .av-5, .av-6, .a
   header,
   nav,
   .print\:hidden,
-  .no-print {
+  .no-print,
+  .invoice-editor-column,
+  .invoice-modal-header,
+  .invoice-modal-footer {
     display: none !important;
+    visibility: hidden !important;
   }
 
-  .fixed.inset-0.z-50 {
+  /* Completely hide all non-invoice modals, drawers, and dialog overlays */
+  .fixed.inset-0.z-50:not(.invoice-modal-backdrop),
+  [role="dialog"]:not(.invoice-modal-dialog) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Unfold only the invoice dialog if printed via window.print */
+  .invoice-modal-backdrop {
     position: static !important;
     padding: 0 !important;
+    margin: 0 !important;
     background: transparent !important;
     backdrop-filter: none !important;
     display: block !important;
     overflow: visible !important;
   }
 
-  [role="dialog"] {
+  .invoice-modal-dialog {
     position: static !important;
     max-width: 100% !important;
     max-height: none !important;
@@ -469,12 +482,12 @@ html[data-accents='off'] :is(.av-0, .av-1, .av-2, .av-3, .av-4, .av-5, .av-6, .a
     overflow: visible !important;
     display: block !important;
     border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  .invoice-modal-header,
-  .invoice-modal-footer,
-  .invoice-editor-column {
-    display: none !important;
+  .invoice-modal-dialog .grid {
+    display: block !important;
   }
 
   .invoice-modal-body {
