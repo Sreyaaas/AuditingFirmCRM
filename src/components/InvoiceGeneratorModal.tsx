@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   FileText,
   Download,
@@ -28,6 +28,7 @@ export interface InvoiceLineItem {
   description: string;
   amount: number;
   sacCode?: string;
+  itemType?: 'service' | 'expense';
 }
 
 export interface InvoiceGeneratorModalProps {
@@ -118,10 +119,17 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   const [includeOutstanding, setIncludeOutstanding] = useState<boolean>(false);
   const [advanceReceived, setAdvanceReceived] = useState<number>(0);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const isInitializedRef = useRef(false);
 
   // Synchronize when initialClient / prefillBilling changes
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      isInitializedRef.current = false;
+      return;
+    }
+
+    if (isInitializedRef.current) return;
+    isInitializedRef.current = true;
 
     setInvoiceNumber(defaultInvoiceNo);
     setDateOfIssue(prefillBilling?.date || todayStr);
@@ -147,14 +155,54 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       }
 
       if (resolvedLines && resolvedLines.length > 0) {
-        setServices(
-          resolvedLines.map((li, idx) => ({
-            id: li.id || `srv-${Date.now()}-${idx}`,
-            description: li.description || '',
-            amount: Number(li.amount) || 0,
-            sacCode: li.sacCode || '998231',
-          }))
-        );
+        const srvLines = resolvedLines.filter((l) => (l as any).itemType !== 'expense');
+        const expLines = resolvedLines.filter((l) => (l as any).itemType === 'expense');
+
+        if (srvLines.length > 0) {
+          setServices(
+            srvLines.map((li, idx) => ({
+              id: li.id || `srv-${Date.now()}-${idx}`,
+              description: li.description || '',
+              amount: Number(li.amount) || 0,
+              sacCode: li.sacCode || '998231',
+              itemType: 'service',
+            }))
+          );
+        } else {
+          setServices([
+            {
+              id: `srv-${Date.now()}`,
+              description: 'Professional fees',
+              amount: prefillBilling.professionalIncome || 0,
+              sacCode: '998231',
+              itemType: 'service',
+            },
+          ]);
+        }
+
+        if (expLines.length > 0) {
+          setExpenses(
+            expLines.map((li, idx) => ({
+              id: li.id || `exp-${Date.now()}-${idx}`,
+              description: li.description || '',
+              amount: Number(li.amount) || 0,
+              sacCode: li.sacCode || '9982',
+              itemType: 'expense',
+            }))
+          );
+        } else if (prefillBilling.oopExpenses && prefillBilling.oopExpenses > 0) {
+          setExpenses([
+            {
+              id: `exp-${Date.now()}`,
+              description: 'Out-of-Pocket / Statutory Reimbursements',
+              amount: prefillBilling.oopExpenses,
+              sacCode: '9982',
+              itemType: 'expense',
+            },
+          ]);
+        } else {
+          setExpenses([]);
+        }
       } else if (prefillBilling.natureOfService) {
         const parts = prefillBilling.natureOfService
           .split(/,\s*(?=[A-Z0-9])|\n+/) // split on comma followed by capital letter or newline
@@ -169,6 +217,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               // If first item, set total or leave distributed so user can adjust individual amounts
               amount: idx === 0 ? prefillBilling.professionalIncome || 0 : 0,
               sacCode: '998231',
+              itemType: 'service',
             }))
           );
         } else {
@@ -178,8 +227,23 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               description: prefillBilling.natureOfService || 'Professional fees',
               amount: prefillBilling.professionalIncome || 0,
               sacCode: '998231',
+              itemType: 'service',
             },
           ]);
+        }
+
+        if (prefillBilling.oopExpenses && prefillBilling.oopExpenses > 0) {
+          setExpenses([
+            {
+              id: `exp-${Date.now()}`,
+              description: 'Out-of-Pocket / Statutory Reimbursements',
+              amount: prefillBilling.oopExpenses,
+              sacCode: '9982',
+              itemType: 'expense',
+            },
+          ]);
+        } else {
+          setExpenses([]);
         }
       } else {
         setServices([
@@ -188,20 +252,22 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             description: 'Professional fees',
             amount: prefillBilling.professionalIncome || 0,
             sacCode: '998231',
+            itemType: 'service',
           },
         ]);
-      }
-      if (prefillBilling.oopExpenses && prefillBilling.oopExpenses > 0) {
-        setExpenses([
-          {
-            id: `exp-${Date.now()}`,
-            description: 'Out-of-Pocket / Statutory Reimbursements',
-            amount: prefillBilling.oopExpenses,
-            sacCode: '9982',
-          },
-        ]);
-      } else {
-        setExpenses([]);
+        if (prefillBilling.oopExpenses && prefillBilling.oopExpenses > 0) {
+          setExpenses([
+            {
+              id: `exp-${Date.now()}`,
+              description: 'Out-of-Pocket / Statutory Reimbursements',
+              amount: prefillBilling.oopExpenses,
+              sacCode: '9982',
+              itemType: 'expense',
+            },
+          ]);
+        } else {
+          setExpenses([]);
+        }
       }
 
       const matchedDebtor = debtors.find(
@@ -237,6 +303,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                 : 'Professional fees for Annual Income Tax & Accounting',
               amount: matchedClient.monthlyAuditFee,
               sacCode: '998231',
+              itemType: 'service',
             },
           ]);
         }
@@ -269,12 +336,12 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       setDebtorBalance(0);
       setIncludeOutstanding(false);
       setServices([
-        { id: `srv-${Date.now()}`, description: 'Professional fees for Accounting & Tax Services', amount: 5000, sacCode: '998231' },
+        { id: `srv-${Date.now()}`, description: 'Professional fees for Accounting & Tax Services', amount: 5000, sacCode: '998231', itemType: 'service' },
       ]);
       setExpenses([]);
       setAdvanceReceived(0);
     }
-  }, [isOpen, initialClient, prefillBilling, defaultInvoiceNo, todayStr, clients, debtors]);
+  }, [isOpen, initialClient, prefillBilling]);
 
   // Client Selection
   const handleClientSelect = (clientId: string) => {
@@ -292,7 +359,11 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       setGstin(matchedClient.gstin || '');
       setCity(matchedClient.city || '');
 
-      if (matchedClient.monthlyAuditFee && matchedClient.monthlyAuditFee > 0) {
+      // DO NOT overwrite services if user has already entered custom line items
+      const hasCustomServices =
+        services.length > 1 || (services.length === 1 && services[0].description.trim() !== '');
+
+      if (!hasCustomServices && matchedClient.monthlyAuditFee && matchedClient.monthlyAuditFee > 0) {
         setServices([
           {
             id: `srv-${Date.now()}`,
@@ -301,6 +372,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               : 'Professional fees for Income Tax & Accounting',
             amount: matchedClient.monthlyAuditFee,
             sacCode: '998231',
+            itemType: 'service',
           },
         ]);
       }
@@ -322,7 +394,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   const handleAddService = () => {
     setServices((prev) => [
       ...prev,
-      { id: `srv-${Date.now()}-${Math.random()}`, description: '', amount: 0, sacCode: '998231' },
+      { id: `srv-${Date.now()}-${Math.random()}`, description: '', amount: 0, sacCode: '998231', itemType: 'service' },
     ]);
   };
 
@@ -330,16 +402,24 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     setServices((prev) => (prev.length > 1 ? prev.filter((s) => s.id !== id) : prev));
   };
 
+  const sanitizeAmount = (value: any): number => {
+    if (typeof value === 'number') return isNaN(value) ? 0 : value;
+    const cleanVal = typeof value === 'string' ? value.replace(/,/g, '').trim() : String(value ?? '');
+    if (cleanVal === '') return 0;
+    const num = Number(cleanVal);
+    return isNaN(num) ? 0 : num;
+  };
+
   const handleUpdateService = (id: string, field: 'description' | 'amount' | 'sacCode', value: any) => {
     setServices((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, [field]: field === 'amount' ? Number(value) || 0 : value } : s))
+      prev.map((s) => (s.id === id ? { ...s, [field]: field === 'amount' ? sanitizeAmount(value) : value } : s))
     );
   };
 
   const handleAddExpense = () => {
     setExpenses((prev) => [
       ...prev,
-      { id: `exp-${Date.now()}-${Math.random()}`, description: '', amount: 0, sacCode: '9982' },
+      { id: `exp-${Date.now()}-${Math.random()}`, description: '', amount: 0, sacCode: '9982', itemType: 'expense' },
     ]);
   };
 
@@ -349,7 +429,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
   const handleUpdateExpense = (id: string, field: 'description' | 'amount' | 'sacCode', value: any) => {
     setExpenses((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, [field]: field === 'amount' ? Number(value) || 0 : value } : e))
+      prev.map((e) => (e.id === id ? { ...e, [field]: field === 'amount' ? sanitizeAmount(value) : value } : e))
     );
   };
 
@@ -456,6 +536,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             .printable-invoice-sheet {
               width: 100% !important;
               max-width: 100% !important;
+              min-width: 0 !important;
               margin: 0 !important;
               padding: 0 !important;
               box-shadow: none !important;
@@ -610,6 +691,11 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       const cleanInv = invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_');
       const docUrl = `${clientOneDriveFolder}/Invoices/INV-${cleanInv}.pdf`;
 
+      const combinedLineItems: InvoiceLineItem[] = [
+        ...services.map((s) => ({ ...s, itemType: 'service' as const })),
+        ...expenses.map((e) => ({ ...e, itemType: 'expense' as const })),
+      ];
+
       await onRecordBilling({
         debtorId: matchedDebtor?.id,
         clientId: selectedClientId || undefined,
@@ -617,7 +703,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         amount: servicesTotal,
         oopExpenses: expensesTotal,
         description: primaryServiceDesc,
-        lineItems: services,
+        lineItems: combinedLineItems,
         invoiceNumber,
         date: dateOfIssue,
         oneDriveSynced: saveToOneDrive || oneDriveUploaded,
@@ -626,7 +712,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
       try {
         if (invoiceNumber) {
-          localStorage.setItem(`inv_lines_${invoiceNumber}`, JSON.stringify(services));
+          localStorage.setItem(`inv_lines_${invoiceNumber}`, JSON.stringify(combinedLineItems));
         }
       } catch {}
 
@@ -851,9 +937,8 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                   <div className="relative w-24 shrink-0">
                     <span className="absolute left-2 top-1 text-xs text-fg-subtle">₹</span>
                     <Input
-                      type="number"
-                      step="any"
-                      min="0"
+                      type="text"
+                      inputMode="decimal"
                       placeholder="0"
                       value={item.amount || ''}
                       onChange={(e) => handleUpdateService(item.id, 'amount', e.target.value)}
@@ -916,9 +1001,8 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                     <div className="relative w-24 shrink-0">
                       <span className="absolute left-2 top-1 text-xs text-fg-subtle">₹</span>
                       <Input
-                        type="number"
-                        step="any"
-                        min="0"
+                        type="text"
+                        inputMode="decimal"
                         placeholder="0"
                         value={item.amount || ''}
                         onChange={(e) => handleUpdateExpense(item.id, 'amount', e.target.value)}
@@ -969,10 +1053,13 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                   <div className="flex items-center gap-1.5">
                     <span className="text-2xs text-fg-subtle">₹</span>
                     <input
-                      type="number"
-                      step="any"
+                      type="text"
+                      inputMode="decimal"
                       value={debtorBalance || ''}
-                      onChange={(e) => setDebtorBalance(Number(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const cleanVal = e.target.value.replace(/,/g, '').trim();
+                        setDebtorBalance(cleanVal === '' ? 0 : Number(cleanVal) || 0);
+                      }}
                       className="w-24 h-6 text-xs px-2 text-right rounded border border-line bg-surface font-mono"
                     />
                   </div>
@@ -986,12 +1073,14 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               <div className="relative w-32">
                 <span className="absolute left-2.5 top-1.5 text-xs text-fg-subtle">₹</span>
                 <Input
-                  type="number"
-                  step="any"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="0"
                   value={advanceReceived || ''}
-                  onChange={(e) => setAdvanceReceived(Number(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const cleanVal = e.target.value.replace(/,/g, '').trim();
+                    setAdvanceReceived(cleanVal === '' ? 0 : Number(cleanVal) || 0);
+                  }}
                   className="h-8 text-xs pl-6 text-right font-mono num"
                 />
               </div>
@@ -1027,7 +1116,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         {/* =========================================================================
             RIGHT COLUMN: EXECUTIVE A4 DOCUMENT PREVIEW (Printed directly)
             ========================================================================= */}
-        <div className="lg:col-span-7 p-6 sm:p-8 bg-zinc-100 flex flex-col items-center justify-start overflow-y-auto max-h-[82vh] print:p-0 print:bg-white print:overflow-visible print:max-h-none print:block">
+        <div className="lg:col-span-7 p-6 sm:p-8 bg-zinc-100 flex flex-col items-center justify-start overflow-y-auto overflow-x-auto max-h-[82vh] print:p-0 print:bg-white print:overflow-visible print:max-h-none print:block">
           {/* A4 sheet: printed and exported as PDF exactly as shown.
               Colours are fixed (not theme tokens) because this is a paper document. */}
           {(() => {
@@ -1058,7 +1147,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             return (
               <div
                 id="printable-invoice"
-                className="printable-invoice-sheet w-full max-w-[680px] bg-white select-text shadow-sm"
+                className="printable-invoice-sheet w-full max-w-[680px] min-w-[540px] bg-white select-text shadow-sm print:min-w-0 print:max-w-none print:w-full"
                 style={{
                   fontFamily: INVOICE_FONT_STACK,
                   color: INK,

@@ -175,6 +175,7 @@ export interface OfficeBillingEntry {
     description: string;
     amount: number;
     sacCode?: string;
+    itemType?: 'service' | 'expense';
   }>;
   /** OneDrive / SharePoint backup status and file link. */
   oneDriveSynced?: boolean;
