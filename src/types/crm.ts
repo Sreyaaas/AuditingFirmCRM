@@ -170,6 +170,12 @@ export interface OfficeBillingEntry {
   /** Register month the entry belongs to, 'YYYY-MM'. */
   period?: string;
   id?: string;
+  lineItems?: Array<{
+    id: string;
+    description: string;
+    amount: number;
+    sacCode?: string;
+  }>;
   /** OneDrive / SharePoint backup status and file link. */
   oneDriveSynced?: boolean;
   oneDriveUrl?: string;

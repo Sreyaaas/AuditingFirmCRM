@@ -46,6 +46,7 @@ export interface InvoiceGeneratorModalProps {
     amount: number;
     oopExpenses: number;
     description: string;
+    lineItems?: InvoiceLineItem[];
     invoiceNumber: string;
     date: string;
     oneDriveSynced?: boolean;
@@ -137,14 +138,59 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         setGstin(matchedClient.gstin || '');
         setCity(matchedClient.city || '');
       }
-      setServices([
-        {
-          id: `srv-${Date.now()}`,
-          description: prefillBilling.natureOfService || 'Professional fees',
-          amount: prefillBilling.professionalIncome || 0,
-          sacCode: '998231',
-        },
-      ]);
+      let resolvedLines = prefillBilling.lineItems;
+      if ((!resolvedLines || resolvedLines.length === 0) && prefillBilling.invoiceNumber) {
+        try {
+          const cached = localStorage.getItem(`inv_lines_${prefillBilling.invoiceNumber}`);
+          if (cached) resolvedLines = JSON.parse(cached);
+        } catch {}
+      }
+
+      if (resolvedLines && resolvedLines.length > 0) {
+        setServices(
+          resolvedLines.map((li, idx) => ({
+            id: li.id || `srv-${Date.now()}-${idx}`,
+            description: li.description || '',
+            amount: Number(li.amount) || 0,
+            sacCode: li.sacCode || '998231',
+          }))
+        );
+      } else if (prefillBilling.natureOfService) {
+        const parts = prefillBilling.natureOfService
+          .split(/,\s*(?=[A-Z0-9])|\n+/) // split on comma followed by capital letter or newline
+          .map((p) => p.trim())
+          .filter(Boolean);
+
+        if (parts.length > 1) {
+          setServices(
+            parts.map((part, idx) => ({
+              id: `srv-${Date.now()}-${idx}`,
+              description: part,
+              // If first item, set total or leave distributed so user can adjust individual amounts
+              amount: idx === 0 ? prefillBilling.professionalIncome || 0 : 0,
+              sacCode: '998231',
+            }))
+          );
+        } else {
+          setServices([
+            {
+              id: `srv-${Date.now()}`,
+              description: prefillBilling.natureOfService || 'Professional fees',
+              amount: prefillBilling.professionalIncome || 0,
+              sacCode: '998231',
+            },
+          ]);
+        }
+      } else {
+        setServices([
+          {
+            id: `srv-${Date.now()}`,
+            description: 'Professional fees',
+            amount: prefillBilling.professionalIncome || 0,
+            sacCode: '998231',
+          },
+        ]);
+      }
       if (prefillBilling.oopExpenses && prefillBilling.oopExpenses > 0) {
         setExpenses([
           {
@@ -571,11 +617,18 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         amount: servicesTotal,
         oopExpenses: expensesTotal,
         description: primaryServiceDesc,
+        lineItems: services,
         invoiceNumber,
         date: dateOfIssue,
         oneDriveSynced: saveToOneDrive || oneDriveUploaded,
         oneDriveUrl: saveToOneDrive || oneDriveUploaded ? docUrl : undefined,
       });
+
+      try {
+        if (invoiceNumber) {
+          localStorage.setItem(`inv_lines_${invoiceNumber}`, JSON.stringify(services));
+        }
+      } catch {}
 
       if (saveToOneDrive || oneDriveUploaded) {
         dispatchAppToast(`Invoice ${invoiceNumber} saved and stored in client OneDrive`);

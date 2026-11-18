@@ -22,7 +22,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { LoginView, SetNewPasswordView } from './components/LoginView';
 import { PracticeConfigManager } from './components/PracticeConfigManager';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
-import { InvoiceGeneratorModal } from './components/InvoiceGeneratorModal';
+import { InvoiceGeneratorModal, InvoiceLineItem } from './components/InvoiceGeneratorModal';
 import { InvoicesManager } from './components/InvoicesManager';
 import { OtherAssignmentsManager } from './components/OtherAssignmentsManager';
 import { TaskCategory } from './types/crm';
@@ -661,7 +661,8 @@ export function App() {
     oopExpenses = 0,
     invoiceNoOverride?: string,
     oneDriveSynced?: boolean,
-    oneDriveUrl?: string
+    oneDriveUrl?: string,
+    lineItems?: InvoiceLineItem[]
   ) => {
     const record = debtors.find((d) => d.id === debtorId);
     if (!record) return;
@@ -684,6 +685,7 @@ export function App() {
       billingStatus: 'Billed',
       invoiceNumber,
       period,
+      lineItems,
       oneDriveSynced: !!oneDriveSynced,
       oneDriveUrl: oneDriveUrl || undefined,
       oneDriveSyncedAt: oneDriveSynced ? new Date().toISOString() : undefined,
@@ -1210,7 +1212,8 @@ export function App() {
               billingData.oopExpenses,
               billingData.invoiceNumber,
               billingData.oneDriveSynced,
-              billingData.oneDriveUrl
+              billingData.oneDriveUrl,
+              billingData.lineItems
             );
           } else {
             const debtor = debtors.find(
@@ -1224,7 +1227,8 @@ export function App() {
                 billingData.oopExpenses,
                 billingData.invoiceNumber,
                 billingData.oneDriveSynced,
-                billingData.oneDriveUrl
+                billingData.oneDriveUrl,
+                billingData.lineItems
               );
             }
           }

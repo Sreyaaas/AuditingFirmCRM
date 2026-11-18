@@ -23,7 +23,16 @@ interface DebtorsManagerProps {
   gstCompliance: GSTComplianceItem[];
   onOpenWhatsApp: (debtor: DebtorRecord) => void;
   onRecordPayment: (debtorId: string, amountCleared: number) => void;
-  onAddBilling?: (debtorId: string, billingAmount: number, description: string) => void;
+  onAddBilling?: (
+    debtorId: string,
+    billingAmount: number,
+    description: string,
+    oopExpenses?: number,
+    invoiceNoOverride?: string,
+    oneDriveSynced?: boolean,
+    oneDriveUrl?: string,
+    lineItems?: Array<{ id: string; description: string; amount: number; sacCode?: string }>
+  ) => void;
   onAddAccount?: (newDebtor: DebtorRecord) => void;
   onImport: (result: DebtorWorkbookResult) => Promise<{ error?: string }>;
   /** Administrators only: permanently delete a fee account. */
@@ -863,8 +872,13 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
           if (billingData.debtorId && onAddBilling) {
             onAddBilling(
               billingData.debtorId,
-              billingData.amount + (billingData.oopExpenses || 0),
-              billingData.description
+              billingData.amount,
+              billingData.description,
+              billingData.oopExpenses,
+              billingData.invoiceNumber,
+              billingData.oneDriveSynced,
+              billingData.oneDriveUrl,
+              billingData.lineItems
             );
           }
         }}
