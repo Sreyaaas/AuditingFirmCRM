@@ -322,36 +322,6 @@ export function App() {
     loadAll();
   }, [sessionUserId, loadAll]);
 
-  // Staff list and per-person counts are derived from live data, never hard-coded.
-  const staffList: StaffMember[] = useMemo(
-    () =>
-      profiles
-        .filter((p) => p.status === 'Active')
-        .map((p) => ({
-          id: p.id,
-          name: p.name,
-          role: p.designation,
-          initials: p.initials || p.name.slice(0, 2).toUpperCase(),
-          email: p.email,
-          phone: p.phone,
-          assignedRecurringCount: monthlyTasks.filter((t) => t.assignedStaffId === p.id).length,
-          assignedITRCount: itrFilings.filter((i) => i.assignedStaffId === p.id).length,
-          completedThisMonth: monthlyTasks.filter((t) => t.assignedStaffId === p.id && t.status === 'Filed').length,
-        })),
-    [profiles, monthlyTasks, itrFilings]
-  );
-
-  const profilesWithCounts: UserProfile[] = useMemo(
-    () =>
-      profiles.map((p) => ({
-        ...p,
-        assignedClientsCount: clients.filter((c) => c.assignedStaffId === p.id).length,
-        assignedTasksCount: monthlyTasks.filter((t) => t.assignedStaffId === p.id).length,
-        completedThisMonth: monthlyTasks.filter((t) => t.assignedStaffId === p.id && t.status === 'Filed').length,
-      })),
-    [profiles, clients, monthlyTasks]
-  );
-
   const monthlyWorkTasks = useMemo(
     () => monthlyTasks.filter((t) => !t.category || t.category === 'monthly' || t.category === 'weekly'),
     [monthlyTasks]
@@ -403,6 +373,36 @@ export function App() {
     const taskIds = new Set(mappedAnnualTasksToITR.map((t) => t.id));
     return [...mappedAnnualTasksToITR, ...itrFilings.filter((i) => !taskIds.has(i.id))];
   }, [mappedAnnualTasksToITR, itrFilings]);
+
+  // Staff list and per-person counts are derived from live data, never hard-coded.
+  const staffList: StaffMember[] = useMemo(
+    () =>
+      profiles
+        .filter((p) => p.status === 'Active')
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          role: p.designation,
+          initials: p.initials || p.name.slice(0, 2).toUpperCase(),
+          email: p.email,
+          phone: p.phone,
+          assignedRecurringCount: monthlyTasks.filter((t) => t.assignedStaffId === p.id).length,
+          assignedITRCount: combinedAnnualFilings.filter((i) => i.assignedStaffId === p.id).length,
+          completedThisMonth: monthlyTasks.filter((t) => t.assignedStaffId === p.id && t.status === 'Filed').length,
+        })),
+    [profiles, monthlyTasks, combinedAnnualFilings]
+  );
+
+  const profilesWithCounts: UserProfile[] = useMemo(
+    () =>
+      profiles.map((p) => ({
+        ...p,
+        assignedClientsCount: clients.filter((c) => c.assignedStaffId === p.id).length,
+        assignedTasksCount: monthlyTasks.filter((t) => t.assignedStaffId === p.id).length,
+        completedThisMonth: monthlyTasks.filter((t) => t.assignedStaffId === p.id && t.status === 'Filed').length,
+      })),
+    [profiles, clients, monthlyTasks]
+  );
 
   // ------------------------------------------------------- UI state
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -1290,7 +1290,7 @@ export function App() {
         onClose={() => setIsDrawerOpen(false)}
         client={selectedClient}
         task={selectedClient ? monthlyTasks.find((t) => t.clientId === selectedClient.id) : null}
-        itrFiling={selectedClient ? itrFilings.find((i) => i.clientId === selectedClient.id || i.clientName === selectedClient.name) : null}
+        itrFiling={selectedClient ? combinedAnnualFilings.find((i) => i.clientId === selectedClient.id || i.clientName === selectedClient.name) : null}
         debtor={selectedClient && canViewFees ? debtors.find((d) => d.clientName.toLowerCase() === selectedClient.name.toLowerCase()) : null}
         staff={selectedClient ? staffList.find((s) => s.id === selectedClient.assignedStaffId) : null}
         tickets={tickets}
