@@ -245,9 +245,11 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
         description={description || `${filteredTasks.length} tasks · Compliance & filing workflow`}
         actions={
           <>
-            <div className="flex items-center h-8 rounded-md border border-line bg-surface shadow-xs">
+            <div className="flex items-center h-8 rounded-md border border-line bg-surface shadow-xs shrink-0">
               <IconButton icon={ChevronLeft} label="Previous period" size="sm" onClick={handlePeriodPrev} disabled={periodIdx === 0} />
-              <span className="num w-[72px] text-center text-sm font-medium text-fg">{selectedPeriod}</span>
+              <span className="num px-2.5 min-w-[76px] whitespace-nowrap text-center text-sm font-medium text-fg select-none">
+                {selectedPeriod}
+              </span>
               <IconButton icon={ChevronRight} label="Next period" size="sm" onClick={handlePeriodNext} disabled={periodIdx === periods.length - 1} />
             </div>
             {!selectedStaffId && (
