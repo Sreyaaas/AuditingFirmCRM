@@ -954,9 +954,42 @@ export const fetchBillingsFromDb = async (): Promise<OfficeBillingEntry[]> => {
 
 export const saveBillingToDb = async (entry: OfficeBillingEntry): Promise<{ error?: string }> => {
   if (!isSupabaseConfigured()) {
-    writeLocalList(BILLINGS_LOCAL_KEY, [entry, ...readLocalList(BILLINGS_LOCAL_KEY, SAMPLE_BILLINGS)]);
+    const list = readLocalList(BILLINGS_LOCAL_KEY, SAMPLE_BILLINGS);
+    const exists = list.some((b) => (entry.id && b.id === entry.id) || (entry.invoiceNumber && b.invoiceNumber === entry.invoiceNumber));
+    const next = exists
+      ? list.map((b) => ((entry.id && b.id === entry.id) || (entry.invoiceNumber && b.invoiceNumber === entry.invoiceNumber) ? entry : b))
+      : [entry, ...list];
+    writeLocalList(BILLINGS_LOCAL_KEY, next);
     return {};
   }
+
+  // If invoice already exists, update it instead of creating duplicates
+  if (entry.invoiceNumber) {
+    const { data: existing } = await supabase
+      .from('office_billings')
+      .select('id')
+      .eq('invoice_number', entry.invoiceNumber)
+      .maybeSingle();
+
+    if (existing?.id) {
+      const { error } = await supabase
+        .from('office_billings')
+        .update({
+          date: entry.date || null,
+          client_name: entry.clientName,
+          nature_of_service: entry.natureOfService,
+          filing_month: entry.filingMonth || '',
+          professional_income: entry.professionalIncome,
+          oop_expenses: entry.oopExpenses || 0,
+          billing_status: entry.billingStatus || 'Billed',
+          period: entry.period || '',
+          user_name: entry.user || '',
+        })
+        .eq('id', existing.id);
+      return error ? { error: error.message } : {};
+    }
+  }
+
   const { error } = await supabase.from('office_billings').insert({
     serial_no: entry.serialNo,
     date: entry.date || null,
@@ -970,6 +1003,18 @@ export const saveBillingToDb = async (entry: OfficeBillingEntry): Promise<{ erro
     period: entry.period || '',
     user_name: entry.user || '',
   });
+  return error ? { error: error.message } : {};
+};
+
+export const deleteBillingFromDb = async (idOrInvoiceNo: string): Promise<{ error?: string }> => {
+  if (!isSupabaseConfigured()) {
+    const list = readLocalList(BILLINGS_LOCAL_KEY, SAMPLE_BILLINGS);
+    writeLocalList(BILLINGS_LOCAL_KEY, list.filter((b) => b.id !== idOrInvoiceNo && b.invoiceNumber !== idOrInvoiceNo));
+    return {};
+  }
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrInvoiceNo);
+  const query = supabase.from('office_billings').delete();
+  const { error } = isUuid ? await query.eq('id', idOrInvoiceNo) : await query.eq('invoice_number', idOrInvoiceNo);
   return error ? { error: error.message } : {};
 };
 

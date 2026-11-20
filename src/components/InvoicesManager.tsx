@@ -16,12 +16,15 @@ import {
   CheckCircle2,
   AlertCircle,
   Filter,
+  Users,
+  Trash2,
 } from 'lucide-react';
 import { Client, DebtorRecord, OfficeBillingEntry } from '../types/crm';
 import {
   Badge,
   Button,
   Card,
+  ConfirmDialog,
   EmptyState,
   IconButton,
   Metric,
@@ -46,6 +49,7 @@ interface InvoicesManagerProps {
   canEdit?: boolean;
   onOpenInvoiceModal: (clientOrDebtor?: Client | DebtorRecord | null, prefillBilling?: OfficeBillingEntry) => void;
   onUpdateBilling?: (updated: OfficeBillingEntry) => void;
+  onDeleteBilling?: (idOrInvoiceNo: string) => void;
   onBatchSyncOneDrive?: (ids: string[]) => void;
 }
 
@@ -56,12 +60,14 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
   canEdit = true,
   onOpenInvoiceModal,
   onUpdateBilling,
+  onDeleteBilling,
   onBatchSyncOneDrive,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Billed' | 'Received' | 'Pending'>('all');
   const [oneDriveFilter, setOneDriveFilter] = useState<'all' | 'synced' | 'unsynced'>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
+  const [invoiceToDelete, setInvoiceToDelete] = useState<OfficeBillingEntry | null>(null);
   const [viewingOneDriveDoc, setViewingOneDriveDoc] = useState<{
     entry: OfficeBillingEntry;
     client?: Client;
@@ -94,6 +100,18 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
       );
     });
   }, [billings, searchQuery, statusFilter, oneDriveFilter, selectedPeriod]);
+
+  // Deterministic sorting so deleting an invoice never changes the relative order
+  const sortedBillings = useMemo(() => {
+    return [...filteredBillings].sort((a, b) => {
+      const dateA = a.date || '';
+      const dateB = b.date || '';
+      if (dateA !== dateB) return dateB.localeCompare(dateA);
+      const numA = parseInt((a.invoiceNumber || '').replace(/\D/g, '') || String(a.serialNo || 0), 10);
+      const numB = parseInt((b.invoiceNumber || '').replace(/\D/g, '') || String(b.serialNo || 0), 10);
+      return numB - numA;
+    });
+  }, [filteredBillings]);
 
   // Overall KPI metrics
   const metrics = useMemo(() => {
@@ -177,7 +195,7 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
   };
 
   // Quick WhatsApp share from billing record
-  const handleWhatsApp = (entry: OfficeBillingEntry) => {
+  const handleWhatsApp = (entry: OfficeBillingEntry, forceGroup = false) => {
     const matchedClient = clients.find(
       (c) => c.tradeName.toLowerCase() === entry.clientName.toLowerCase()
     );
@@ -196,7 +214,9 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
       `UPI: shameerandassociates@idfcbank\n\n` +
       `Thank you,\n*Shameer & Associates* | Accountants and Practitioners`;
 
-    if (matchedClient?.phone && cleanWhatsAppPhone(matchedClient.phone)) {
+    if (forceGroup) {
+      sendToGroup(msg);
+    } else if (matchedClient?.phone && cleanWhatsAppPhone(matchedClient.phone)) {
       sendToIndividual(matchedClient.phone, msg);
     } else {
       sendToGroup(msg);
@@ -382,7 +402,7 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
                 </td>
               </tr>
             ) : (
-              filteredBillings.map((b, idx) => {
+              sortedBillings.map((b, idx) => {
                 const total = (Number(b.professionalIncome) || 0) + (Number(b.oopExpenses) || 0);
                 const matchedClient = clients.find(
                   (c) => c.tradeName.toLowerCase() === b.clientName.toLowerCase()
@@ -469,7 +489,7 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
                           size="sm"
                           variant="secondary"
                           onClick={() =>
-                            onOpenInvoiceModal(matchedClient || matchedDebtor || { tradeName: b.clientName } as any, b)
+                            onOpenInvoiceModal(matchedClient || matchedDebtor || ({ tradeName: b.clientName } as any), b)
                           }
                           className="h-7 text-xs font-medium"
                         >
@@ -477,10 +497,25 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
                         </Button>
                         <IconButton
                           icon={MessageSquare}
-                          label="Share on WhatsApp"
+                          label="WhatsApp Client"
                           size="sm"
-                          onClick={() => handleWhatsApp(b)}
+                          onClick={() => handleWhatsApp(b, false)}
                         />
+                        <IconButton
+                          icon={Users}
+                          label="Send to Group"
+                          size="sm"
+                          onClick={() => handleWhatsApp(b, true)}
+                        />
+                        {onDeleteBilling && (
+                          <IconButton
+                            icon={Trash2}
+                            label="Delete Invoice"
+                            size="sm"
+                            className="text-fg-faint hover:text-danger"
+                            onClick={() => setInvoiceToDelete(b)}
+                          />
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -564,6 +599,21 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
           </div>
         </Modal>
       )}
+
+      <ConfirmDialog
+        isOpen={!!invoiceToDelete}
+        onClose={() => setInvoiceToDelete(null)}
+        title={`Delete invoice ${invoiceToDelete?.invoiceNumber || ''}?`}
+        description={`This will permanently remove the billing record for ${invoiceToDelete?.clientName || 'this client'}. Remaining invoices will retain their permanent numbers.`}
+        confirmLabel="Delete Invoice"
+        danger
+        onConfirm={() => {
+          if (invoiceToDelete) {
+            onDeleteBilling?.(invoiceToDelete.id || invoiceToDelete.invoiceNumber || '');
+            setInvoiceToDelete(null);
+          }
+        }}
+      />
     </div>
   );
 };

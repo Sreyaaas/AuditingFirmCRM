@@ -53,6 +53,7 @@ import {
   importDebtorWorkbookToDb,
   fetchBillingsFromDb,
   saveBillingToDb,
+  deleteBillingFromDb,
   fetchGstReturnsFromDb,
   markGstFiledInDb,
   withGstPriority,
@@ -776,6 +777,94 @@ export function App() {
     reportSave(await saveDebtorToDb(updated), 'Payment');
   };
 
+  const handleRecordBilling = async (billingData: {
+    debtorId?: string;
+    clientId?: string;
+    clientName: string;
+    amount: number;
+    oopExpenses?: number;
+    description: string;
+    lineItems?: InvoiceLineItem[];
+    invoiceNumber?: string;
+    date?: string;
+    oneDriveSynced?: boolean;
+    oneDriveUrl?: string;
+  }) => {
+    const totalAmount = billingData.amount + (billingData.oopExpenses || 0);
+    const invoiceNumber =
+      billingData.invoiceNumber ||
+      `${preferences.invoicePrefix}${String(preferences.nextInvoiceNumber).padStart(4, '0')}`;
+    const date = billingData.date || new Date().toISOString().slice(0, 10);
+    const period = date.slice(0, 7) || currentMonthKey();
+
+    // Check if updating an existing invoice
+    const existingIndex = billings.findIndex(
+      (b) => (billingData.invoiceNumber && b.invoiceNumber === billingData.invoiceNumber) || (b.id && (billingData as any).id && b.id === (billingData as any).id)
+    );
+
+    let savedEntry: OfficeBillingEntry;
+
+    if (existingIndex >= 0) {
+      const existing = billings[existingIndex];
+      savedEntry = {
+        ...existing,
+        clientName: billingData.clientName,
+        natureOfService: billingData.description,
+        professionalIncome: billingData.amount,
+        oopExpenses: billingData.oopExpenses || 0,
+        date,
+        period,
+        lineItems: billingData.lineItems || existing.lineItems,
+        oneDriveSynced: billingData.oneDriveSynced ?? existing.oneDriveSynced,
+        oneDriveUrl: billingData.oneDriveUrl ?? existing.oneDriveUrl,
+        oneDriveSyncedAt: billingData.oneDriveSynced ? new Date().toISOString() : existing.oneDriveSyncedAt,
+      };
+      setBillings((prev) => prev.map((b, i) => (i === existingIndex ? savedEntry : b)));
+      showToast(`Invoice ${invoiceNumber} updated`);
+    } else {
+      savedEntry = {
+        id: `bill-${Date.now()}`,
+        serialNo: billings.filter((b) => b.period === period).length + 1,
+        date,
+        clientName: billingData.clientName,
+        natureOfService: billingData.description,
+        professionalIncome: billingData.amount,
+        oopExpenses: billingData.oopExpenses || 0,
+        user: currentUser?.name || 'Ameen',
+        billingStatus: 'Billed',
+        invoiceNumber,
+        period,
+        lineItems: billingData.lineItems,
+        oneDriveSynced: !!billingData.oneDriveSynced,
+        oneDriveUrl: billingData.oneDriveUrl || undefined,
+        oneDriveSyncedAt: billingData.oneDriveSynced ? new Date().toISOString() : undefined,
+      };
+      setBillings((prev) => [savedEntry, ...prev]);
+
+      if (!billingData.invoiceNumber || billingData.invoiceNumber === `${preferences.invoicePrefix}${String(preferences.nextInvoiceNumber).padStart(4, '0')}`) {
+        handleSavePreferences({ ...preferences, nextInvoiceNumber: preferences.nextInvoiceNumber + 1 });
+      }
+      showToast(`Invoice ${invoiceNumber} · ₹${totalAmount.toLocaleString('en-IN')} billed to ${billingData.clientName}`);
+      addActivityLog('Fee billed', `${invoiceNumber} · ₹${totalAmount.toLocaleString('en-IN')} for ${billingData.description}`, billingData.clientName, 'Payment');
+    }
+
+    // Always persist invoice unconditionally to database!
+    const bRes = await saveBillingToDb(savedEntry);
+    reportSave(bRes, 'Invoice');
+
+    // If debtor account exists or matches, update ledger balance
+    const matchedDebtor =
+      (billingData.debtorId && debtors.find((d) => d.id === billingData.debtorId)) ||
+      debtors.find((d) => d.clientName.toLowerCase() === billingData.clientName.trim().toLowerCase());
+
+    if (matchedDebtor) {
+      const updatedDebtor = applyBilling(matchedDebtor, totalAmount);
+      setDebtors((prev) => prev.map((d) => (d.id === matchedDebtor.id ? updatedDebtor : d)));
+      const dRes = await saveDebtorToDb(updatedDebtor);
+      reportSave(dRes, 'Balance');
+    }
+  };
+
   const handleAddDebtorBilling = async (
     debtorId: string,
     amount: number,
@@ -787,40 +876,25 @@ export function App() {
     lineItems?: InvoiceLineItem[]
   ) => {
     const record = debtors.find((d) => d.id === debtorId);
-    if (!record) return;
-    const totalAmount = amount + (oopExpenses || 0);
-    const updated = applyBilling(record, totalAmount);
-    setDebtors((prev) => prev.map((d) => (d.id === debtorId ? updated : d)));
-
-    const period = updated.months[updated.months.length - 1]?.month || currentMonthKey();
-    const invoiceNumber =
-      invoiceNoOverride || `${preferences.invoicePrefix}${String(preferences.nextInvoiceNumber).padStart(4, '0')}`;
-    const entry: OfficeBillingEntry = {
-      id: `bill-${Date.now()}`,
-      serialNo: billings.filter((b) => b.period === period).length + 1,
-      date: new Date().toISOString().slice(0, 10),
-      clientName: record.clientName,
-      natureOfService: description,
-      professionalIncome: amount,
-      oopExpenses: oopExpenses || 0,
-      user: currentUser?.name || '',
-      billingStatus: 'Billed',
-      invoiceNumber,
-      period,
+    await handleRecordBilling({
+      debtorId,
+      clientName: record ? record.clientName : 'Client',
+      amount,
+      description,
+      oopExpenses,
+      invoiceNumber: invoiceNoOverride,
+      oneDriveSynced,
+      oneDriveUrl,
       lineItems,
-      oneDriveSynced: !!oneDriveSynced,
-      oneDriveUrl: oneDriveUrl || undefined,
-      oneDriveSyncedAt: oneDriveSynced ? new Date().toISOString() : undefined,
-    };
-    setBillings((prev) => [entry, ...prev]);
-    if (!invoiceNoOverride || invoiceNoOverride === `${preferences.invoicePrefix}${String(preferences.nextInvoiceNumber).padStart(4, '0')}`) {
-      handleSavePreferences({ ...preferences, nextInvoiceNumber: preferences.nextInvoiceNumber + 1 });
-    }
-    showToast(`Invoice ${invoiceNumber} · ₹${totalAmount.toLocaleString('en-IN')} billed to ${record.clientName}`);
-    addActivityLog('Fee billed', `${invoiceNumber} · ₹${totalAmount.toLocaleString('en-IN')} for ${description}`, record.clientName, 'Payment');
-    const [a, b] = await Promise.all([saveDebtorToDb(updated), saveBillingToDb(entry)]);
-    reportSave(a, 'Balance');
-    reportSave(b, 'Invoice');
+    });
+  };
+
+  const handleDeleteBilling = async (idOrInvoiceNo: string) => {
+    setBillings((prev) => prev.filter((b) => b.id !== idOrInvoiceNo && b.invoiceNumber !== idOrInvoiceNo));
+    showToast('Invoice deleted');
+    addActivityLog('Invoice deleted', `Invoice ${idOrInvoiceNo} removed`, undefined, 'Payment');
+    const res = await deleteBillingFromDb(idOrInvoiceNo);
+    reportSave(res, 'Invoice deletion');
   };
 
   const handleAddDebtorAccount = async (newDebtor: DebtorRecord) => {
@@ -1139,6 +1213,7 @@ export function App() {
                     );
                     saveBillingToDb(updated);
                   }}
+                  onDeleteBilling={isAdmin ? handleDeleteBilling : undefined}
                 />
               ) : (
                 restricted('Invoices and billing registers are visible to administrators and staff given fee access.')
@@ -1353,36 +1428,7 @@ export function App() {
         debtors={debtors}
         preferences={preferences}
         firmProfile={firmProfile}
-        onRecordBilling={async (billingData) => {
-          if (billingData.debtorId) {
-            handleAddDebtorBilling(
-              billingData.debtorId,
-              billingData.amount,
-              billingData.description,
-              billingData.oopExpenses,
-              billingData.invoiceNumber,
-              billingData.oneDriveSynced,
-              billingData.oneDriveUrl,
-              billingData.lineItems
-            );
-          } else {
-            const debtor = debtors.find(
-              (d) => d.clientName.toLowerCase() === billingData.clientName.toLowerCase()
-            );
-            if (debtor) {
-              handleAddDebtorBilling(
-                debtor.id,
-                billingData.amount,
-                billingData.description,
-                billingData.oopExpenses,
-                billingData.invoiceNumber,
-                billingData.oneDriveSynced,
-                billingData.oneDriveUrl,
-                billingData.lineItems
-              );
-            }
-          }
-        }}
+        onRecordBilling={handleRecordBilling}
       />
     </div>
   );

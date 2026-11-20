@@ -14,6 +14,7 @@ import {
   Cloud,
   CloudUpload,
   Check,
+  Users,
 } from 'lucide-react';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
@@ -605,8 +606,79 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     }
   };
 
+  // Actions: WhatsApp PDF (Native Web Share with auto-download fallback)
+  const handleShareWhatsAppPdf = async (forceGroup = false) => {
+    const element = document.getElementById('printable-invoice');
+    if (!element) return;
+
+    const firmName = firmProfile?.legalName || DEFAULT_OFFICE_FIRM.name;
+    const cleanInv = invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_');
+    const cleanClient = (clientName || 'Client').replace(/[^a-zA-Z0-9]/g, '_');
+    const filename = `Invoice_${cleanInv}_${cleanClient}.pdf`;
+
+    const coverNote = `*TAX INVOICE — ${firmName.toUpperCase()}*\n` +
+      `*Invoice No:* ${invoiceNumber || 'SA/0001'}\n` +
+      `*Billed To:* ${clientName || 'Valued Client'}\n` +
+      `*Total Due:* ₹${(netPayable || 0).toLocaleString('en-IN')}\n\n` +
+      `Please find attached our official tax invoice PDF for your records.\n\n` +
+      `*Bank Remittance Details:*\n` +
+      `Bank: ${firmProfile?.bankName || DEFAULT_OFFICE_FIRM.bankName}\n` +
+      `A/c No: ${firmProfile?.accountNumber || DEFAULT_OFFICE_FIRM.accountNumber}\n` +
+      `IFSC: ${firmProfile?.ifscCode || DEFAULT_OFFICE_FIRM.ifscCode}\n` +
+      (firmProfile?.upiId ? `UPI: ${firmProfile.upiId}\n` : '') +
+      `\nThank you,\n*${firmName}* | Accountants and Practitioners`;
+
+    const opt = {
+      margin: [8, 8, 8, 8],
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    };
+
+    const pdfGenerator = typeof html2pdf === 'function' ? html2pdf : (html2pdf as any)?.default;
+    if (!pdfGenerator) {
+      window.print();
+      return;
+    }
+
+    try {
+      dispatchAppToast('Generating invoice PDF for WhatsApp…');
+      const worker = pdfGenerator().set(opt).from(element);
+      const pdfBlob: Blob = await worker.output('blob');
+      const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        await navigator.share({
+          title: `Invoice ${invoiceNumber}`,
+          text: coverNote,
+          files: [pdfFile],
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn('Native share fallback to download:', e);
+    }
+
+    // Desktop fallback: Download PDF file + launch WhatsApp Web
+    pdfGenerator().set(opt).from(element).save();
+
+    if (forceGroup) {
+      sendToGroup(coverNote);
+    } else {
+      const clean = cleanWhatsAppPhone(phone);
+      if (clean) {
+        sendToIndividual(phone, coverNote);
+      } else {
+        sendToGroup(coverNote);
+      }
+    }
+
+    dispatchAppToast(`Invoice PDF downloaded! Attach or drag it into WhatsApp to send.`);
+  };
+
   // Actions: WhatsApp
-  const handleShareWhatsApp = async () => {
+  const handleShareWhatsApp = async (forceGroup = false) => {
     const firmName = firmProfile?.legalName || DEFAULT_OFFICE_FIRM.name;
     const bank = firmProfile?.bankName || DEFAULT_OFFICE_FIRM.bankName;
     const acct = firmProfile?.accountNumber || DEFAULT_OFFICE_FIRM.accountNumber;
@@ -656,11 +728,15 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     msg += `Please send the payment screenshot or UTR reference once completed.\n\n`;
     msg += `Thank you,\n*${firmName}* | Accountants and Practitioners`;
 
-    const clean = cleanWhatsAppPhone(phone);
-    if (clean) {
-      await sendToIndividual(phone, msg);
-    } else {
+    if (forceGroup) {
       await sendToGroup(msg);
+    } else {
+      const clean = cleanWhatsAppPhone(phone);
+      if (clean) {
+        await sendToIndividual(phone, msg);
+      } else {
+        await sendToGroup(msg);
+      }
     }
   };
 
@@ -772,15 +848,38 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               {oneDriveUploaded ? 'Stored in OneDrive' : 'Store in OneDrive'}
             </Button>
 
-            <Button
-              variant="secondary"
-              icon={MessageSquare}
-              onClick={handleShareWhatsApp}
-              disabled={isSaving}
-              title="Copy formatted invoice and send on WhatsApp"
-            >
-              WhatsApp Invoice
-            </Button>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button
+                variant="secondary"
+                icon={FileText}
+                onClick={() => handleShareWhatsAppPdf(false)}
+                disabled={isSaving}
+                title="Generate invoice PDF and open client WhatsApp to attach"
+              >
+                WhatsApp PDF
+              </Button>
+
+              <Button
+                variant="secondary"
+                icon={Users}
+                onClick={() => handleShareWhatsAppPdf(true)}
+                disabled={isSaving}
+                title="Generate invoice PDF and open WhatsApp group picker to attach"
+              >
+                PDF to Group
+              </Button>
+
+              <Button
+                variant="ghost"
+                icon={MessageSquare}
+                onClick={() => handleShareWhatsApp(false)}
+                disabled={isSaving}
+                title="Send formatted text summary only"
+                className="text-xs text-fg-subtle hover:text-fg"
+              >
+                Text Only
+              </Button>
+            </div>
 
             {onRecordBilling && (
               <Button
