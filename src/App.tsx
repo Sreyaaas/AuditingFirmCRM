@@ -1243,6 +1243,12 @@ export function App() {
         staff={selectedClient ? staffList.find((s) => s.id === selectedClient.assignedStaffId) : null}
         tickets={tickets}
         staffList={staffList}
+        billings={billings}
+        onViewInvoice={(billing) => {
+          setInvoiceModalTarget(selectedClient);
+          setInvoicePrefillBilling(billing);
+          setIsInvoiceModalOpen(true);
+        }}
         onOpenWhatsApp={(item) => {
           setIsDrawerOpen(false);
           openWhatsApp({ task: item });
@@ -1250,6 +1256,7 @@ export function App() {
         onGenerateInvoice={(c) => {
           setIsDrawerOpen(false);
           setInvoiceModalTarget(c);
+          setInvoicePrefillBilling(null);
           setIsInvoiceModalOpen(true);
         }}
       />

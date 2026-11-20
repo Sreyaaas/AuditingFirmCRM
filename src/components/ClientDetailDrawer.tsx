@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ExternalLink, Copy, Check, MessageSquare, ReceiptText } from 'lucide-react';
-import { Client, MonthlyTask, ITRFiling, StaffMember, StaffTicket, DebtorRecord } from '../types/crm';
+import { Client, MonthlyTask, ITRFiling, StaffMember, StaffTicket, DebtorRecord, OfficeBillingEntry } from '../types/crm';
 import { Avatar, Badge, Button, DescriptionList, EmptyState, Modal, SearchInput, Segmented, Tabs, cn, formatDate, formatINR, statusTone } from './ui';
 
 interface ClientDetailDrawerProps {
@@ -13,8 +13,10 @@ interface ClientDetailDrawerProps {
   staff?: StaffMember | null;
   tickets?: StaffTicket[];
   staffList?: StaffMember[];
+  billings?: OfficeBillingEntry[];
   onOpenWhatsApp: (taskOrItr: any) => void;
   onGenerateInvoice?: (client: Client) => void;
+  onViewInvoice?: (billing: OfficeBillingEntry) => void;
 }
 
 
@@ -28,8 +30,10 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
   staff,
   tickets = [],
   staffList = [],
+  billings = [],
   onOpenWhatsApp,
   onGenerateInvoice,
+  onViewInvoice,
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'onedrive' | 'compliance' | 'tickets'>('profile');
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -37,6 +41,13 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
   if (!isOpen || !client) return null;
 
   const clientTickets = tickets.filter((t) => t.clientId === client.id);
+
+  const clientBillings = (billings || []).filter((b) => {
+    const bName = (b.clientName || '').trim().toLowerCase();
+    const cName = (client.name || '').trim().toLowerCase();
+    const cTrade = (client.tradeName || '').trim().toLowerCase();
+    return bName === cName || bName === cTrade || (cTrade && bName.includes(cTrade)) || (cName && bName.includes(cName));
+  });
 
   const getStaff = (id: string | null) => {
     if (!id) return null;
@@ -84,7 +95,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      size="md"
+      size="lg"
       backdropClassName="print:hidden"
       className="print:hidden"
       title={client.tradeName}
@@ -201,6 +212,108 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                 </dd>
               </div>
             </dl>
+          </section>
+
+          <section className="pt-5 border-t border-line">
+            <SectionTitle
+              right={
+                onGenerateInvoice && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={ReceiptText}
+                    onClick={() => {
+                      onClose();
+                      onGenerateInvoice(client);
+                    }}
+                    className="h-6 text-2xs px-2"
+                  >
+                    Generate Invoice
+                  </Button>
+                )
+              }
+            >
+              Bill records
+            </SectionTitle>
+
+            {clientBillings.length === 0 ? (
+              <div className="py-3 px-3.5 rounded-[6px] border border-line bg-subtle/40 text-xs text-fg-subtle flex items-center justify-between">
+                <span>No bills recorded for this client yet.</span>
+                {onGenerateInvoice && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onGenerateInvoice(client);
+                    }}
+                    className="text-accent hover:underline font-medium text-xs"
+                  >
+                    + Create first bill
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="border border-line rounded-[6px] overflow-hidden bg-surface">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-subtle text-fg-subtle border-b border-line text-2xs uppercase tracking-wider">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Inv #</th>
+                      <th className="px-3 py-2 font-medium">Date</th>
+                      <th className="px-3 py-2 font-medium">Nature of Service</th>
+                      <th className="px-3 py-2 font-medium text-right">Fee (₹)</th>
+                      <th className="px-3 py-2 font-medium text-center">Status</th>
+                      <th className="px-3 py-2 font-medium text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {clientBillings.map((b) => {
+                      const invNo = b.invoiceNumber || `SA/${String(b.serialNo).padStart(4, '0')}`;
+                      return (
+                        <tr key={b.id || b.serialNo} className="hover:bg-hover transition-colors">
+                          <td className="px-3 py-2 font-mono font-medium text-fg">{invNo}</td>
+                          <td className="px-3 py-2 font-mono text-fg-muted">{formatDate(b.date)}</td>
+                          <td className="px-3 py-2 text-fg truncate max-w-[220px]" title={b.natureOfService}>
+                            {b.natureOfService}
+                          </td>
+                          <td className="px-3 py-2 num font-medium text-right text-fg">
+                            {formatINR(b.professionalIncome)}
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <Badge
+                              tone={
+                                b.billingStatus === 'Received'
+                                  ? 'success'
+                                  : b.billingStatus === 'Pending'
+                                  ? 'warning'
+                                  : 'info'
+                              }
+                              dot
+                            >
+                              {b.billingStatus || 'Billed'}
+                            </Badge>
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            {onViewInvoice && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 text-2xs px-2"
+                                onClick={() => {
+                                  onClose();
+                                  onViewInvoice(b);
+                                }}
+                              >
+                                View
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         </div>
       )}
