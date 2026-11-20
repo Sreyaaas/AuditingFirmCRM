@@ -259,9 +259,11 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        <Button variant="primary" icon={Plus} onClick={onOpenNewTask} className="ml-1">
-          <span className="hidden sm:inline">New Task</span>
-        </Button>
+        {!(activeTab === 'monthly' || activeTab === 'quarterly' || activeTab === 'itr') && (
+          <Button variant="primary" icon={Plus} onClick={onOpenNewTask} className="ml-1">
+            <span className="hidden sm:inline">New Task</span>
+          </Button>
+        )}
       </div>
     </header>
   );

@@ -230,4 +230,4 @@ Dropdown lists remain in `practice_configs`.
   - Upgraded Workspace navigation labels to "Monthly Compliance", "Quarterly Compliance", "Annual Compliance", and "Other Assignments".
   - Implemented unclipped portal-based hover flyout menus (`createPortal` to `document.body` with fixed coordinates and mouse-leave debounce bridges) on Monthly, Quarterly, and Annual Compliance nav items for instant one-click task creation pre-filled with specific services.
   - Added dual-level service filter tabs directly above status tabs in `ComplianceTaskManager` and `ITRFilingsManager`, showing dynamic task counts per service and filtering tasks in real-time.
-  - Added contextual `+ Add [Service] Task` action buttons in headers and toolbars that automatically pre-populate `NewTaskModal` with the active category and service.
+  - Streamlined task creation to a single clean `+ New Task` button in the compliance page action toolbar, eliminating duplicate ghost buttons and hiding redundant top-header buttons on compliance modules.

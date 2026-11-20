@@ -280,14 +280,15 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
         description={`${assessmentYear} · Income tax returns, most urgent first`}
         actions={
           <>
-            {onAddNewTask && (
-              <Button variant="primary" icon={Plus} onClick={() => onAddNewTask(activeServiceTab !== 'All' ? activeServiceTab : undefined)}>
-                Add {activeServiceTab !== 'All' ? activeServiceTab : 'Task'}
+            {onAddNewTask ? (
+              <Button variant="primary" size="md" icon={Plus} onClick={() => onAddNewTask(activeServiceTab !== 'All' ? activeServiceTab : undefined)}>
+                New Task
+              </Button>
+            ) : (
+              <Button variant="primary" size="md" icon={Plus} onClick={() => setIsAddModalOpen(true)}>
+                Add Return
               </Button>
             )}
-            <Button variant={onAddNewTask ? 'secondary' : 'primary'} icon={Plus} onClick={() => setIsAddModalOpen(true)}>
-              Add Return
-            </Button>
           </>
         }
       />
@@ -338,47 +339,35 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
         toolbar={
           <>
             {serviceTabs && serviceTabs.length > 0 && (
-              <div className="px-3 py-2 border-b border-line bg-subtle/40 overflow-x-auto scrollbar-none flex items-center justify-between gap-3">
-                <div className="flex items-center gap-1.5 flex-nowrap">
-                  {serviceTabs.map((tab) => {
-                    const isActive = activeServiceTab === tab;
-                    const count = itrFilings.filter((t) => {
-                      if (selectedStaffId && t.assignedStaffId !== selectedStaffId) return false;
-                      return matchITRService(t, tab);
-                    }).length;
-                    return (
-                      <button
-                        key={tab}
-                        type="button"
-                        onClick={() => {
-                          setActiveServiceTab(tab);
-                          setCurrentPage(1);
-                        }}
-                        className={cn(
-                          'h-7 px-3 inline-flex items-center gap-1.5 text-xs font-medium rounded-[6px] transition-all whitespace-nowrap',
-                          isActive
-                            ? 'bg-surface text-fg shadow-xs ring-1 ring-line font-semibold'
-                            : 'text-fg-subtle hover:text-fg hover:bg-hover'
-                        )}
-                      >
-                        <span>{tab}</span>
-                        <span className={cn('num text-2xs', isActive ? 'text-fg-muted font-normal' : 'text-fg-faint')}>
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {onAddNewTask && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0 text-xs h-7 text-accent hover:text-accent-hover"
-                    onClick={() => onAddNewTask(activeServiceTab !== 'All' ? activeServiceTab : undefined)}
-                  >
-                    + Add {activeServiceTab !== 'All' ? activeServiceTab : ''} Task
-                  </Button>
-                )}
+              <div className="px-3 py-2 border-b border-line bg-subtle/40 overflow-x-auto scrollbar-none flex items-center gap-1.5 flex-nowrap">
+                {serviceTabs.map((tab) => {
+                  const isActive = activeServiceTab === tab;
+                  const count = itrFilings.filter((t) => {
+                    if (selectedStaffId && t.assignedStaffId !== selectedStaffId) return false;
+                    return matchITRService(t, tab);
+                  }).length;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => {
+                        setActiveServiceTab(tab);
+                        setCurrentPage(1);
+                      }}
+                      className={cn(
+                        'h-7 px-3 inline-flex items-center gap-1.5 text-xs font-medium rounded-[6px] transition-all whitespace-nowrap',
+                        isActive
+                          ? 'bg-surface text-fg shadow-xs ring-1 ring-line font-semibold'
+                          : 'text-fg-subtle hover:text-fg hover:bg-hover'
+                      )}
+                    >
+                      <span>{tab}</span>
+                      <span className={cn('num text-2xs', isActive ? 'text-fg-muted font-normal' : 'text-fg-faint')}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
             <Toolbar className="justify-between">
