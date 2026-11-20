@@ -102,7 +102,12 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   };
   const [searchQuery, setSearchQuery] = useState('');
   const [balanceFilter, setBalanceFilter] = useState<'all' | 'due' | 'cleared'>('all');
+  const [agingFilter, setAgingFilter] = useState<string>('all');
+  const [staffFilter, setStaffFilter] = useState<string>('all');
+  const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
   const [registerPeriod, setRegisterPeriod] = useState<string>('all');
+  const [registerStatusFilter, setRegisterStatusFilter] = useState<string>('all');
+  const [registerStaffFilter, setRegisterStaffFilter] = useState<string>('all');
 
   const [statementFor, setStatementFor] = useState<DebtorRecord | null>(null);
   const [paymentFor, setPaymentFor] = useState<DebtorRecord | null>(null);
@@ -139,17 +144,63 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
 
   const staffName = selectedStaffId ? staffList.find((s) => s.id === selectedStaffId)?.name : null;
 
+  const uniqueStaff = useMemo(() => {
+    const set = new Set<string>();
+    staffList.forEach((s) => {
+      if (s.name) set.add(s.name);
+    });
+    debtors.forEach((d) => {
+      if (d.assignedStaff) set.add(d.assignedStaff);
+    });
+    return Array.from(set).sort();
+  }, [staffList, debtors]);
+
+  const uniqueEntityTypes = useMemo(() => {
+    const set = new Set<string>();
+    debtors.forEach((d) => {
+      if (d.entityType) set.add(d.entityType);
+    });
+    return Array.from(set).sort();
+  }, [debtors]);
+
+  const uniqueBillingUsers = useMemo(() => {
+    const set = new Set<string>();
+    billings.forEach((b) => {
+      if (b.user) set.add(b.user);
+    });
+    return Array.from(set).sort();
+  }, [billings]);
+
   const filteredDebtors = debtors.filter((d) => {
-    if (staffName && d.assignedStaff && d.assignedStaff !== staffName) return false;
-    if (isMonthView && balanceFilter !== 'all') {
-      const m = monthOf(d, activeView);
-      const closing = m ? closingOf(m) : 0;
-      if (balanceFilter === 'due' && closing <= 0) return false;
-      if (balanceFilter === 'cleared' && closing > 0) return false;
+    // 1. Staff Filter
+    const effectiveStaff = staffFilter !== 'all' ? staffFilter : staffName;
+    if (effectiveStaff && d.assignedStaff && d.assignedStaff !== effectiveStaff) return false;
+
+    // 2. Balance Filter (Owing vs Settled)
+    if (balanceFilter !== 'all') {
+      const balance = isMonthView
+        ? (monthOf(d, activeView) ? closingOf(monthOf(d, activeView)!) : 0)
+        : d.currentBalance;
+      if (balanceFilter === 'due' && balance <= 0) return false;
+      if (balanceFilter === 'cleared' && balance > 0) return false;
     }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return [d.clientName, d.assignedStaff, d.phone, d.entityType].some((v) => (v || '').toLowerCase().includes(q));
+
+    // 3. Aging Bucket Filter
+    if (agingFilter !== 'all') {
+      if (d.agingBucket !== agingFilter) return false;
+    }
+
+    // 4. Entity Type Filter
+    if (entityTypeFilter !== 'all') {
+      if (d.entityType !== entityTypeFilter) return false;
+    }
+
+    // 5. Search Query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return [d.clientName, d.assignedStaff, d.phone, d.entityType, d.agingBucket, d.status].some((v) =>
+        (v || '').toLowerCase().includes(q)
+      );
     }
     return true;
   });
@@ -157,9 +208,18 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   const periods = useMemo(() => Array.from(new Set(billings.map((b) => b.period).filter(Boolean) as string[])).sort().reverse(), [billings]);
   const filteredBillings = billings.filter((b) => {
     if (registerPeriod !== 'all' && b.period !== registerPeriod) return false;
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return [b.clientName, b.natureOfService, b.user, b.invoiceNumber].some((v) => (v || '').toLowerCase().includes(q));
+    if (registerStatusFilter !== 'all') {
+      const status = b.billingStatus || 'Billed';
+      if (status !== registerStatusFilter) return false;
+    }
+    if (registerStaffFilter !== 'all' && b.user !== registerStaffFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return [b.clientName, b.natureOfService, b.user, b.invoiceNumber, b.billingStatus].some((v) =>
+        (v || '').toLowerCase().includes(q)
+      );
+    }
+    return true;
   });
 
   const monthTotals = isMonthView
@@ -395,37 +455,144 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
 
           <TableCard
             toolbar={
-              <Toolbar className="justify-between">
-                <SearchInput
-                  placeholder={activeView === 'register' ? 'Client, service, invoice or staff' : 'Client name'}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  wrapperClassName="w-full sm:w-64"
-                  className="h-7 text-xs"
-                />
-                {isMonthView && (
-                  <Segmented
-                    size="sm"
-                    value={balanceFilter}
-                    onChange={setBalanceFilter}
-                    options={[
-                      { value: 'all', label: 'All' },
-                      { value: 'due', label: 'Owing' },
-                      { value: 'cleared', label: 'Settled' },
-                    ]}
+              <div className="space-y-2.5 px-3 py-2.5 border-b border-line">
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
+                  <SearchInput
+                    placeholder={activeView === 'register' ? 'Search client, service, invoice or staff…' : 'Search clients, phone, staff…'}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    wrapperClassName="w-full lg:w-64"
+                    className="h-8 text-xs"
                   />
-                )}
-                {activeView === 'register' && (
-                  <Select value={registerPeriod} onChange={(e) => setRegisterPeriod(e.target.value)} className="h-7 text-xs w-auto">
-                    <option value="all">All months</option>
-                    {periods.map((p) => (
-                      <option key={p} value={p}>
-                        {monthLabel(p)}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </Toolbar>
+
+                  {/* Filter Controls */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {activeView !== 'register' && (
+                      <>
+                        <Segmented
+                          size="sm"
+                          value={balanceFilter}
+                          onChange={setBalanceFilter}
+                          options={[
+                            { value: 'all', label: 'All' },
+                            { value: 'due', label: 'Owing' },
+                            { value: 'cleared', label: 'Settled' },
+                          ]}
+                        />
+
+                        <Select
+                          value={agingFilter}
+                          onChange={(e) => setAgingFilter(e.target.value)}
+                          className="h-8 text-xs w-auto min-w-[105px]"
+                        >
+                          <option value="all">All aging</option>
+                          <option value="Current">Current (&lt; 30d)</option>
+                          <option value="1-30 Days">1–30 Days</option>
+                          <option value="31-60 Days">31–60 Days</option>
+                          <option value="61-90 Days">61–90 Days</option>
+                          <option value="90+ Days">90+ Days (Critical)</option>
+                        </Select>
+
+                        <Select
+                          value={staffFilter}
+                          onChange={(e) => setStaffFilter(e.target.value)}
+                          className="h-8 text-xs w-auto min-w-[105px]"
+                        >
+                          <option value="all">All Staff</option>
+                          {uniqueStaff.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </Select>
+
+                        {uniqueEntityTypes.length > 0 && (
+                          <Select
+                            value={entityTypeFilter}
+                            onChange={(e) => setEntityTypeFilter(e.target.value)}
+                            className="h-8 text-xs w-auto min-w-[105px]"
+                          >
+                            <option value="all">All entities</option>
+                            {uniqueEntityTypes.map((et) => (
+                              <option key={et} value={et}>
+                                {et}
+                              </option>
+                            ))}
+                          </Select>
+                        )}
+                      </>
+                    )}
+
+                    {activeView === 'register' && (
+                      <>
+                        <Select
+                          value={registerPeriod}
+                          onChange={(e) => setRegisterPeriod(e.target.value)}
+                          className="h-8 text-xs w-auto min-w-[110px]"
+                        >
+                          <option value="all">All months</option>
+                          {periods.map((p) => (
+                            <option key={p} value={p}>
+                              {monthLabel(p)}
+                            </option>
+                          ))}
+                        </Select>
+
+                        <Select
+                          value={registerStatusFilter}
+                          onChange={(e) => setRegisterStatusFilter(e.target.value)}
+                          className="h-8 text-xs w-auto min-w-[110px]"
+                        >
+                          <option value="all">All statuses</option>
+                          <option value="Billed">Billed</option>
+                          <option value="Received">Received</option>
+                          <option value="Pending">Pending</option>
+                        </Select>
+
+                        <Select
+                          value={registerStaffFilter}
+                          onChange={(e) => setRegisterStaffFilter(e.target.value)}
+                          className="h-8 text-xs w-auto min-w-[110px]"
+                        >
+                          <option value="all">All Staff</option>
+                          {uniqueBillingUsers.map((u) => (
+                            <option key={u} value={u}>
+                              {u}
+                            </option>
+                          ))}
+                        </Select>
+                      </>
+                    )}
+
+                    {(balanceFilter !== 'all' ||
+                      agingFilter !== 'all' ||
+                      staffFilter !== 'all' ||
+                      entityTypeFilter !== 'all' ||
+                      registerPeriod !== 'all' ||
+                      registerStatusFilter !== 'all' ||
+                      registerStaffFilter !== 'all' ||
+                      searchQuery.trim()) && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setBalanceFilter('all');
+                          setAgingFilter('all');
+                          setStaffFilter('all');
+                          setEntityTypeFilter('all');
+                          setRegisterPeriod('all');
+                          setRegisterStatusFilter('all');
+                          setRegisterStaffFilter('all');
+                          setSearchQuery('');
+                        }}
+                        className="h-8 text-xs text-fg-subtle hover:text-fg"
+                      >
+                        Reset
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
             }
             footer={
               <div className="flex items-center justify-between px-3 h-11 border-t border-line text-xs text-fg-subtle num">
