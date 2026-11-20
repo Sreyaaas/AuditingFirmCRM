@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Download, MessageSquare, Plus, Upload, FileSpreadsheet, AlertTriangle, UserPlus, CalendarPlus, ReceiptText } from 'lucide-react';
+import { Download, MessageSquare, Plus, Upload, FileSpreadsheet, AlertTriangle, UserPlus, CalendarPlus, ReceiptText, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { DebtorRecord, GSTComplianceItem, OfficeBillingEntry, StaffMember, Client, EntityType, DebtorMonth } from '../types/crm';
 import { AppPreferences, FirmProfileSettings } from '../services/firmConfigService';
 import { exportDebtorsAndGSTWorkbook } from '../utils/excelExport';
@@ -63,6 +63,64 @@ const monthStatus = (opening: number, received: number, billed: number): DebtorR
 const amt = (n?: number) => (n ? formatINR(n) : <span className="text-fg-faint">—</span>);
 const signedINR = (n: number) => (n < 0 ? `−${formatINR(Math.abs(n))}` : formatINR(n));
 
+type DebtorSortField = 'sNo' | 'client' | 'opening' | 'received' | 'billed' | 'closing' | 'balance' | 'status';
+type BillingSortField = 'serialNo' | 'date' | 'client' | 'service' | 'fee' | 'oop' | 'invoice' | 'status' | 'user';
+
+const SortHeader = <T extends string>({
+  field,
+  label,
+  align = 'left',
+  currentField,
+  currentDir,
+  onSort,
+  rowSpan,
+  colSpan,
+  className,
+}: {
+  field: T;
+  label: string;
+  align?: 'left' | 'right' | 'center';
+  currentField: T | null;
+  currentDir: 'asc' | 'desc';
+  onSort: (f: T) => void;
+  rowSpan?: number;
+  colSpan?: number;
+  className?: string;
+}) => {
+  const active = currentField === field;
+  return (
+    <th
+      rowSpan={rowSpan}
+      colSpan={colSpan}
+      onClick={() => onSort(field)}
+      className={cn(
+        'cursor-pointer select-none transition-colors hover:text-fg group',
+        align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left',
+        active ? 'text-fg font-semibold' : 'text-fg-subtle',
+        className
+      )}
+    >
+      <div
+        className={cn(
+          'inline-flex items-center gap-1',
+          align === 'right' ? 'justify-end w-full' : align === 'center' ? 'justify-center w-full' : 'justify-start'
+        )}
+      >
+        <span>{label}</span>
+        {active ? (
+          currentDir === 'asc' ? (
+            <ArrowUp className="w-3 h-3 text-accent shrink-0" strokeWidth={2.5} />
+          ) : (
+            <ArrowDown className="w-3 h-3 text-accent shrink-0" strokeWidth={2.5} />
+          )
+        ) : (
+          <ArrowUpDown className="w-3 h-3 text-fg-faint opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+        )}
+      </div>
+    </th>
+  );
+};
+
 export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   debtors,
   billings,
@@ -108,6 +166,29 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   const [registerPeriod, setRegisterPeriod] = useState<string>('all');
   const [registerStatusFilter, setRegisterStatusFilter] = useState<string>('all');
   const [registerStaffFilter, setRegisterStaffFilter] = useState<string>('all');
+
+  const [debtorSortField, setDebtorSortField] = useState<DebtorSortField | null>(null);
+  const [debtorSortDir, setDebtorSortDir] = useState<'asc' | 'desc'>('asc');
+  const [billingSortField, setBillingSortField] = useState<BillingSortField>('date');
+  const [billingSortDir, setBillingSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleDebtorSort = (field: DebtorSortField) => {
+    if (debtorSortField === field) {
+      setDebtorSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setDebtorSortField(field);
+      setDebtorSortDir(['opening', 'received', 'billed', 'closing', 'balance'].includes(field) ? 'desc' : 'asc');
+    }
+  };
+
+  const handleBillingSort = (field: BillingSortField) => {
+    if (billingSortField === field) {
+      setBillingSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setBillingSortField(field);
+      setBillingSortDir(['date', 'fee', 'oop'].includes(field) ? 'desc' : 'asc');
+    }
+  };
 
   const [statementFor, setStatementFor] = useState<DebtorRecord | null>(null);
   const [paymentFor, setPaymentFor] = useState<DebtorRecord | null>(null);
@@ -243,6 +324,70 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   const totalOutstanding = filteredDebtors.reduce((a, d) => a + d.currentBalance, 0);
   const totalFees = filteredBillings.reduce((a, b) => a + (b.professionalIncome || 0), 0);
   const totalOOP = filteredBillings.reduce((a, b) => a + (b.oopExpenses || 0), 0);
+
+  const sortedDebtors = useMemo(() => {
+    if (!debtorSortField) return filteredDebtors;
+
+    return [...filteredDebtors].sort((a, b) => {
+      let cmp = 0;
+      if (debtorSortField === 'sNo') {
+        cmp = (a.sNo || 0) - (b.sNo || 0);
+      } else if (debtorSortField === 'client') {
+        cmp = a.clientName.localeCompare(b.clientName, undefined, { sensitivity: 'base' });
+      } else if (debtorSortField === 'balance') {
+        cmp = (a.currentBalance || 0) - (b.currentBalance || 0);
+      } else if (debtorSortField === 'status') {
+        cmp = (a.status || '').localeCompare(b.status || '');
+      } else if (debtorSortField === 'opening') {
+        const aVal = isMonthView ? (monthOf(a, activeView)?.opening || 0) : (a.months[0]?.opening || 0);
+        const bVal = isMonthView ? (monthOf(b, activeView)?.opening || 0) : (b.months[0]?.opening || 0);
+        cmp = aVal - bVal;
+      } else if (debtorSortField === 'received') {
+        const aVal = monthOf(a, activeView)?.received || 0;
+        const bVal = monthOf(b, activeView)?.received || 0;
+        cmp = aVal - bVal;
+      } else if (debtorSortField === 'billed') {
+        const aVal = monthOf(a, activeView)?.billed || 0;
+        const bVal = monthOf(b, activeView)?.billed || 0;
+        cmp = aVal - bVal;
+      } else if (debtorSortField === 'closing') {
+        const aMonth = monthOf(a, activeView);
+        const bMonth = monthOf(b, activeView);
+        const aVal = aMonth ? closingOf(aMonth) : 0;
+        const bVal = bMonth ? closingOf(bMonth) : 0;
+        cmp = aVal - bVal;
+      }
+      return debtorSortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredDebtors, debtorSortField, debtorSortDir, isMonthView, activeView]);
+
+  const sortedBillings = useMemo(() => {
+    return [...filteredBillings].sort((a, b) => {
+      let cmp = 0;
+      if (billingSortField === 'serialNo') {
+        cmp = (a.serialNo || 0) - (b.serialNo || 0);
+      } else if (billingSortField === 'date') {
+        const aTime = a.date ? new Date(a.date).getTime() : 0;
+        const bTime = b.date ? new Date(b.date).getTime() : 0;
+        cmp = aTime - bTime;
+      } else if (billingSortField === 'client') {
+        cmp = a.clientName.localeCompare(b.clientName, undefined, { sensitivity: 'base' });
+      } else if (billingSortField === 'service') {
+        cmp = (a.natureOfService || '').localeCompare(b.natureOfService || '');
+      } else if (billingSortField === 'fee') {
+        cmp = (a.professionalIncome || 0) - (b.professionalIncome || 0);
+      } else if (billingSortField === 'oop') {
+        cmp = (a.oopExpenses || 0) - (b.oopExpenses || 0);
+      } else if (billingSortField === 'invoice') {
+        cmp = (a.invoiceNumber || '').localeCompare(b.invoiceNumber || '');
+      } else if (billingSortField === 'status') {
+        cmp = (a.billingStatus || '').localeCompare(b.billingStatus || '');
+      } else if (billingSortField === 'user') {
+        cmp = (a.user || '').localeCompare(b.user || '');
+      }
+      return billingSortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredBillings, billingSortField, billingSortDir]);
 
   // ----------------------------------------------------------- actions
   const openPayment = (d: DebtorRecord) => {
@@ -571,6 +716,9 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
                       registerPeriod !== 'all' ||
                       registerStatusFilter !== 'all' ||
                       registerStaffFilter !== 'all' ||
+                      debtorSortField !== null ||
+                      billingSortField !== 'date' ||
+                      billingSortDir !== 'desc' ||
                       searchQuery.trim()) && (
                       <Button
                         size="sm"
@@ -583,6 +731,10 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
                           setRegisterPeriod('all');
                           setRegisterStatusFilter('all');
                           setRegisterStaffFilter('all');
+                          setDebtorSortField(null);
+                          setDebtorSortDir('asc');
+                          setBillingSortField('date');
+                          setBillingSortDir('desc');
                           setSearchQuery('');
                         }}
                         className="h-8 text-xs text-fg-subtle hover:text-fg"
@@ -620,25 +772,25 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th className="w-10 text-right">#</th>
-                    <th className="min-w-[220px]">Client</th>
-                    <th className="text-right">Opening</th>
-                    <th className="text-right">Received</th>
-                    <th className="text-right">Billed</th>
-                    <th className="text-right">Closing</th>
-                    <th>Status</th>
+                    <SortHeader field="sNo" label="#" align="right" currentField={debtorSortField} currentDir={debtorSortDir} onSort={handleDebtorSort} className="w-10" />
+                    <SortHeader field="client" label="Client" align="left" currentField={debtorSortField} currentDir={debtorSortDir} onSort={handleDebtorSort} className="min-w-[220px]" />
+                    <SortHeader field="opening" label="Opening" align="right" currentField={debtorSortField} currentDir={debtorSortDir} onSort={handleDebtorSort} />
+                    <SortHeader field="received" label="Received" align="right" currentField={debtorSortField} currentDir={debtorSortDir} onSort={handleDebtorSort} />
+                    <SortHeader field="billed" label="Billed" align="right" currentField={debtorSortField} currentDir={debtorSortDir} onSort={handleDebtorSort} />
+                    <SortHeader field="closing" label="Closing" align="right" currentField={debtorSortField} currentDir={debtorSortDir} onSort={handleDebtorSort} />
+                    <SortHeader field="status" label="Status" align="left" currentField={debtorSortField} currentDir={debtorSortDir} onSort={handleDebtorSort} />
                     <th className="text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredDebtors.length === 0 && (
+                  {sortedDebtors.length === 0 && (
                     <tr>
                       <td colSpan={8} className="!h-auto">
                         <EmptyState title="No accounts match these filters" />
                       </td>
                     </tr>
                   )}
-                  {filteredDebtors.map((d) => {
+                  {sortedDebtors.map((d) => {
                     const m = monthOf(d, activeView) || { month: activeView, opening: 0, received: 0, billed: 0 };
                     const closing = closingOf(m);
                     const isLatest = activeView === latestMonth;
@@ -711,15 +863,15 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
               <table className="data-table text-xs num [&_td]:!h-10 [&_td]:!px-2.5 [&_th]:!px-2.5">
                 <thead>
                   <tr>
-                    <th rowSpan={2} className="w-8 text-right align-bottom">#</th>
-                    <th rowSpan={2} className="min-w-[180px] align-bottom">Client</th>
-                    <th rowSpan={2} className="text-right align-bottom">Opening</th>
+                    <SortHeader field="sNo" label="#" align="right" currentField={debtorSortField} currentDir={debtorSortDir} onSort={handleDebtorSort} rowSpan={2} className="w-8 align-bottom" />
+                    <SortHeader field="client" label="Client" align="left" currentField={debtorSortField} currentDir={debtorSortDir} onSort={handleDebtorSort} rowSpan={2} className="min-w-[180px] align-bottom" />
+                    <SortHeader field="opening" label="Opening" align="right" currentField={debtorSortField} currentDir={debtorSortDir} onSort={handleDebtorSort} rowSpan={2} className="align-bottom" />
                     {months.map((m) => (
                       <th key={m} colSpan={2} className="text-center !border-l !border-line">
                         {monthLabel(m, true)}
                       </th>
                     ))}
-                    <th rowSpan={2} className="text-right align-bottom !border-l !border-line">Balance</th>
+                    <SortHeader field="balance" label="Balance" align="right" currentField={debtorSortField} currentDir={debtorSortDir} onSort={handleDebtorSort} rowSpan={2} className="align-bottom !border-l !border-line" />
                   </tr>
                   <tr>
                     {months.map((m) => (
@@ -731,7 +883,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredDebtors.map((d) => (
+                  {sortedDebtors.map((d) => (
                     <tr key={d.id} className="cursor-pointer" onClick={() => setStatementFor(d)}>
                       <td className="text-right text-fg-faint">{d.sNo}</td>
                       <td className="font-medium text-fg text-sm truncate max-w-[220px]">{d.clientName}</td>
@@ -770,27 +922,27 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th className="w-10 text-right">#</th>
-                    <th>Date</th>
-                    <th>Client</th>
-                    <th>Service</th>
+                    <SortHeader field="serialNo" label="#" align="right" currentField={billingSortField} currentDir={billingSortDir} onSort={handleBillingSort} className="w-10" />
+                    <SortHeader field="date" label="Date" align="left" currentField={billingSortField} currentDir={billingSortDir} onSort={handleBillingSort} />
+                    <SortHeader field="client" label="Client" align="left" currentField={billingSortField} currentDir={billingSortDir} onSort={handleBillingSort} />
+                    <SortHeader field="service" label="Service" align="left" currentField={billingSortField} currentDir={billingSortDir} onSort={handleBillingSort} />
                     <th>For</th>
-                    <th className="text-right">Fee</th>
-                    <th className="text-right">OOP</th>
-                    <th>Invoice</th>
-                    <th>Status</th>
-                    <th>Staff</th>
+                    <SortHeader field="fee" label="Fee" align="right" currentField={billingSortField} currentDir={billingSortDir} onSort={handleBillingSort} />
+                    <SortHeader field="oop" label="OOP" align="right" currentField={billingSortField} currentDir={billingSortDir} onSort={handleBillingSort} />
+                    <SortHeader field="invoice" label="Invoice" align="left" currentField={billingSortField} currentDir={billingSortDir} onSort={handleBillingSort} />
+                    <SortHeader field="status" label="Status" align="left" currentField={billingSortField} currentDir={billingSortDir} onSort={handleBillingSort} />
+                    <SortHeader field="user" label="Staff" align="left" currentField={billingSortField} currentDir={billingSortDir} onSort={handleBillingSort} />
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredBillings.length === 0 && (
+                  {sortedBillings.length === 0 && (
                     <tr>
                       <td colSpan={10} className="!h-auto">
                         <EmptyState title="No billing entries found" />
                       </td>
                     </tr>
                   )}
-                  {filteredBillings.map((b, i) => (
+                  {sortedBillings.map((b, i) => (
                     <tr key={b.id || `${b.period}-${b.serialNo}-${i}`}>
                       <td className="num text-right text-fg-faint text-xs">{b.serialNo}</td>
                       <td className="num text-fg-muted whitespace-nowrap">{b.date ? formatDate(b.date) : <span className="text-fg-faint">—</span>}</td>
