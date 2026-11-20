@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MessageSquare, ArrowUpRight, Plus, FileCheck, Trash2 } from 'lucide-react';
 import { ITRFiling, StaffMember, ITRStatus, EntityType, Client } from '../types/crm';
-import { Avatar, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Label, Metric, MetricGrid, Modal, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, cn, formatINR, nameInitials } from './ui';
+import { Avatar, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Label, Metric, MetricGrid, Modal, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Tabs, Toolbar, cn, formatINR, nameInitials } from './ui';
 
 interface ITRFilingsManagerProps {
   itrFilings: ITRFiling[];
@@ -447,59 +447,32 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
         toolbar={
           <>
             {/* Tier 1: Pillar Tabs */}
-            <div className="px-3 py-2 border-b border-line bg-subtle/50 overflow-x-auto scrollbar-none flex items-center gap-1.5 flex-nowrap">
-              {ANNUAL_PILLARS.map((pillar) => {
-                const isActive = activePillar === pillar;
-                const count = countForPillar(pillar);
-                return (
-                  <button
-                    key={pillar}
-                    type="button"
-                    onClick={() => setActivePillar(pillar)}
-                    className={cn(
-                      'h-7 px-3 inline-flex items-center gap-1.5 text-xs font-medium rounded-[6px] transition-all whitespace-nowrap',
-                      isActive
-                        ? 'bg-surface text-fg shadow-xs ring-1 ring-line font-semibold'
-                        : 'text-fg-subtle hover:text-fg hover:bg-hover'
-                    )}
-                  >
-                    <span>{pillar}</span>
-                    <span className={cn('num text-2xs', isActive ? 'text-fg-muted font-normal' : 'text-fg-faint')}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
+            <div className="px-3 border-b border-line bg-subtle/30 overflow-x-auto scrollbar-none">
+              <Tabs
+                className="border-b-0 -mb-px"
+                value={activePillar}
+                onChange={(pillar: string) => setActivePillar(pillar)}
+                options={ANNUAL_PILLARS.map((pillar) => ({
+                  value: pillar,
+                  label: pillar,
+                  count: countForPillar(pillar),
+                }))}
+              />
             </div>
 
             {/* Tier 2: Sub-Service Tabs (when a specific pillar is selected) */}
             {activePillar !== 'All' && PILLAR_SUB_TABS[activePillar] && (
-              <div className="px-3 py-1.5 border-b border-line bg-surface overflow-x-auto scrollbar-none flex items-center gap-1 flex-nowrap animate-fade-in">
-                <span className="text-3xs uppercase tracking-wider font-semibold text-fg-subtle mr-1.5 shrink-0">
-                  Services:
-                </span>
-                {PILLAR_SUB_TABS[activePillar].map((subTab) => {
-                  const isActive = activeSub === subTab;
-                  const count = countForSubTab(subTab);
-                  return (
-                    <button
-                      key={subTab}
-                      type="button"
-                      onClick={() => setActiveSubTab(subTab)}
-                      className={cn(
-                        'h-6 px-2.5 inline-flex items-center gap-1.5 text-xs font-medium rounded-[4px] transition-all whitespace-nowrap',
-                        isActive
-                          ? 'bg-ink text-ink-fg font-medium shadow-2xs'
-                          : 'text-fg-muted hover:text-fg hover:bg-subtle'
-                      )}
-                    >
-                      <span>{subTab}</span>
-                      <span className={cn('num text-3xs', isActive ? 'text-ink-fg/80' : 'text-fg-faint')}>
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
+              <div className="px-3 border-b border-line overflow-x-auto scrollbar-none animate-fade-in">
+                <Tabs
+                  className="border-b-0 -mb-px"
+                  value={activeSub}
+                  onChange={(subTab: string) => setActiveSubTab(subTab)}
+                  options={PILLAR_SUB_TABS[activePillar].map((subTab) => ({
+                    value: subTab,
+                    label: subTab,
+                    count: countForSubTab(subTab),
+                  }))}
+                />
               </div>
             )}
             <Toolbar className="justify-between">
