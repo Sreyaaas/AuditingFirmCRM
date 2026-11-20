@@ -232,3 +232,4 @@ Dropdown lists remain in `practice_configs`.
   - Clicking any flyout service item navigates directly to that tab and activates the matching filtered service tab without forcibly opening the modal.
   - Added full Annual Compliance structure matching Shameer & Associates taxonomy with two-tier tabs (Tier 1: Income Tax Return, Audit, ROC Compliance; Tier 2: Sub-services such as Individual, Business, Tax Audit, Company, Statutory Audit, GSTR-9, GSTR-9C, AOC-4, DPT-3) with synchronized counts and real-time status filtering.
   - Streamlined task creation to a single clean `+ New Task` button in the compliance page action toolbar, eliminating duplicate ghost buttons and hiding redundant top-header buttons on compliance modules.
+  - Added contextual category locking (`lockCategory`) to `NewTaskModal` so section-specific `New Task` buttons lock the category and display tailored titles/descriptions while the global header button retains full category tab switching.

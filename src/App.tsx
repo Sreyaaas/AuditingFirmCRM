@@ -170,14 +170,16 @@ export function App() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [initialTaskCategory, setInitialTaskCategory] = useState<TaskCategory>('monthly');
   const [initialTaskService, setInitialTaskService] = useState<string | undefined>(undefined);
+  const [isCategoryLocked, setIsCategoryLocked] = useState(false);
   const [activeMonthlyServiceTab, setActiveMonthlyServiceTab] = useState<string>('All');
   const [activeQuarterlyServiceTab, setActiveQuarterlyServiceTab] = useState<string>('All');
   const [activeAnnualPillarTab, setActiveAnnualPillarTab] = useState<string>('All');
   const [activeAnnualSubTab, setActiveAnnualSubTab] = useState<string>('All');
 
-  const handleOpenNewTaskWithService = (category: TaskCategory, service?: string) => {
+  const handleOpenNewTaskWithService = (category: TaskCategory, service?: string, lock = true) => {
     setInitialTaskCategory(category);
     setInitialTaskService(service);
+    setIsCategoryLocked(lock);
     setIsNewTaskOpen(true);
   };
 
@@ -897,6 +899,7 @@ export function App() {
           onOpenNewTask={() => {
             setInitialTaskCategory('monthly');
             setInitialTaskService(undefined);
+            setIsCategoryLocked(false);
             setIsNewTaskOpen(true);
           }}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
@@ -982,7 +985,7 @@ export function App() {
                 onDelete={isAdmin ? handleDeleteTask : undefined}
                 onOpenWhatsApp={(task) => openWhatsApp({ task })}
                 onSelectClient={handleSelectClient}
-                onAddNewTask={(service) => handleOpenNewTaskWithService('monthly', service)}
+                onAddNewTask={(service) => handleOpenNewTaskWithService('monthly', service, true)}
               />
             )}
 
@@ -1004,7 +1007,7 @@ export function App() {
                 onDelete={isAdmin ? handleDeleteTask : undefined}
                 onOpenWhatsApp={(task) => openWhatsApp({ task })}
                 onSelectClient={handleSelectClient}
-                onAddNewTask={(service) => handleOpenNewTaskWithService('quarterly', service)}
+                onAddNewTask={(service) => handleOpenNewTaskWithService('quarterly', service, true)}
               />
             )}
 
@@ -1018,11 +1021,7 @@ export function App() {
                 onDelete={isAdmin ? handleDeleteTask : undefined}
                 onOpenWhatsApp={(task) => openWhatsApp({ task })}
                 onSelectClient={handleSelectClient}
-                onNewAssignment={() => {
-                  setInitialTaskCategory('other');
-                  setInitialTaskService(undefined);
-                  setIsNewTaskOpen(true);
-                }}
+                onNewAssignment={() => handleOpenNewTaskWithService('other', undefined, true)}
               />
             )}
 
@@ -1043,7 +1042,7 @@ export function App() {
                 onSelectClient={handleSelectClient}
                 onUpdateITRStatus={handleUpdateITRStatus}
                 onAddITR={handleAddITR}
-                onAddNewTask={(service) => handleOpenNewTaskWithService('annual', service)}
+                onAddNewTask={(service) => handleOpenNewTaskWithService('annual', service, true)}
                 onDelete={isAdmin ? handleDeleteITR : undefined}
               />
             )}
@@ -1260,11 +1259,13 @@ export function App() {
         onClose={() => {
           setIsNewTaskOpen(false);
           setInitialTaskService(undefined);
+          setIsCategoryLocked(false);
         }}
         clients={activeClients}
         staffList={staffList}
         initialCategory={initialTaskCategory}
         initialService={initialTaskService}
+        lockCategory={isCategoryLocked}
         filingTypes={practiceConfigs.filing_types}
         onAddTask={handleAddTask}
       />

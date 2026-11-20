@@ -11,6 +11,7 @@ interface NewTaskModalProps {
   filingTypes?: string[];
   initialCategory?: TaskCategory;
   initialService?: string;
+  lockCategory?: boolean;
   onAddTask: (task: MonthlyTask) => void;
 }
 
@@ -85,6 +86,7 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
   clients,
   initialCategory = 'monthly',
   initialService,
+  lockCategory = false,
   onAddTask,
 }) => {
   const today = new Date();
@@ -103,6 +105,22 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
   const [notes, setNotes] = useState('');
   const [estimatedFee, setEstimatedFee] = useState<number | ''>('');
   const [status, setStatus] = useState<FilingStatus>('In Progress');
+
+  const getModalTitle = () => {
+    if (category === 'other') return 'New Client Assignment';
+    if (category === 'quarterly') return 'New Quarterly Compliance Task';
+    if (category === 'annual') return 'New Annual Compliance Task';
+    if (category === 'monthly') return 'New Monthly Compliance Task';
+    return 'New Compliance Task';
+  };
+
+  const getModalDescription = () => {
+    if (category === 'other') return 'Create specialized assignments, deeds, or secretarial engagements.';
+    if (category === 'quarterly') return 'Create quarterly GST (QRMP/CMP-08) and TDS return tasks.';
+    if (category === 'annual') return 'Create annual filings, tax/statutory audits, or ROC compliance.';
+    if (category === 'monthly') return 'Create monthly GST, TDS, payroll returns, or bookkeeping tasks.';
+    return 'Create tasks and assignments for the firm.';
+  };
 
   const getDefaultDueDate = (cat: TaskCategory, service: string) => {
     const y = today.getFullYear();
@@ -207,15 +225,17 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
       onClose={onClose}
       size="lg"
       icon={category === 'other' ? Briefcase : ListChecks}
-      title={category === 'other' ? 'New client assignment' : 'New compliance task'}
-      description="Create tasks and assignments for the firm."
+      title={getModalTitle()}
+      description={getModalDescription()}
       subheader={
-        <Tabs
-          className="border-b-0 -mb-px"
-          value={category}
-          onChange={handleCategoryChange}
-          options={CATEGORY_OPTIONS}
-        />
+        !lockCategory ? (
+          <Tabs
+            className="border-b-0 -mb-px"
+            value={category}
+            onChange={handleCategoryChange}
+            options={CATEGORY_OPTIONS}
+          />
+        ) : undefined
       }
       footer={
         <>
