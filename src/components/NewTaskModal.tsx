@@ -10,6 +10,7 @@ interface NewTaskModalProps {
   clients: Client[];
   filingTypes?: string[];
   initialCategory?: TaskCategory;
+  initialService?: string;
   onAddTask: (task: MonthlyTask) => void;
 }
 
@@ -63,16 +64,32 @@ const FINANCIAL_YEARS = [
   '2021-22',
 ];
 
+const findMatchingService = (cat: TaskCategory, service?: string): string => {
+  const list = SERVICES_BY_CATEGORY[cat] || [];
+  if (!service) return list[0] || '';
+  const sLower = service.toLowerCase().trim();
+  const exact = list.find((s) => s.toLowerCase() === sLower);
+  if (exact) return exact;
+  const partial = list.find(
+    (s) => s.toLowerCase().includes(sLower) || sLower.includes(s.toLowerCase())
+  );
+  if (partial) return partial;
+  return service;
+};
+
 const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
   isOpen,
   onClose,
   staffList,
   clients,
   initialCategory = 'monthly',
+  initialService,
   onAddTask,
 }) => {
   const today = new Date();
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const resolvedInitialService = findMatchingService(initialCategory, initialService);
 
   const [category, setCategory] = useState<TaskCategory>(initialCategory);
   const [clientId, setClientId] = useState('');
@@ -80,7 +97,7 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
   const [phone, setPhone] = useState('');
   const [assignedStaffId, setAssignedStaffId] = useState(staffList[0]?.id || '');
   const [financialYear, setFinancialYear] = useState('2026-27 (Current)');
-  const [filingType, setFilingType] = useState<string>(SERVICES_BY_CATEGORY[initialCategory][0] || 'GST (GSTR-1 / 3B)');
+  const [filingType, setFilingType] = useState<string>(resolvedInitialService);
   const [assignmentTitle, setAssignmentTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [estimatedFee, setEstimatedFee] = useState<number | ''>('');
@@ -116,7 +133,7 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
   };
 
   const [period, setPeriod] = useState(getDefaultPeriod(initialCategory));
-  const [dueDate, setDueDate] = useState(getDefaultDueDate(initialCategory, SERVICES_BY_CATEGORY[initialCategory][0] || ''));
+  const [dueDate, setDueDate] = useState(() => getDefaultDueDate(initialCategory, resolvedInitialService));
 
   const handleCategoryChange = (newCat: TaskCategory) => {
     setCategory(newCat);
@@ -258,7 +275,10 @@ const NewTaskModalForm: React.FC<NewTaskModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Service / Return" required>
               <Select value={filingType} onChange={(e) => handleServiceChange(e.target.value)}>
-                {SERVICES_BY_CATEGORY[category].map((type) => (
+                {!SERVICES_BY_CATEGORY[category]?.includes(filingType) && filingType && (
+                  <option value={filingType}>{filingType}</option>
+                )}
+                {SERVICES_BY_CATEGORY[category]?.map((type) => (
                   <option key={type} value={type}>
                     {type}
                   </option>

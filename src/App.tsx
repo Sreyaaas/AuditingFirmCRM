@@ -169,6 +169,13 @@ export function App() {
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [initialTaskCategory, setInitialTaskCategory] = useState<TaskCategory>('monthly');
+  const [initialTaskService, setInitialTaskService] = useState<string | undefined>(undefined);
+
+  const handleOpenNewTaskWithService = (category: TaskCategory, service?: string) => {
+    setInitialTaskCategory(category);
+    setInitialTaskService(service);
+    setIsNewTaskOpen(true);
+  };
 
   useEffect(() => {
     if (LOCAL_MODE) return;
@@ -808,6 +815,7 @@ export function App() {
         unassignedTicketsCount={tickets.filter((t) => t.status === 'Unassigned').length}
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        onOpenNewTaskWithService={handleOpenNewTaskWithService}
       />
 
       <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden">
@@ -826,6 +834,7 @@ export function App() {
           onToggleColourAccents={setColourAccents}
           onOpenNewTask={() => {
             setInitialTaskCategory('monthly');
+            setInitialTaskService(undefined);
             setIsNewTaskOpen(true);
           }}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
@@ -900,14 +909,16 @@ export function App() {
                 staffList={staffList}
                 selectedStaffId={selectedStaffId}
                 section="monthly"
-                title="Monthly Work"
+                title="Monthly Compliance"
                 description={`${monthlyWorkTasks.length} tasks · Monthly GST, TDS and payroll returns`}
+                serviceTabs={['All', 'GST', 'TDS Payment', 'PF Filing', 'ESI Filing', 'Accounting and Bookkeeping', 'Monthly MIS Report']}
                 filingTypes={practiceConfigs.filing_types}
                 dueSoonDays={preferences.dueSoonDays}
                 onUpdateStatus={handleUpdateMonthlyStatus}
                 onDelete={isAdmin ? handleDeleteTask : undefined}
                 onOpenWhatsApp={(task) => openWhatsApp({ task })}
                 onSelectClient={handleSelectClient}
+                onAddNewTask={(service) => handleOpenNewTaskWithService('monthly', service)}
               />
             )}
 
@@ -920,12 +931,14 @@ export function App() {
                 title="Quarterly Compliance"
                 description={`${quarterlyTasks.length} tasks · Quarterly GST (QRMP/CMP-08) and TDS returns`}
                 periodOptions={['Q1 (Apr-Jun)', 'Q2 (Jul-Sep)', 'Q3 (Oct-Dec)', 'Q4 (Jan-Mar)']}
+                serviceTabs={['All', 'GST (QRMP / CMP-08)', 'TDS (24Q / 26Q / 27Q)']}
                 filingTypes={['GST (QRMP / CMP-08)', 'TDS Return (24Q - Salary)', 'TDS Return (26Q - Non-Salary)', 'TDS Return (27Q)', 'CMP-08']}
                 dueSoonDays={preferences.dueSoonDays}
                 onUpdateStatus={handleUpdateMonthlyStatus}
                 onDelete={isAdmin ? handleDeleteTask : undefined}
                 onOpenWhatsApp={(task) => openWhatsApp({ task })}
                 onSelectClient={handleSelectClient}
+                onAddNewTask={(service) => handleOpenNewTaskWithService('quarterly', service)}
               />
             )}
 
@@ -941,6 +954,7 @@ export function App() {
                 onSelectClient={handleSelectClient}
                 onNewAssignment={() => {
                   setInitialTaskCategory('other');
+                  setInitialTaskService(undefined);
                   setIsNewTaskOpen(true);
                 }}
               />
@@ -948,16 +962,19 @@ export function App() {
 
             {activeTab === 'itr' && (
               <ITRFilingsManager
+                title="Annual Compliance"
                 itrFilings={itrFilings}
                 staffList={staffList}
                 clients={activeClients}
                 selectedStaffId={selectedStaffId}
                 assessmentYear={`AY ${preferences.financialYear}`}
                 dueSoonDays={preferences.itrDueSoonDays}
+                serviceTabs={['All', 'Income Tax Return', 'Audit', 'ROC Compliance']}
                 onOpenWhatsApp={(itr) => openWhatsApp({ itr })}
                 onSelectClient={handleSelectClient}
                 onUpdateITRStatus={handleUpdateITRStatus}
                 onAddITR={handleAddITR}
+                onAddNewTask={(service) => handleOpenNewTaskWithService('annual', service)}
                 onDelete={isAdmin ? handleDeleteITR : undefined}
               />
             )}
@@ -1171,10 +1188,14 @@ export function App() {
 
       <NewTaskModal
         isOpen={isNewTaskOpen}
-        onClose={() => setIsNewTaskOpen(false)}
+        onClose={() => {
+          setIsNewTaskOpen(false);
+          setInitialTaskService(undefined);
+        }}
         clients={activeClients}
         staffList={staffList}
         initialCategory={initialTaskCategory}
+        initialService={initialTaskService}
         filingTypes={practiceConfigs.filing_types}
         onAddTask={handleAddTask}
       />

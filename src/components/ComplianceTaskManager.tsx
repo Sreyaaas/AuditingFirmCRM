@@ -17,6 +17,7 @@ interface ComplianceTaskManagerProps {
   staffList: StaffMember[];
   selectedStaffId: string | null;
   filingTypes?: string[];
+  serviceTabs?: string[];
   section?: SectionId;
   title?: string;
   description?: string;
@@ -28,6 +29,7 @@ interface ComplianceTaskManagerProps {
   dueSoonDays?: number;
   onOpenWhatsApp: (task: MonthlyTask) => void;
   onSelectClient: (clientId: string) => void;
+  onAddNewTask?: (service?: string) => void;
 }
 
 const ALL_STATUSES: FilingStatus[] = [
@@ -43,6 +45,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   staffList,
   selectedStaffId,
   filingTypes = ['GSTR-1 (Sales)', 'GSTR-3B (Summary)', 'Statutory Audit', 'TDS Payment', 'PF & ESI', 'CMP-08', 'IFF'],
+  serviceTabs,
   section = 'monthly',
   title = 'Monthly Work',
   description,
@@ -52,8 +55,10 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   onOpenWhatsApp,
   onSelectClient,
   onDelete,
+  onAddNewTask,
 }) => {
   const [confirmDelete, setConfirmDelete] = useState<MonthlyTask | null>(null);
+  const [activeServiceTab, setActiveServiceTab] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [filingTypeFilter, setFilingTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -78,11 +83,39 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
     if (idx < periods.length - 1) setSelectedPeriod(periods[idx + 1]);
   };
 
+  const matchService = (filingType: string, tab: string) => {
+    if (!tab || tab === 'All') return true;
+    if (!filingType) return false;
+    const f = filingType.toLowerCase();
+    const s = tab.toLowerCase();
+    if (f === s) return true;
+    if (s === 'gst' || s.startsWith('gst')) {
+      return f.includes('gst') || f.includes('gstr') || f.includes('cmp-08') || f.includes('iff') || f.includes('qrmp');
+    }
+    if (s.includes('tds')) return f.includes('tds') || f.includes('24q') || f.includes('26q') || f.includes('27q');
+    if (s.includes('pf')) return f.includes('pf') || f.includes('provident');
+    if (s.includes('esi')) return f.includes('esi') || f.includes('insurance');
+    if (s.includes('accounting') || s.includes('bookkeeping')) return f.includes('account') || f.includes('bookkeeping');
+    if (s.includes('mis')) return f.includes('mis');
+    if (s.includes('roc')) return f.includes('roc') || f.includes('aoc') || f.includes('mgt') || f.includes('dpt');
+    if (s.includes('audit')) return f.includes('audit');
+    if (s.includes('itr') || s.includes('income tax')) return f.includes('itr') || f.includes('income tax');
+    return f.includes(s) || s.includes(f);
+  };
+
   // Filter tasks
   const effectiveStaffFilter = selectedStaffId || (staffFilterState !== 'all' ? staffFilterState : null);
 
+  const countForService = (tab: string) => {
+    return tasks.filter((t) => {
+      if (effectiveStaffFilter && t.assignedStaffId !== effectiveStaffFilter) return false;
+      return matchService(t.filingType, tab);
+    }).length;
+  };
+
   const filteredTasks = tasks.filter((task) => {
     if (effectiveStaffFilter && task.assignedStaffId !== effectiveStaffFilter) return false;
+    if (activeServiceTab !== 'All' && !matchService(task.filingType, activeServiceTab)) return false;
     if (statusFilter !== 'all' && task.status !== statusFilter) return false;
     if (filingTypeFilter !== 'all') {
       const fNorm = filingTypeFilter.toLowerCase();
@@ -109,10 +142,11 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
 
   const getStaff = (id: string) => staffList.find((s) => s.id === id);
 
-  // Tab counts
+  // Tab counts dynamically computed based on activeServiceTab
   const countForStatus = (status: string) => {
     return tasks.filter((t) => {
       if (effectiveStaffFilter && t.assignedStaffId !== effectiveStaffFilter) return false;
+      if (activeServiceTab !== 'All' && !matchService(t.filingType, activeServiceTab)) return false;
       if (status === 'all') return true;
       return t.status === status;
     }).length;
@@ -207,7 +241,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
       <PageHeader
         section={section}
         title={title}
-        description={description || `${tasks.length} tasks · Compliance & filing workflow`}
+        description={description || `${filteredTasks.length} tasks · Compliance & filing workflow`}
         actions={
           <>
             <div className="flex items-center h-8 rounded-md border border-line bg-surface shadow-xs">
@@ -232,6 +266,15 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                 ))}
               </Select>
             )}
+            {onAddNewTask && (
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => onAddNewTask(activeServiceTab !== 'All' ? activeServiceTab : undefined)}
+              >
+                + Add {activeServiceTab !== 'All' ? activeServiceTab : ''} Task
+              </Button>
+            )}
           </>
         }
       />
@@ -239,6 +282,47 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
       <TableCard
         toolbar={
           <>
+            {serviceTabs && serviceTabs.length > 0 && (
+              <div className="px-3 py-2 border-b border-line bg-subtle/40 overflow-x-auto scrollbar-none flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5 flex-nowrap">
+                  {serviceTabs.map((tab) => {
+                    const isActive = activeServiceTab === tab;
+                    const count = countForService(tab);
+                    return (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => {
+                          setActiveServiceTab(tab);
+                          setCurrentPage(1);
+                        }}
+                        className={cn(
+                          'h-7 px-3 inline-flex items-center gap-1.5 text-xs font-medium rounded-[6px] transition-all whitespace-nowrap',
+                          isActive
+                            ? 'bg-surface text-fg shadow-xs ring-1 ring-line font-semibold'
+                            : 'text-fg-subtle hover:text-fg hover:bg-hover'
+                        )}
+                      >
+                        <span>{tab}</span>
+                        <span className={cn('num text-2xs', isActive ? 'text-fg-muted font-normal' : 'text-fg-faint')}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {onAddNewTask && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-xs h-7 text-accent hover:text-accent-hover"
+                    onClick={() => onAddNewTask(activeServiceTab !== 'All' ? activeServiceTab : undefined)}
+                  >
+                    + Add {activeServiceTab !== 'All' ? activeServiceTab : ''} Task
+                  </Button>
+                )}
+              </div>
+            )}
             <div className="px-3 pt-1 flex flex-col lg:flex-row lg:items-end justify-between gap-2 border-b border-line">
               <Tabs
                 className="border-b-0 -mb-px"

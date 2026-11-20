@@ -25,9 +25,9 @@ interface HeaderProps {
 const TAB_TITLES: Record<string, string> = {
   dashboard: 'Overview',
   'gst-tracker': 'Deadlines',
-  monthly: 'Monthly Work',
-  quarterly: 'Quarterly',
-  itr: 'Annual & ITR',
+  monthly: 'Monthly Compliance',
+  quarterly: 'Quarterly Compliance',
+  itr: 'Annual Compliance',
   assignments: 'Other Assignments',
   invoices: 'Invoices',
   clients: 'Clients',

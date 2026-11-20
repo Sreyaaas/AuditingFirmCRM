@@ -8,10 +8,13 @@ interface ITRFilingsManagerProps {
   staffList: StaffMember[];
   clients?: Client[];
   selectedStaffId: string | null;
+  title?: string;
+  serviceTabs?: string[];
   onOpenWhatsApp: (itr: ITRFiling) => void;
   onSelectClient: (clientId: string) => void;
   onUpdateITRStatus: (id: string, newStatus: ITRStatus, ackNo?: string) => void;
   onAddITR?: (newITR: Omit<ITRFiling, 'id' | 'lastActivity'>) => void;
+  onAddNewTask?: (service?: string) => void;
   /** Administrators only. */
   onDelete?: (id: string) => void;
   /** e.g. "AY 2026-27" — default for new returns. */
@@ -25,14 +28,18 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
   staffList,
   clients = [],
   selectedStaffId,
+  title = 'Annual Compliance',
+  serviceTabs,
   onOpenWhatsApp,
   onSelectClient,
   onUpdateITRStatus,
   onDelete,
   onAddITR,
+  onAddNewTask,
   assessmentYear = 'AY 2026-27',
   dueSoonDays = 10,
 }) => {
+  const [activeServiceTab, setActiveServiceTab] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -130,6 +137,21 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
     }
   };
 
+  const matchITRService = (item: ITRFiling, tab: string) => {
+    if (!tab || tab === 'All') return true;
+    const s = tab.toLowerCase();
+    if (s.includes('income tax') || s.includes('itr')) {
+      return item.entityType === 'Individual' || item.entityType === 'Proprietorship' || item.itrForm === 'ITR-1' || item.itrForm === 'ITR-2' || item.itrForm === 'ITR-3' || item.itrForm === 'ITR-4';
+    }
+    if (s.includes('audit')) {
+      return item.entityType === 'LLP' || item.entityType === 'Partnership' || item.itrForm === 'ITR-5';
+    }
+    if (s.includes('roc')) {
+      return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+    }
+    return true;
+  };
+
   // Process and sort list:
   // 1. Overdue on top (score 1)
   // 2. Due within 10 days (score 2)
@@ -143,6 +165,7 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
   const filteredList = processedList
     .filter((item) => {
       if (selectedStaffId && item.assignedStaffId !== selectedStaffId) return false;
+      if (activeServiceTab !== 'All' && !matchITRService(item, activeServiceTab)) return false;
       if (statusFilter !== 'all' && item.status !== statusFilter) return false;
       if (priorityFilter !== 'all' && item.meta.level !== priorityFilter) return false;
       if (searchQuery) {
@@ -252,11 +275,17 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
   return (
     <div className="space-y-4">
       <PageHeader
-        section="itr" title="ITR Returns"
+        section="itr"
+        title={title}
         description={`${assessmentYear} · Income tax returns, most urgent first`}
         actions={
           <>
-            <Button variant="primary" icon={Plus} onClick={() => setIsAddModalOpen(true)}>
+            {onAddNewTask && (
+              <Button variant="primary" icon={Plus} onClick={() => onAddNewTask(activeServiceTab !== 'All' ? activeServiceTab : undefined)}>
+                Add {activeServiceTab !== 'All' ? activeServiceTab : 'Task'}
+              </Button>
+            )}
+            <Button variant={onAddNewTask ? 'secondary' : 'primary'} icon={Plus} onClick={() => setIsAddModalOpen(true)}>
               Add Return
             </Button>
           </>
@@ -307,17 +336,62 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
 
       <TableCard
         toolbar={
-          <Toolbar className="justify-between">
-            <Segmented
-              size="sm"
-              value={priorityFilter === 'all' ? statusFilter : '__none'}
-              onChange={(v) => {
-                setStatusFilter(v);
-                setPriorityFilter('all');
-                setCurrentPage(1);
-              }}
-              options={statusTabs}
-            />
+          <>
+            {serviceTabs && serviceTabs.length > 0 && (
+              <div className="px-3 py-2 border-b border-line bg-subtle/40 overflow-x-auto scrollbar-none flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5 flex-nowrap">
+                  {serviceTabs.map((tab) => {
+                    const isActive = activeServiceTab === tab;
+                    const count = itrFilings.filter((t) => {
+                      if (selectedStaffId && t.assignedStaffId !== selectedStaffId) return false;
+                      return matchITRService(t, tab);
+                    }).length;
+                    return (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => {
+                          setActiveServiceTab(tab);
+                          setCurrentPage(1);
+                        }}
+                        className={cn(
+                          'h-7 px-3 inline-flex items-center gap-1.5 text-xs font-medium rounded-[6px] transition-all whitespace-nowrap',
+                          isActive
+                            ? 'bg-surface text-fg shadow-xs ring-1 ring-line font-semibold'
+                            : 'text-fg-subtle hover:text-fg hover:bg-hover'
+                        )}
+                      >
+                        <span>{tab}</span>
+                        <span className={cn('num text-2xs', isActive ? 'text-fg-muted font-normal' : 'text-fg-faint')}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {onAddNewTask && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-xs h-7 text-accent hover:text-accent-hover"
+                    onClick={() => onAddNewTask(activeServiceTab !== 'All' ? activeServiceTab : undefined)}
+                  >
+                    + Add {activeServiceTab !== 'All' ? activeServiceTab : ''} Task
+                  </Button>
+                )}
+              </div>
+            )}
+            <Toolbar className="justify-between">
+              <Segmented
+                size="sm"
+                value={priorityFilter === 'all' ? statusFilter : '__none'}
+                onChange={(v) => {
+                  setStatusFilter(v);
+                  setPriorityFilter('all');
+                  setCurrentPage(1);
+                }}
+                options={statusTabs}
+              />
             <div className="flex items-center gap-2">
               <Select
                 value={priorityFilter}
@@ -345,8 +419,9 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
               />
             </div>
           </Toolbar>
-        }
-        footer={
+        </>
+      }
+      footer={
           <Pagination
             page={currentPage}
             totalPages={totalPages}
