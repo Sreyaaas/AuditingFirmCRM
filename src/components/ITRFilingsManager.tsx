@@ -447,9 +447,9 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
         toolbar={
           <>
             {/* Tier 1: Pillar Tabs */}
-            <div className="px-3 border-b border-line bg-subtle/30 overflow-x-auto scrollbar-none">
+            <div className="px-3 border-b border-line bg-subtle/30">
               <Tabs
-                className="border-b-0 -mb-px"
+                className="border-b-0"
                 value={activePillar}
                 onChange={(pillar: string) => setActivePillar(pillar)}
                 options={ANNUAL_PILLARS.map((pillar) => ({
@@ -462,9 +462,9 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
 
             {/* Tier 2: Sub-Service Tabs (when a specific pillar is selected) */}
             {activePillar !== 'All' && PILLAR_SUB_TABS[activePillar] && (
-              <div className="px-3 border-b border-line overflow-x-auto scrollbar-none animate-fade-in">
+              <div className="px-3 border-b border-line animate-fade-in">
                 <Tabs
-                  className="border-b-0 -mb-px"
+                  className="border-b-0"
                   value={activeSub}
                   onChange={(subTab: string) => setActiveSubTab(subTab)}
                   options={PILLAR_SUB_TABS[activePillar].map((subTab) => ({

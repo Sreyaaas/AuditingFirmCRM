@@ -471,12 +471,12 @@ export function Tabs<T extends string>({
             onClick={() => onChange(o.value)}
             className={cn(
               'relative h-9 inline-flex items-center gap-1.5 text-sm font-medium whitespace-nowrap transition-colors',
-              active ? 'text-fg' : 'text-fg-subtle hover:text-fg'
+              active ? 'text-fg font-semibold' : 'text-fg-subtle hover:text-fg'
             )}
           >
             {o.label}
             {o.count !== undefined && <span className="num text-2xs text-fg-faint">{o.count}</span>}
-            {active && <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-accent rounded-full" />}
+            {active && <span className="absolute left-0 right-0 bottom-0 h-[2px] bg-accent rounded-full z-10" />}
           </button>
         );
       })}

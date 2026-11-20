@@ -298,9 +298,9 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
         toolbar={
           <>
             {serviceTabs && serviceTabs.length > 0 && (
-              <div className="px-3 border-b border-line bg-subtle/30 overflow-x-auto scrollbar-none">
+              <div className="px-3 border-b border-line bg-subtle/30">
                 <Tabs
-                  className="border-b-0 -mb-px"
+                  className="border-b-0"
                   value={activeServiceTab}
                   onChange={(tab) => {
                     setActiveServiceTab(tab);
@@ -316,7 +316,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
             )}
             <div className="px-3 pt-1 flex flex-col lg:flex-row lg:items-end justify-between gap-2 border-b border-line">
               <Tabs
-                className="border-b-0 -mb-px"
+                className="border-b-0"
                 value={statusFilter}
                 onChange={(v) => {
                   setStatusFilter(v);

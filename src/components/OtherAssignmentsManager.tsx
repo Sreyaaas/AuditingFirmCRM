@@ -199,7 +199,7 @@ export const OtherAssignmentsManager: React.FC<OtherAssignmentsManagerProps> = (
           <div className="space-y-2.5 px-3 py-2.5 border-b border-line">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
               <Tabs
-                className="border-b-0 -mb-px"
+                className="border-b-0"
                 value={statusFilter}
                 onChange={(v) => {
                   setStatusFilter(v);
