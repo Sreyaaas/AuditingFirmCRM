@@ -40,6 +40,7 @@ const SERVICES_BY_CATEGORY: Record<TaskCategory, string[]> = {
   annual: [
     'ITR - Individual',
     'ITR - Business',
+    'ITR - Tax Audit',
     'ITR - Company',
     'Tax Audit (3CA/3CB-3CD)',
     'Statutory Audit',

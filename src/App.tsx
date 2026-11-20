@@ -170,11 +170,72 @@ export function App() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [initialTaskCategory, setInitialTaskCategory] = useState<TaskCategory>('monthly');
   const [initialTaskService, setInitialTaskService] = useState<string | undefined>(undefined);
+  const [activeMonthlyServiceTab, setActiveMonthlyServiceTab] = useState<string>('All');
+  const [activeQuarterlyServiceTab, setActiveQuarterlyServiceTab] = useState<string>('All');
+  const [activeAnnualPillarTab, setActiveAnnualPillarTab] = useState<string>('All');
+  const [activeAnnualSubTab, setActiveAnnualSubTab] = useState<string>('All');
 
   const handleOpenNewTaskWithService = (category: TaskCategory, service?: string) => {
     setInitialTaskCategory(category);
     setInitialTaskService(service);
     setIsNewTaskOpen(true);
+  };
+
+  const handleSelectTabWithService = (tabId: string, serviceName: string) => {
+    setActiveTab(tabId);
+    setIsMobileSidebarOpen(false);
+
+    if (tabId === 'monthly') {
+      const s = serviceName.toLowerCase();
+      if (s.includes('gst')) setActiveMonthlyServiceTab('GST');
+      else if (s.includes('tds')) setActiveMonthlyServiceTab('TDS Payment');
+      else if (s.includes('pf')) setActiveMonthlyServiceTab('PF Filing');
+      else if (s.includes('esi')) setActiveMonthlyServiceTab('ESI Filing');
+      else if (s.includes('accounting') || s.includes('bookkeeping')) setActiveMonthlyServiceTab('Accounting and Bookkeeping');
+      else if (s.includes('mis')) setActiveMonthlyServiceTab('Monthly MIS Report');
+      else setActiveMonthlyServiceTab('All');
+    } else if (tabId === 'quarterly') {
+      const s = serviceName.toLowerCase();
+      if (s.includes('gst') || s.includes('cmp') || s.includes('qrmp')) setActiveQuarterlyServiceTab('GST (QRMP / CMP-08)');
+      else if (s.includes('tds')) setActiveQuarterlyServiceTab('TDS (24Q / 26Q / 27Q)');
+      else setActiveQuarterlyServiceTab('All');
+    } else if (tabId === 'itr') {
+      const s = serviceName.toLowerCase();
+      if (s.includes('itr - individual')) {
+        setActiveAnnualPillarTab('Income Tax Return');
+        setActiveAnnualSubTab('Individual');
+      } else if (s.includes('itr - business')) {
+        setActiveAnnualPillarTab('Income Tax Return');
+        setActiveAnnualSubTab('Business');
+      } else if (s.includes('itr - tax audit')) {
+        setActiveAnnualPillarTab('Income Tax Return');
+        setActiveAnnualSubTab('Tax Audit');
+      } else if (s.includes('itr - company')) {
+        setActiveAnnualPillarTab('Income Tax Return');
+        setActiveAnnualSubTab('Company');
+      } else if (s.includes('tax audit')) {
+        setActiveAnnualPillarTab('Audit');
+        setActiveAnnualSubTab('Tax Audit');
+      } else if (s.includes('statutory audit')) {
+        setActiveAnnualPillarTab('Audit');
+        setActiveAnnualSubTab('Statutory Audit');
+      } else if (s.includes('gstr-9c')) {
+        setActiveAnnualPillarTab('Audit');
+        setActiveAnnualSubTab('GSTR-9C');
+      } else if (s.includes('gstr-9')) {
+        setActiveAnnualPillarTab('Audit');
+        setActiveAnnualSubTab('GSTR-9');
+      } else if (s.includes('aoc') || s.includes('mgt')) {
+        setActiveAnnualPillarTab('ROC Compliance');
+        setActiveAnnualSubTab('AOC 4 & MGT 7/7A');
+      } else if (s.includes('dpt')) {
+        setActiveAnnualPillarTab('ROC Compliance');
+        setActiveAnnualSubTab('DPT-3');
+      } else {
+        setActiveAnnualPillarTab('All');
+        setActiveAnnualSubTab('All');
+      }
+    }
   };
 
   useEffect(() => {
@@ -816,6 +877,7 @@ export function App() {
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         onOpenNewTaskWithService={handleOpenNewTaskWithService}
+        onSelectTabWithService={handleSelectTabWithService}
       />
 
       <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden">
@@ -912,6 +974,8 @@ export function App() {
                 title="Monthly Compliance"
                 description={`${monthlyWorkTasks.length} tasks · Monthly GST, TDS and payroll returns`}
                 serviceTabs={['All', 'GST', 'TDS Payment', 'PF Filing', 'ESI Filing', 'Accounting and Bookkeeping', 'Monthly MIS Report']}
+                activeServiceTab={activeMonthlyServiceTab}
+                onServiceTabChange={setActiveMonthlyServiceTab}
                 filingTypes={practiceConfigs.filing_types}
                 dueSoonDays={preferences.dueSoonDays}
                 onUpdateStatus={handleUpdateMonthlyStatus}
@@ -932,6 +996,8 @@ export function App() {
                 description={`${quarterlyTasks.length} tasks · Quarterly GST (QRMP/CMP-08) and TDS returns`}
                 periodOptions={['Q1 (Apr-Jun)', 'Q2 (Jul-Sep)', 'Q3 (Oct-Dec)', 'Q4 (Jan-Mar)']}
                 serviceTabs={['All', 'GST (QRMP / CMP-08)', 'TDS (24Q / 26Q / 27Q)']}
+                activeServiceTab={activeQuarterlyServiceTab}
+                onServiceTabChange={setActiveQuarterlyServiceTab}
                 filingTypes={['GST (QRMP / CMP-08)', 'TDS Return (24Q - Salary)', 'TDS Return (26Q - Non-Salary)', 'TDS Return (27Q)', 'CMP-08']}
                 dueSoonDays={preferences.dueSoonDays}
                 onUpdateStatus={handleUpdateMonthlyStatus}
@@ -969,7 +1035,10 @@ export function App() {
                 selectedStaffId={selectedStaffId}
                 assessmentYear={`AY ${preferences.financialYear}`}
                 dueSoonDays={preferences.itrDueSoonDays}
-                serviceTabs={['All', 'Income Tax Return', 'Audit', 'ROC Compliance']}
+                activePillarTab={activeAnnualPillarTab}
+                onPillarTabChange={setActiveAnnualPillarTab}
+                activeSubTab={activeAnnualSubTab}
+                onSubTabChange={setActiveAnnualSubTab}
                 onOpenWhatsApp={(itr) => openWhatsApp({ itr })}
                 onSelectClient={handleSelectClient}
                 onUpdateITRStatus={handleUpdateITRStatus}

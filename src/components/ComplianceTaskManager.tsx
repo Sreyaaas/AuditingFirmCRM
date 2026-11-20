@@ -19,6 +19,8 @@ interface ComplianceTaskManagerProps {
   selectedStaffId: string | null;
   filingTypes?: string[];
   serviceTabs?: string[];
+  activeServiceTab?: string;
+  onServiceTabChange?: (tab: string) => void;
   section?: SectionId;
   title?: string;
   description?: string;
@@ -47,6 +49,8 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   selectedStaffId,
   filingTypes = ['GSTR-1 (Sales)', 'GSTR-3B (Summary)', 'Statutory Audit', 'TDS Payment', 'PF & ESI', 'CMP-08', 'IFF'],
   serviceTabs,
+  activeServiceTab: propActiveServiceTab,
+  onServiceTabChange: propOnServiceTabChange,
   section = 'monthly',
   title = 'Monthly Work',
   description,
@@ -59,7 +63,14 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   onAddNewTask,
 }) => {
   const [confirmDelete, setConfirmDelete] = useState<MonthlyTask | null>(null);
-  const [activeServiceTab, setActiveServiceTab] = useState<string>('All');
+  const [internalServiceTab, setInternalServiceTab] = useState<string>('All');
+
+  const activeServiceTab = propActiveServiceTab !== undefined ? propActiveServiceTab : internalServiceTab;
+  const setActiveServiceTab = (tab: string) => {
+    if (propOnServiceTabChange) propOnServiceTabChange(tab);
+    else setInternalServiceTab(tab);
+    setCurrentPage(1);
+  };
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [filingTypeFilter, setFilingTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');

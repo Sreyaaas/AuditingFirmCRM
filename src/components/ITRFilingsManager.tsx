@@ -9,6 +9,10 @@ interface ITRFilingsManagerProps {
   clients?: Client[];
   selectedStaffId: string | null;
   title?: string;
+  activePillarTab?: string;
+  onPillarTabChange?: (pillar: string) => void;
+  activeSubTab?: string;
+  onSubTabChange?: (subTab: string) => void;
   serviceTabs?: string[];
   onOpenWhatsApp: (itr: ITRFiling) => void;
   onSelectClient: (clientId: string) => void;
@@ -23,12 +27,24 @@ interface ITRFilingsManagerProps {
   dueSoonDays?: number;
 }
 
+const ANNUAL_PILLARS = ['All', 'Income Tax Return', 'Audit', 'ROC Compliance'];
+
+const PILLAR_SUB_TABS: Record<string, string[]> = {
+  'Income Tax Return': ['All', 'Individual', 'Business', 'Tax Audit', 'Company'],
+  'Audit': ['All', 'Tax Audit', 'Statutory Audit', 'GSTR-9', 'GSTR-9C'],
+  'ROC Compliance': ['All', 'AOC 4 & MGT 7/7A', 'DPT-3'],
+};
+
 export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
   itrFilings,
   staffList,
   clients = [],
   selectedStaffId,
   title = 'Annual Compliance',
+  activePillarTab: propActivePillar,
+  onPillarTabChange: propOnPillarChange,
+  activeSubTab: propActiveSubTab,
+  onSubTabChange: propOnSubTabChange,
   serviceTabs,
   onOpenWhatsApp,
   onSelectClient,
@@ -39,7 +55,25 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
   assessmentYear = 'AY 2026-27',
   dueSoonDays = 10,
 }) => {
-  const [activeServiceTab, setActiveServiceTab] = useState<string>('All');
+  const [internalPillarTab, setInternalPillarTab] = useState<string>('All');
+  const [internalSubTab, setInternalSubTab] = useState<string>('All');
+
+  const activePillar = propActivePillar !== undefined ? propActivePillar : internalPillarTab;
+  const setActivePillar = (p: string) => {
+    if (propOnPillarChange) propOnPillarChange(p);
+    else setInternalPillarTab(p);
+    if (propOnSubTabChange) propOnSubTabChange('All');
+    else setInternalSubTab('All');
+    setCurrentPage(1);
+  };
+
+  const activeSub = propActiveSubTab !== undefined ? propActiveSubTab : internalSubTab;
+  const setActiveSubTab = (s: string) => {
+    if (propOnSubTabChange) propOnSubTabChange(s);
+    else setInternalSubTab(s);
+    setCurrentPage(1);
+  };
+
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -137,18 +171,64 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
     }
   };
 
-  const matchITRService = (item: ITRFiling, tab: string) => {
-    if (!tab || tab === 'All') return true;
-    const s = tab.toLowerCase();
-    if (s.includes('income tax') || s.includes('itr')) {
-      return item.entityType === 'Individual' || item.entityType === 'Proprietorship' || item.itrForm === 'ITR-1' || item.itrForm === 'ITR-2' || item.itrForm === 'ITR-3' || item.itrForm === 'ITR-4';
+  const matchAnnualItem = (item: ITRFiling, pillar: string, sub: string): boolean => {
+    if (pillar === 'All' && (sub === 'All' || !sub)) return true;
+
+    // 1. Income Tax Return
+    if (pillar === 'Income Tax Return') {
+      if (sub === 'All' || !sub) return true;
+      const s = sub.toLowerCase();
+      if (s === 'individual') {
+        return item.entityType === 'Individual' || item.itrForm === 'ITR-1' || item.itrForm === 'ITR-2';
+      }
+      if (s === 'business') {
+        return item.entityType === 'Proprietorship' || item.itrForm === 'ITR-3' || item.itrForm === 'ITR-4';
+      }
+      if (s.includes('tax audit')) {
+        return item.itrForm === 'ITR-3' || item.itrForm === 'ITR-5' || item.entityType === 'LLP' || item.entityType === 'Partnership';
+      }
+      if (s === 'company') {
+        return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+      }
+      return true;
     }
-    if (s.includes('audit')) {
-      return item.entityType === 'LLP' || item.entityType === 'Partnership' || item.itrForm === 'ITR-5';
+
+    // 2. Audit
+    if (pillar === 'Audit') {
+      if (sub === 'All' || !sub) {
+        return item.entityType === 'LLP' || item.entityType === 'Partnership' || item.itrForm === 'ITR-5' || item.itrForm === 'ITR-6' || item.entityType === 'Private Limited';
+      }
+      const s = sub.toLowerCase();
+      if (s.includes('tax audit')) {
+        return item.entityType === 'LLP' || item.entityType === 'Partnership' || item.itrForm === 'ITR-5';
+      }
+      if (s.includes('statutory audit')) {
+        return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+      }
+      if (s.includes('gstr-9c')) {
+        return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+      }
+      if (s.includes('gstr-9')) {
+        return true;
+      }
+      return true;
     }
-    if (s.includes('roc')) {
-      return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+
+    // 3. ROC Compliance
+    if (pillar === 'ROC Compliance') {
+      if (sub === 'All' || !sub) {
+        return item.entityType === 'Private Limited' || item.entityType === 'LLP' || item.itrForm === 'ITR-6';
+      }
+      const s = sub.toLowerCase();
+      if (s.includes('aoc') || s.includes('mgt')) {
+        return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+      }
+      if (s.includes('dpt')) {
+        return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+      }
+      return true;
     }
+
     return true;
   };
 
@@ -162,10 +242,33 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
     meta: getDeadlineMeta(item.dueDate, item.status),
   }));
 
+  const countForPillar = (pillar: string) => {
+    return itrFilings.filter((t) => {
+      if (selectedStaffId && t.assignedStaffId !== selectedStaffId) return false;
+      return matchAnnualItem(t, pillar, 'All');
+    }).length;
+  };
+
+  const countForSubTab = (subTab: string) => {
+    return itrFilings.filter((t) => {
+      if (selectedStaffId && t.assignedStaffId !== selectedStaffId) return false;
+      return matchAnnualItem(t, activePillar, subTab);
+    }).length;
+  };
+
+  const countForStatus = (status: string) => {
+    return processedList.filter((item) => {
+      if (selectedStaffId && item.assignedStaffId !== selectedStaffId) return false;
+      if (!matchAnnualItem(item, activePillar, activeSub)) return false;
+      if (status === 'all') return true;
+      return item.status === status;
+    }).length;
+  };
+
   const filteredList = processedList
     .filter((item) => {
       if (selectedStaffId && item.assignedStaffId !== selectedStaffId) return false;
-      if (activeServiceTab !== 'All' && !matchITRService(item, activeServiceTab)) return false;
+      if (!matchAnnualItem(item, activePillar, activeSub)) return false;
       if (statusFilter !== 'all' && item.status !== statusFilter) return false;
       if (priorityFilter !== 'all' && item.meta.level !== priorityFilter) return false;
       if (searchQuery) {
@@ -265,11 +368,11 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
   };
 
   const statusTabs = [
-    { value: 'all', label: 'All' },
-    { value: 'Docs Pending', label: 'Docs pending' },
-    { value: 'Draft Computation', label: 'Computation' },
-    { value: 'Client Confirmed', label: 'Approved' },
-    { value: 'Filed & e-Verified', label: 'Filed' },
+    { value: 'all', label: 'All', count: countForStatus('all') },
+    { value: 'Docs Pending', label: 'Docs pending', count: countForStatus('Docs Pending') },
+    { value: 'Draft Computation', label: 'Computation', count: countForStatus('Draft Computation') },
+    { value: 'Client Confirmed', label: 'Approved', count: countForStatus('Client Confirmed') },
+    { value: 'Filed & e-Verified', label: 'Filed', count: countForStatus('Filed & e-Verified') },
   ];
 
   return (
@@ -281,7 +384,12 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
         actions={
           <>
             {onAddNewTask ? (
-              <Button variant="primary" size="md" icon={Plus} onClick={() => onAddNewTask(activeServiceTab !== 'All' ? activeServiceTab : undefined)}>
+              <Button
+                variant="primary"
+                size="md"
+                icon={Plus}
+                onClick={() => onAddNewTask(activeSub !== 'All' ? activeSub : (activePillar !== 'All' ? activePillar : undefined))}
+              >
                 New Task
               </Button>
             ) : (
@@ -338,31 +446,55 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
       <TableCard
         toolbar={
           <>
-            {serviceTabs && serviceTabs.length > 0 && (
-              <div className="px-3 py-2 border-b border-line bg-subtle/40 overflow-x-auto scrollbar-none flex items-center gap-1.5 flex-nowrap">
-                {serviceTabs.map((tab) => {
-                  const isActive = activeServiceTab === tab;
-                  const count = itrFilings.filter((t) => {
-                    if (selectedStaffId && t.assignedStaffId !== selectedStaffId) return false;
-                    return matchITRService(t, tab);
-                  }).length;
+            {/* Tier 1: Pillar Tabs */}
+            <div className="px-3 py-2 border-b border-line bg-subtle/50 overflow-x-auto scrollbar-none flex items-center gap-1.5 flex-nowrap">
+              {ANNUAL_PILLARS.map((pillar) => {
+                const isActive = activePillar === pillar;
+                const count = countForPillar(pillar);
+                return (
+                  <button
+                    key={pillar}
+                    type="button"
+                    onClick={() => setActivePillar(pillar)}
+                    className={cn(
+                      'h-7 px-3 inline-flex items-center gap-1.5 text-xs font-medium rounded-[6px] transition-all whitespace-nowrap',
+                      isActive
+                        ? 'bg-surface text-fg shadow-xs ring-1 ring-line font-semibold'
+                        : 'text-fg-subtle hover:text-fg hover:bg-hover'
+                    )}
+                  >
+                    <span>{pillar}</span>
+                    <span className={cn('num text-2xs', isActive ? 'text-fg-muted font-normal' : 'text-fg-faint')}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Tier 2: Sub-Service Tabs (when a specific pillar is selected) */}
+            {activePillar !== 'All' && PILLAR_SUB_TABS[activePillar] && (
+              <div className="px-3 py-1.5 border-b border-line bg-surface overflow-x-auto scrollbar-none flex items-center gap-1 flex-nowrap animate-fade-in">
+                <span className="text-3xs uppercase tracking-wider font-semibold text-fg-subtle mr-1.5 shrink-0">
+                  Services:
+                </span>
+                {PILLAR_SUB_TABS[activePillar].map((subTab) => {
+                  const isActive = activeSub === subTab;
+                  const count = countForSubTab(subTab);
                   return (
                     <button
-                      key={tab}
+                      key={subTab}
                       type="button"
-                      onClick={() => {
-                        setActiveServiceTab(tab);
-                        setCurrentPage(1);
-                      }}
+                      onClick={() => setActiveSubTab(subTab)}
                       className={cn(
-                        'h-7 px-3 inline-flex items-center gap-1.5 text-xs font-medium rounded-[6px] transition-all whitespace-nowrap',
+                        'h-6 px-2.5 inline-flex items-center gap-1.5 text-xs font-medium rounded-[4px] transition-all whitespace-nowrap',
                         isActive
-                          ? 'bg-surface text-fg shadow-xs ring-1 ring-line font-semibold'
-                          : 'text-fg-subtle hover:text-fg hover:bg-hover'
+                          ? 'bg-ink text-ink-fg font-medium shadow-2xs'
+                          : 'text-fg-muted hover:text-fg hover:bg-subtle'
                       )}
                     >
-                      <span>{tab}</span>
-                      <span className={cn('num text-2xs', isActive ? 'text-fg-muted font-normal' : 'text-fg-faint')}>
+                      <span>{subTab}</span>
+                      <span className={cn('num text-3xs', isActive ? 'text-ink-fg/80' : 'text-fg-faint')}>
                         {count}
                       </span>
                     </button>

@@ -43,6 +43,7 @@ interface SidebarProps {
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
   onOpenNewTaskWithService?: (category: TaskCategory, serviceName: string) => void;
+  onSelectTabWithService?: (tabId: string, serviceName: string) => void;
 }
 
 interface NavItem {
@@ -53,14 +54,17 @@ interface NavItem {
   alert?: number | null;
 }
 
+interface FlyoutItem {
+  label: string;
+  serviceName: string;
+  group?: string;
+  hint?: string;
+}
+
 interface FlyoutEntry {
   category: TaskCategory;
   title: string;
-  items: Array<{
-    label: string;
-    serviceName: string;
-    hint?: string;
-  }>;
+  items: FlyoutItem[];
 }
 
 const FLYOUT_CONFIG: Record<string, FlyoutEntry> = {
@@ -88,9 +92,19 @@ const FLYOUT_CONFIG: Record<string, FlyoutEntry> = {
     category: 'annual',
     title: 'Annual Compliance',
     items: [
-      { label: 'Income tax return', serviceName: 'ITR - Individual', hint: 'Individual, Business, Tax audit, Company' },
-      { label: 'Audit', serviceName: 'Tax Audit (3CA/3CB-3CD)', hint: 'Tax audit, Statutory audit, GSTR 9, GSTR 9C' },
-      { label: 'ROC Compliance', serviceName: 'ROC (AOC-4 & MGT-7)', hint: 'AOC 4 & MGT 7/7A, DPT 3' },
+      // 1. Income Tax Returns
+      { label: 'ITR - Individual', serviceName: 'ITR - Individual', group: 'Income Tax Return' },
+      { label: 'ITR - Business', serviceName: 'ITR - Business', group: 'Income Tax Return' },
+      { label: 'ITR - Tax Audit', serviceName: 'ITR - Tax Audit', group: 'Income Tax Return' },
+      { label: 'ITR - Company', serviceName: 'ITR - Company', group: 'Income Tax Return' },
+      // 2. Audit
+      { label: 'Tax Audit (Form 3CD)', serviceName: 'Tax Audit (3CA/3CB-3CD)', group: 'Audit' },
+      { label: 'Statutory Audit', serviceName: 'Statutory Audit', group: 'Audit' },
+      { label: 'GSTR-9 (Annual Return)', serviceName: 'GSTR-9', group: 'Audit' },
+      { label: 'GSTR-9C (Reconciliation)', serviceName: 'GSTR-9C', group: 'Audit' },
+      // 3. ROC Compliance
+      { label: 'AOC 4 & MGT 7/7A', serviceName: 'ROC (AOC-4 & MGT-7)', group: 'ROC Compliance' },
+      { label: 'DPT 3 (Deposits Return)', serviceName: 'ROC (DPT-3)', group: 'ROC Compliance' },
     ],
   },
 };
@@ -113,6 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileOpen = false,
   onCloseMobile,
   onOpenNewTaskWithService,
+  onSelectTabWithService,
 }) => {
   const isAdmin = currentUser.role === 'admin';
   const [hoveredTab, setHoveredTab] = useState<{ id: string; rect: DOMRect } | null>(null);
@@ -145,8 +160,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const handleFlyoutClick = (tabId: string, category: TaskCategory, serviceName: string) => {
-    select(tabId);
-    onOpenNewTaskWithService?.(category, serviceName);
+    if (onSelectTabWithService) {
+      onSelectTabWithService(tabId, serviceName);
+    } else {
+      select(tabId);
+      onOpenNewTaskWithService?.(category, serviceName);
+    }
     setHoveredTab(null);
   };
 
@@ -188,17 +207,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const isHovered = hoveredTab?.id === item.id;
 
     return (
-      <div
-        key={item.id}
-        className="relative"
-        onMouseEnter={(e) => hasFlyout && handleItemMouseEnter(item.id, e)}
-        onMouseLeave={() => hasFlyout && handleItemMouseLeave()}
-      >
+      <div key={item.id} className="relative flex items-center">
         <button
           onClick={() => select(item.id)}
           aria-current={active ? 'page' : undefined}
           className={cn(
-            'group w-full h-8 flex items-center gap-2.5 px-2.5 rounded-md text-sm transition-colors',
+            'group flex-1 min-w-0 h-8 flex items-center gap-2.5 px-2.5 rounded-md text-sm transition-colors',
             active
               ? cn(`av-${hue}`, 'font-medium')
               : isHovered
@@ -208,20 +222,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <Icon className={cn('w-4 h-4 shrink-0', !active && `tx-${hue}`)} strokeWidth={active ? 2 : 1.75} />
           <span className="flex-1 truncate text-left">{item.label}</span>
-          {hasFlyout && (
-            <ChevronRight
-              className={cn(
-                'w-3.5 h-3.5 transition-opacity mr-0.5 shrink-0',
-                isHovered ? 'text-fg opacity-100' : 'text-fg-faint opacity-0 group-hover:opacity-70'
-              )}
-            />
-          )}
           {item.alert ? (
-            <span className="num text-2xs font-semibold text-danger">{item.alert}</span>
+            <span className="num text-2xs font-semibold text-danger shrink-0">{item.alert}</span>
           ) : item.count !== undefined && item.count !== null ? (
-            <span className={cn('num text-2xs', active ? 'font-semibold opacity-80' : 'text-fg-faint')}>{item.count}</span>
+            <span className={cn('num text-2xs shrink-0', active ? 'font-semibold opacity-80' : 'text-fg-faint')}>{item.count}</span>
           ) : null}
         </button>
+        {hasFlyout && (
+          <div
+            className={cn(
+              'h-6 w-6 rounded flex items-center justify-center transition-colors shrink-0 ml-1 cursor-pointer',
+              isHovered ? 'text-fg bg-hover' : 'text-fg-subtle hover:text-fg hover:bg-subtle'
+            )}
+            onMouseEnter={(e) => handleItemMouseEnter(item.id, e)}
+            onMouseLeave={handleItemMouseLeave}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleItemMouseEnter(item.id, e);
+            }}
+            title={`View ${item.label} services`}
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </div>
+        )}
       </div>
     );
   };
@@ -281,49 +304,59 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div
           style={{
             position: 'fixed',
-            top: Math.max(8, Math.min(hoveredTab.rect.top - 4, window.innerHeight - 340)),
+            top: Math.max(8, Math.min(hoveredTab.rect.top - 4, window.innerHeight - 440)),
             left: hoveredTab.rect.right + 6,
             zIndex: 9999,
           }}
           onMouseEnter={handleFlyoutMouseEnter}
           onMouseLeave={handleFlyoutMouseLeave}
-          className="w-72 bg-surface border border-line rounded-[8px] shadow-2xl p-1.5 animate-pop-in select-none"
+          className="w-72 max-h-[440px] overflow-y-auto bg-surface border border-line rounded-[8px] shadow-2xl p-1.5 animate-pop-in select-none scrollbar-none"
         >
           <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-line mb-1">
             <span className="text-2xs font-semibold uppercase tracking-wider text-fg-subtle">
               {FLYOUT_CONFIG[hoveredTab.id].title}
             </span>
-            <span className="text-3xs text-fg-faint font-medium">Quick create task</span>
+            <span className="text-3xs text-fg-faint font-medium">Filter service</span>
           </div>
           <div className="space-y-0.5">
-            {FLYOUT_CONFIG[hoveredTab.id].items.map((svc) => (
-              <button
-                key={svc.label}
-                type="button"
-                onClick={() =>
-                  handleFlyoutClick(
-                    hoveredTab.id,
-                    FLYOUT_CONFIG[hoveredTab.id].category,
-                    svc.serviceName
-                  )
-                }
-                className="w-full text-left px-2.5 py-1.5 rounded-[6px] text-xs text-fg hover:bg-hover hover:text-fg transition-colors flex items-center justify-between group/row"
-              >
-                <div className="min-w-0 pr-2">
-                  <div className="font-medium truncate group-hover/row:text-accent transition-colors">
-                    {svc.label}
-                  </div>
-                  {svc.hint && (
-                    <div className="text-3xs text-fg-subtle truncate mt-0.5">
-                      {svc.hint}
+            {FLYOUT_CONFIG[hoveredTab.id].items.map((svc, idx, arr) => {
+              const showGroupHeader = svc.group && (idx === 0 || arr[idx - 1].group !== svc.group);
+              return (
+                <React.Fragment key={svc.label}>
+                  {showGroupHeader && (
+                    <div className="pt-2 pb-0.5 px-2.5 text-3xs font-semibold uppercase tracking-wider text-fg-subtle border-t border-line/60 first:border-t-0 first:pt-1">
+                      {svc.group}
                     </div>
                   )}
-                </div>
-                <div className="shrink-0 flex items-center gap-1 text-2xs text-fg-subtle opacity-60 group-hover/row:opacity-100 group-hover/row:text-accent font-medium">
-                  <Plus className="w-3.5 h-3.5" />
-                </div>
-              </button>
-            ))}
+                  <button
+                    key={svc.label}
+                    type="button"
+                    onClick={() =>
+                      handleFlyoutClick(
+                        hoveredTab.id,
+                        FLYOUT_CONFIG[hoveredTab.id].category,
+                        svc.serviceName
+                      )
+                    }
+                    className="w-full text-left px-2.5 py-1.5 rounded-[6px] text-xs text-fg hover:bg-hover hover:text-fg transition-colors flex items-center justify-between group/row"
+                  >
+                    <div className="min-w-0 pr-2">
+                      <div className="font-medium truncate group-hover/row:text-accent transition-colors">
+                        {svc.label}
+                      </div>
+                      {svc.hint && (
+                        <div className="text-3xs text-fg-subtle truncate mt-0.5">
+                          {svc.hint}
+                        </div>
+                      )}
+                    </div>
+                    <div className="shrink-0 flex items-center gap-1 text-2xs text-fg-subtle opacity-60 group-hover/row:opacity-100 group-hover/row:text-accent font-medium">
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </div>
+                  </button>
+                </React.Fragment>
+              );
+            })}
           </div>
         </div>,
         document.body
