@@ -72,11 +72,28 @@ const findMatchingService = (cat: TaskCategory, service?: string): string => {
   const sLower = service.toLowerCase().trim();
   const exact = list.find((s) => s.toLowerCase() === sLower);
   if (exact) return exact;
+
+  const words = sLower.split(/[\s,()/-]+/).filter((w) => w.length > 2);
+  if (words.length > 0) {
+    const wordMatch = list.find((s) => {
+      const target = s.toLowerCase();
+      return words.every((w) => target.includes(w));
+    });
+    if (wordMatch) return wordMatch;
+  }
+
+  const sNorm = service.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normMatch = list.find((s) => {
+    const listNorm = s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return listNorm.includes(sNorm) || sNorm.includes(listNorm);
+  });
+  if (normMatch) return normMatch;
+
   const partial = list.find(
     (s) => s.toLowerCase().includes(sLower) || sLower.includes(s.toLowerCase())
   );
   if (partial) return partial;
-  return service;
+  return list[0] || service;
 };
 
 const NewTaskModalForm: React.FC<NewTaskModalProps> = ({

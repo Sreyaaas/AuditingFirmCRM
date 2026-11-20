@@ -364,6 +364,45 @@ export function App() {
     () => monthlyTasks.filter((t) => t.category === 'other'),
     [monthlyTasks]
   );
+  const annualTasks = useMemo(
+    () => monthlyTasks.filter((t) => t.category === 'annual'),
+    [monthlyTasks]
+  );
+
+  const mappedAnnualTasksToITR: ITRFiling[] = useMemo(() => {
+    return annualTasks.map((t) => {
+      const client = clients.find((c) => c.id === t.clientId);
+      let status: ITRStatus = 'Draft Computation';
+      if (t.status === 'Filed') status = 'Filed & e-Verified';
+      else if (t.status === 'Docs Pending') status = 'Docs Pending';
+      else if (t.status === 'Draft Ready') status = 'Client Confirmed';
+      else if (t.status === 'In Progress') status = 'Draft Computation';
+
+      return {
+        id: t.id,
+        clientId: t.clientId,
+        clientName: t.clientName,
+        pan: t.gstin ? (t.gstin.length >= 12 ? t.gstin.slice(2, 12) : t.gstin) : (client?.pan || 'PAN PENDING'),
+        entityType: client?.entityType || 'Private Limited',
+        itrForm: (t.filingType as any) || 'ITR-6',
+        assessmentYear: t.financialYear ? `AY ${t.financialYear}` : (t.period.startsWith('AY') ? t.period : `AY 2026-27`),
+        financialYear: t.period.startsWith('FY') ? t.period : (t.financialYear ? `FY ${t.financialYear}` : 'FY 2025-26'),
+        assignedStaffId: t.assignedStaffId,
+        status,
+        dueDate: t.dueDate,
+        regime: 'New Regime (115BAC)',
+        taxLiabilityOrRefund: t.taxPayable || 0,
+        acknowledgmentNo: t.arnNumber || undefined,
+        lastActivity: t.lastUpdated || 'Recently added',
+        phone: t.phone || client?.phone || '',
+      };
+    });
+  }, [annualTasks, clients]);
+
+  const combinedAnnualFilings = useMemo(() => {
+    const taskIds = new Set(mappedAnnualTasksToITR.map((t) => t.id));
+    return [...mappedAnnualTasksToITR, ...itrFilings.filter((i) => !taskIds.has(i.id))];
+  }, [mappedAnnualTasksToITR, itrFilings]);
 
   // ------------------------------------------------------- UI state
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -505,6 +544,15 @@ export function App() {
   };
 
   const handleUpdateITRStatus = async (id: string, newStatus: ITRStatus, ackNo?: string) => {
+    const task = monthlyTasks.find((t) => t.id === id);
+    if (task) {
+      let filingStatus: FilingStatus = 'In Progress';
+      if (newStatus === 'Filed & e-Verified') filingStatus = 'Filed';
+      else if (newStatus === 'Docs Pending') filingStatus = 'Docs Pending';
+      else if (newStatus === 'Client Confirmed') filingStatus = 'Draft Ready';
+      else if (newStatus === 'Draft Computation') filingStatus = 'In Progress';
+      return handleUpdateMonthlyStatus(id, filingStatus, ackNo);
+    }
     const itr = itrFilings.find((i) => i.id === id);
     if (!itr) return;
     const acknowledgmentNo = newStatus === 'Filed & e-Verified' ? ackNo?.trim() || itr.acknowledgmentNo || '' : itr.acknowledgmentNo || '';
@@ -635,6 +683,10 @@ export function App() {
 
   const handleDeleteITR = async (id: string) => {
     if (!isAdmin) return;
+    const task = monthlyTasks.find((t) => t.id === id);
+    if (task) {
+      return handleDeleteTask(id);
+    }
     const itr = itrFilings.find((i) => i.id === id);
     const res = await deleteItrFilingFromDb(id);
     if (res.error) return showToast(res.error, true);
@@ -869,7 +921,7 @@ export function App() {
         canViewFees={canViewFees}
         monthlyTaskCount={monthlyWorkTasks.length}
         quarterlyTaskCount={quarterlyTasks.length}
-        itrCount={itrFilings.length}
+        itrCount={combinedAnnualFilings.length}
         otherAssignmentsCount={otherAssignmentTasks.length}
         totalClientsCount={activeClients.length}
         debtorsCount={debtors.filter((d) => d.currentBalance > 0).length}
@@ -933,7 +985,7 @@ export function App() {
                   currentUser={currentUser}
                   totalClients={activeClients.length}
                   monthlyTasks={monthlyTasks}
-                  itrFilings={itrFilings}
+                  itrFilings={combinedAnnualFilings}
                   debtors={canViewFees ? debtors : []}
                   showFees={canViewFees}
                   staffList={staffList}
@@ -1028,7 +1080,7 @@ export function App() {
             {activeTab === 'itr' && (
               <ITRFilingsManager
                 title="Annual Compliance"
-                itrFilings={itrFilings}
+                itrFilings={combinedAnnualFilings}
                 staffList={staffList}
                 clients={activeClients}
                 selectedStaffId={selectedStaffId}

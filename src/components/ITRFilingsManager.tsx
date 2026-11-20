@@ -174,59 +174,89 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
   const matchAnnualItem = (item: ITRFiling, pillar: string, sub: string): boolean => {
     if (pillar === 'All' && (sub === 'All' || !sub)) return true;
 
+    const form = (item.itrForm || '').toLowerCase();
+    const entity = (item.entityType || '').toLowerCase();
+
     // 1. Income Tax Return
     if (pillar === 'Income Tax Return') {
-      if (sub === 'All' || !sub) return true;
-      const s = sub.toLowerCase();
-      if (s === 'individual') {
-        return item.entityType === 'Individual' || item.itrForm === 'ITR-1' || item.itrForm === 'ITR-2';
+      if (sub === 'All' || !sub) {
+        return (
+          form.startsWith('itr') ||
+          (!form.includes('audit') &&
+           !form.includes('roc') &&
+           !form.includes('aoc') &&
+           !form.includes('mgt') &&
+           !form.includes('dpt') &&
+           !form.includes('gstr-9'))
+        );
       }
-      if (s === 'business') {
-        return item.entityType === 'Proprietorship' || item.itrForm === 'ITR-3' || item.itrForm === 'ITR-4';
+      const s = sub.toLowerCase();
+      if (s.includes('individual')) {
+        return form.includes('individual') || entity === 'individual' || form === 'itr-1' || form === 'itr-2';
+      }
+      if (s.includes('business')) {
+        return form.includes('business') || entity === 'proprietorship' || form === 'itr-3' || form === 'itr-4';
       }
       if (s.includes('tax audit')) {
-        return item.itrForm === 'ITR-3' || item.itrForm === 'ITR-5' || item.entityType === 'LLP' || item.entityType === 'Partnership';
+        return form.includes('tax audit') || form === 'itr-3' || form === 'itr-5' || entity === 'llp' || entity === 'partnership';
       }
-      if (s === 'company') {
-        return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+      if (s.includes('company')) {
+        return form.includes('company') || entity === 'private limited' || form === 'itr-6';
       }
-      return true;
+      return form === s || form.includes(s) || s.includes(form);
     }
 
     // 2. Audit
     if (pillar === 'Audit') {
       if (sub === 'All' || !sub) {
-        return item.entityType === 'LLP' || item.entityType === 'Partnership' || item.itrForm === 'ITR-5' || item.itrForm === 'ITR-6' || item.entityType === 'Private Limited';
+        return (
+          form.includes('audit') ||
+          form.includes('gstr-9') ||
+          form.includes('3ca') ||
+          form.includes('3cd') ||
+          ((form === 'itr-5' || form === 'itr-6') && (entity === 'llp' || entity === 'partnership' || entity === 'private limited'))
+        );
       }
       const s = sub.toLowerCase();
-      if (s.includes('tax audit')) {
-        return item.entityType === 'LLP' || item.entityType === 'Partnership' || item.itrForm === 'ITR-5';
+      if (s.includes('tax audit') || s.includes('3cd') || s.includes('3ca')) {
+        return form.includes('tax audit') || form.includes('3ca') || form.includes('3cd') || form === 'itr-5' || ((entity === 'llp' || entity === 'partnership') && form.startsWith('itr'));
       }
-      if (s.includes('statutory audit')) {
-        return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+      if (s.includes('statutory')) {
+        return form.includes('statutory') || (entity === 'private limited' && form === 'itr-6');
       }
       if (s.includes('gstr-9c')) {
-        return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+        return form.includes('gstr-9c');
       }
       if (s.includes('gstr-9')) {
-        return true;
+        return form.includes('gstr-9') && !form.includes('gstr-9c');
       }
-      return true;
+      return form === s || form.includes(s) || s.includes(form);
     }
 
     // 3. ROC Compliance
     if (pillar === 'ROC Compliance') {
       if (sub === 'All' || !sub) {
-        return item.entityType === 'Private Limited' || item.entityType === 'LLP' || item.itrForm === 'ITR-6';
+        return (
+          form.includes('roc') ||
+          form.includes('aoc') ||
+          form.includes('mgt') ||
+          form.includes('dpt') ||
+          ((entity === 'private limited' || entity === 'llp') && form === 'itr-6')
+        );
       }
       const s = sub.toLowerCase();
       if (s.includes('aoc') || s.includes('mgt')) {
-        return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+        return (
+          form.includes('aoc') ||
+          form.includes('mgt') ||
+          (form.includes('roc') && !form.includes('dpt')) ||
+          ((entity === 'private limited' || entity === 'llp') && form === 'itr-6')
+        );
       }
       if (s.includes('dpt')) {
-        return item.entityType === 'Private Limited' || item.itrForm === 'ITR-6';
+        return form.includes('dpt');
       }
-      return true;
+      return form === s || form.includes(s) || s.includes(form);
     }
 
     return true;
@@ -388,7 +418,26 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                 variant="primary"
                 size="md"
                 icon={Plus}
-                onClick={() => onAddNewTask(activeSub !== 'All' ? activeSub : (activePillar !== 'All' ? activePillar : undefined))}
+                onClick={() => {
+                  let defaultSvc: string | undefined = undefined;
+                  if (activeSub !== 'All') {
+                    if (activeSub.includes('AOC') || activeSub.includes('MGT')) defaultSvc = 'ROC (AOC-4 & MGT-7)';
+                    else if (activeSub.includes('DPT')) defaultSvc = 'ROC (DPT-3)';
+                    else if (activeSub.includes('Tax Audit')) defaultSvc = activePillar === 'Audit' ? 'Tax Audit (3CA/3CB-3CD)' : 'ITR - Tax Audit';
+                    else if (activeSub.includes('Statutory')) defaultSvc = 'Statutory Audit';
+                    else if (activeSub.includes('GSTR-9C')) defaultSvc = 'GSTR-9C';
+                    else if (activeSub.includes('GSTR-9')) defaultSvc = 'GSTR-9';
+                    else if (activeSub.includes('Individual')) defaultSvc = 'ITR - Individual';
+                    else if (activeSub.includes('Business')) defaultSvc = 'ITR - Business';
+                    else if (activeSub.includes('Company')) defaultSvc = 'ITR - Company';
+                    else defaultSvc = activeSub;
+                  } else if (activePillar !== 'All') {
+                    if (activePillar === 'ROC Compliance') defaultSvc = 'ROC (AOC-4 & MGT-7)';
+                    else if (activePillar === 'Audit') defaultSvc = 'Tax Audit (3CA/3CB-3CD)';
+                    else if (activePillar === 'Income Tax Return') defaultSvc = 'ITR - Individual';
+                  }
+                  onAddNewTask(defaultSvc);
+                }}
               >
                 New Task
               </Button>
