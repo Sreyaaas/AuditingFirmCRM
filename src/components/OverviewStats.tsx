@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   MonthlyTask, 
   StaffMember, 
@@ -7,7 +7,7 @@ import {
   UserProfile 
 } from '../types/crm';
 import { ArrowRight, CheckCircle2, Wallet, ListChecks, FileText, CalendarClock, FileClock } from 'lucide-react';
-import { Avatar, Badge, Button, Card, CardHeader, Metric, MetricGrid, PageHeader, Progress, Tone, cn, formatDate } from './ui';
+import { Avatar, Badge, Button, Card, CardHeader, Metric, MetricGrid, PageHeader, Pagination, Progress, Tone, cn, formatDate } from './ui';
 
 interface OverviewStatsProps {
   currentUser: UserProfile;
@@ -112,8 +112,74 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
     (t) => t.status !== 'Filed' && t.daysRemaining <= dueSoonDays
   );
 
-  const attentionCount =
-    immediateRisks.length + (docsPendingCount > 0 ? 1 : 0) + (showFees && overdueDebtorsCount > 0 ? 1 : 0) + (itrPendingCount > 0 ? 1 : 0);
+  const [attentionPage, setAttentionPage] = useState(1);
+  const ATTENTION_PAGE_SIZE = 5;
+
+  const attentionItems = [
+    ...immediateRisks.map((task) => ({
+      id: task.id,
+      tone: (task.daysRemaining < 0 ? 'danger' : 'warning') as Tone,
+      title: `${task.filingType} · ${task.tradeName}`,
+      tag: (
+        <Badge tone={task.daysRemaining < 0 ? 'danger' : 'warning'} className="num">
+          {task.daysRemaining < 0
+            ? `${Math.abs(task.daysRemaining)}d overdue`
+            : task.daysRemaining === 0
+            ? 'Due today'
+            : `Due in ${task.daysRemaining}d`}
+        </Badge>
+      ),
+      meta: `${staffList.find((s) => s.id === task.assignedStaffId)?.name || 'Unassigned'} · ${task.status} · Due ${formatDate(task.dueDate)}`,
+      action: 'Review',
+      onClick: () => onNavigateTab('monthly'),
+    })),
+    ...(docsPendingCount > 0
+      ? [
+          {
+            id: 'docs-pending-summary',
+            tone: 'neutral' as Tone,
+            title: docsPendingTasks.map((t) => t.tradeName).join(', '),
+            tag: <Badge>Documents pending</Badge>,
+            meta: `${prevLabel} sales and purchase bills needed for GSTR-1 and GSTR-3B.`,
+            action: 'Send reminder',
+            onClick: () => onNavigateTab('monthly', 'Docs Pending'),
+          },
+        ]
+      : []),
+    ...(showFees && overdueDebtorsCount > 0
+      ? [
+          {
+            id: 'overdue-debtors-summary',
+            tone: 'danger' as Tone,
+            title: `${overdueDebtorsCount} ${overdueDebtorsCount === 1 ? 'account' : 'accounts'} with outstanding fees`,
+            tag: <Badge tone="danger">Receivables</Badge>,
+            meta: `₹${totalReceivables.toLocaleString('en-IN')} · ${overdueDebtors.map((d) => d.clientName).slice(0, 3).join(', ')}`,
+            action: 'View debtors',
+            onClick: () => onNavigateTab('debtors'),
+          },
+        ]
+      : []),
+    ...(itrPendingCount > 0
+      ? [
+          {
+            id: 'itr-pending-summary',
+            tone: 'warning' as Tone,
+            title: `${itrPendingCount} ${itrPendingCount === 1 ? 'annual ITR filing' : 'annual ITR filings'} pending`,
+            tag: <Badge tone="warning">ITR</Badge>,
+            meta: `${relevantItr.filter((i) => i.status !== 'Filed & e-Verified').map((i) => i.clientName).slice(0, 3).join(', ')}${relevantItr.filter((i) => i.status !== 'Filed & e-Verified').length > 3 ? '…' : ''} · AY ${financialYear || '2026-27'}`,
+            action: 'Open ITR',
+            onClick: () => onNavigateTab('itr'),
+          },
+        ]
+      : []),
+  ];
+
+  const totalAttentionPages = Math.ceil(attentionItems.length / ATTENTION_PAGE_SIZE) || 1;
+  const currentAttentionPage = Math.min(attentionPage, totalAttentionPages);
+  const paginatedAttentionItems = attentionItems.slice(
+    (currentAttentionPage - 1) * ATTENTION_PAGE_SIZE,
+    currentAttentionPage * ATTENTION_PAGE_SIZE
+  );
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -188,26 +254,31 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
       <Card className="overflow-hidden">
         <CardHeader
           title="Needs attention"
-          actions={<span className="num text-xs text-fg-subtle">{attentionCount} open</span>}
+          actions={
+            <div className="flex items-center gap-2">
+              <span className="num text-xs text-fg-subtle">{attentionItems.length} open</span>
+              {totalAttentionPages > 1 && (
+                <span className="text-2xs text-fg-faint num border-l border-line pl-2">
+                  Page {currentAttentionPage} of {totalAttentionPages}
+                </span>
+              )}
+            </div>
+          }
         />
         <div className="divide-y divide-line">
-          {immediateRisks.length > 0 ? (
-            immediateRisks.map((task) => (
+          {paginatedAttentionItems.length > 0 ? (
+            paginatedAttentionItems.map((item) => (
               <AttentionRow
-                key={task.id}
-                tone={task.daysRemaining < 0 ? 'danger' : 'warning'}
-                title={`${task.filingType} · ${task.tradeName}`}
-                tag={
-                  <Badge tone={task.daysRemaining < 0 ? 'danger' : 'warning'} className="num">
-                    {task.daysRemaining < 0 ? `${Math.abs(task.daysRemaining)}d overdue` : task.daysRemaining === 0 ? 'Due today' : `Due in ${task.daysRemaining}d`}
-                  </Badge>
-                }
-                meta={`${staffList.find((s) => s.id === task.assignedStaffId)?.name || 'Unassigned'} · ${task.status} · Due ${formatDate(task.dueDate)}`}
-                action="Review"
-                onClick={() => onNavigateTab('monthly')}
+                key={item.id}
+                tone={item.tone}
+                title={item.title}
+                tag={item.tag}
+                meta={item.meta}
+                action={item.action}
+                onClick={item.onClick}
               />
             ))
-          ) : attentionCount === 0 ? (
+          ) : (
             <div className="flex items-center gap-3 px-4 py-5">
               <div className="w-9 h-9 rounded-full bg-success/10 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-5 h-5 text-success" strokeWidth={1.75} />
@@ -217,49 +288,18 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
                 <div className="text-xs text-fg-subtle mt-0.5">Nothing due in the next {dueSoonDays} days, no documents pending and no overdue fees.</div>
               </div>
             </div>
-          ) : (
-            <AttentionRow
-              tone="success"
-              title="Filings on schedule"
-              meta={`Nothing due in the next ${dueSoonDays} days.`}
-              action="Open queue"
-              onClick={() => onNavigateTab('monthly')}
-            />
-          )}
-
-          {docsPendingCount > 0 && (
-            <AttentionRow
-              tone="neutral"
-              title={docsPendingTasks.map((t) => t.tradeName).join(', ')}
-              tag={<Badge>Documents pending</Badge>}
-              meta={`${prevLabel} sales and purchase bills needed for GSTR-1 and GSTR-3B.`}
-              action="Send reminder"
-              onClick={() => onNavigateTab('monthly', 'Docs Pending')}
-            />
-          )}
-
-          {showFees && overdueDebtorsCount > 0 && (
-            <AttentionRow
-              tone="danger"
-              title={`${overdueDebtorsCount} ${overdueDebtorsCount === 1 ? 'account' : 'accounts'} with outstanding fees`}
-              tag={<Badge tone="danger">Receivables</Badge>}
-              meta={`₹${totalReceivables.toLocaleString('en-IN')} · ${overdueDebtors.map((d) => d.clientName).slice(0, 3).join(', ')}`}
-              action="View debtors"
-              onClick={() => onNavigateTab('debtors')}
-            />
-          )}
-
-          {itrPendingCount > 0 && (
-            <AttentionRow
-              tone="warning"
-              title={`${itrPendingCount} ${itrPendingCount === 1 ? 'annual ITR filing' : 'annual ITR filings'} pending`}
-              tag={<Badge tone="warning">ITR</Badge>}
-              meta={`${relevantItr.filter((i) => i.status !== 'Filed & e-Verified').map((i) => i.clientName).slice(0, 3).join(', ')}${relevantItr.filter((i) => i.status !== 'Filed & e-Verified').length > 3 ? '…' : ''} · AY ${financialYear || '2026-27'}`}
-              action="Open ITR"
-              onClick={() => onNavigateTab('itr')}
-            />
           )}
         </div>
+        {totalAttentionPages > 1 && (
+          <Pagination
+            page={currentAttentionPage}
+            totalPages={totalAttentionPages}
+            totalItems={attentionItems.length}
+            pageSize={ATTENTION_PAGE_SIZE}
+            onChange={setAttentionPage}
+            noun="items"
+          />
+        )}
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
