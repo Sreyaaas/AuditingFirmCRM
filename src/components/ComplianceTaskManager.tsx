@@ -83,7 +83,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   const [arnFor, setArnFor] = useState<MonthlyTask | null>(null);
   const [arnInput, setArnInput] = useState('');
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 12;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
 
   const handlePeriodPrev = () => {
     const idx = periods.indexOf(selectedPeriod);
@@ -350,6 +350,19 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                   wrapperClassName="w-40 sm:w-52"
                   className="h-7 text-xs"
                 />
+                <Select
+                  aria-label="Items per page"
+                  value={String(itemsPerPage)}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="h-7 text-xs w-auto font-mono"
+                >
+                  <option value="5">5 / page</option>
+                  <option value="10">10 / page</option>
+                  <option value="25">25 / page</option>
+                </Select>
               </div>
             </div>
             {selectedTaskIds.length > 0 && (

@@ -81,7 +81,7 @@ export const OtherAssignmentsManager: React.FC<OtherAssignmentsManagerProps> = (
   const [openStatusMenuId, setOpenStatusMenuId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<MonthlyTask | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 12;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
 
   // Filter tasks
   const effectiveStaffFilter = selectedStaffId || (staffFilterState !== 'all' ? staffFilterState : null);
@@ -230,15 +230,30 @@ export const OtherAssignmentsManager: React.FC<OtherAssignmentsManagerProps> = (
                 ]}
               />
 
-              <div className="w-full lg:w-72">
-                <SearchInput
-                  placeholder="Search assignment or client…"
-                  value={searchQuery}
+              <div className="flex items-center gap-2 w-full lg:w-auto">
+                <div className="w-full lg:w-72">
+                  <SearchInput
+                    placeholder="Search assignment or client…"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+                <Select
+                  aria-label="Items per page"
+                  value={String(itemsPerPage)}
                   onChange={(e) => {
-                    setSearchQuery(e.target.value);
+                    setItemsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                />
+                  className="h-7 text-xs w-auto font-mono shrink-0"
+                >
+                  <option value="5">5 / page</option>
+                  <option value="10">10 / page</option>
+                  <option value="25">25 / page</option>
+                </Select>
               </div>
             </div>
           </div>

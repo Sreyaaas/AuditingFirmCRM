@@ -107,10 +107,10 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
     return { filed, total: matching.length };
   };
 
-  // Immediate Statutory Risks (< 3 days and not filed)
-  const immediateRisks = relevantTasks.filter(
-    (t) => t.status !== 'Filed' && t.daysRemaining <= dueSoonDays
-  );
+  // Immediate Statutory Risks (< 3 days and not filed), sorted by urgency
+  const immediateRisks = relevantTasks
+    .filter((t) => t.status !== 'Filed' && t.daysRemaining <= dueSoonDays)
+    .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
   const [attentionPage, setAttentionPage] = useState(1);
   const ATTENTION_PAGE_SIZE = 5;
@@ -131,7 +131,15 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
       ),
       meta: `${staffList.find((s) => s.id === task.assignedStaffId)?.name || 'Unassigned'} · ${task.status} · Due ${formatDate(task.dueDate)}`,
       action: 'Review',
-      onClick: () => onNavigateTab('monthly'),
+      onClick: () => {
+        if (task.category === 'quarterly' || task.category === 'other') {
+          onNavigateTab('other-assignments');
+        } else if (task.category === 'annual') {
+          onNavigateTab('itr');
+        } else {
+          onNavigateTab('monthly');
+        }
+      },
     })),
     ...(docsPendingCount > 0
       ? [
