@@ -587,6 +587,34 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     }
   };
 
+  // Helper: High-resolution print-grade A4 PDF configuration (350+ DPI, zero pixelation)
+  const getInvoicePdfOptions = (filename: string) => ({
+    margin: [6, 6, 6, 6] as [number, number, number, number],
+    filename: filename,
+    image: { type: 'jpeg', quality: 1.0 },
+    html2canvas: {
+      scale: 3.5,
+      useCORS: true,
+      logging: false,
+      letterRendering: true,
+      backgroundColor: '#ffffff',
+      windowWidth: 1200,
+      onclone: (clonedDoc: Document) => {
+        const el = clonedDoc.getElementById('printable-invoice');
+        if (el) {
+          el.style.width = '794px';
+          el.style.maxWidth = '794px';
+          el.style.minWidth = '794px';
+          el.style.boxShadow = 'none';
+          el.style.margin = '0 auto';
+          el.style.backgroundColor = '#ffffff';
+        }
+      },
+    },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+  });
+
   // Actions: Direct High-Resolution PDF Download
   const handleDownloadPdf = () => {
     const element = document.getElementById('printable-invoice');
@@ -598,13 +626,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     const cleanDate = (formattedDate || 'Date').replace(/\s+/g, '');
     const filename = `Invoice_${cleanInv}_${cleanClient}_${cleanDate}.pdf`;
 
-    const opt = {
-      margin: [8, 8, 8, 8],
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    };
+    const opt = getInvoicePdfOptions(filename);
 
     const pdfGenerator = typeof html2pdf === 'function' ? html2pdf : (html2pdf as any)?.default;
     if (pdfGenerator) {
@@ -636,13 +658,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       (firmProfile?.upiId ? `UPI: ${firmProfile.upiId}\n` : '') +
       `\nThank you,\n*${firmName}* | Accountants and Practitioners`;
 
-    const opt = {
-      margin: [8, 8, 8, 8],
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    };
+    const opt = getInvoicePdfOptions(filename);
 
     const pdfGenerator = typeof html2pdf === 'function' ? html2pdf : (html2pdf as any)?.default;
     if (!pdfGenerator) {
@@ -1067,7 +1083,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                       placeholder="0"
                       value={item.amount || ''}
                       onChange={(e) => handleUpdateService(item.id, 'amount', e.target.value)}
-                      className="h-7 text-xs pl-5 text-right font-mono num"
+                      className="h-7 text-xs pl-5 text-right font-medium num"
                     />
                   </div>
                   {services.length > 1 && (
@@ -1085,7 +1101,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
             <div className="flex justify-between items-center pt-2 border-t border-line text-xs font-medium">
               <span className="text-fg-subtle">Services Subtotal</span>
-              <span className="font-mono text-fg">{formatINR(servicesTotal)}</span>
+              <span className="num font-semibold text-fg">{formatINR(servicesTotal)}</span>
             </div>
           </div>
 
@@ -1131,7 +1147,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                         placeholder="0"
                         value={item.amount || ''}
                         onChange={(e) => handleUpdateExpense(item.id, 'amount', e.target.value)}
-                        className="h-7 text-xs pl-5 text-right font-mono num"
+                        className="h-7 text-xs pl-5 text-right font-medium num"
                       />
                     </div>
                     <IconButton
@@ -1149,7 +1165,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             {expenses.length > 0 && (
               <div className="flex justify-between items-center pt-2 border-t border-line text-xs font-medium">
                 <span className="text-fg-subtle">Reimbursements Subtotal</span>
-                <span className="font-mono text-fg">{formatINR(expensesTotal)}</span>
+                <span className="num font-semibold text-fg">{formatINR(expensesTotal)}</span>
               </div>
             )}
           </div>
@@ -1185,7 +1201,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                         const cleanVal = e.target.value.replace(/,/g, '').trim();
                         setDebtorBalance(cleanVal === '' ? 0 : Number(cleanVal) || 0);
                       }}
-                      className="w-24 h-6 text-xs px-2 text-right rounded border border-line bg-surface font-mono"
+                      className="w-24 h-6 text-xs px-2 text-right rounded border border-line bg-surface num font-medium"
                     />
                   </div>
                 </div>
@@ -1206,7 +1222,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                     const cleanVal = e.target.value.replace(/,/g, '').trim();
                     setAdvanceReceived(cleanVal === '' ? 0 : Number(cleanVal) || 0);
                   }}
-                  className="h-8 text-xs pl-6 text-right font-mono num"
+                  className="h-8 text-xs pl-6 text-right num font-medium"
                 />
               </div>
             </div>
@@ -1233,7 +1249,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             {/* Net Amount Summary */}
             <div className="pt-3 border-t border-line flex items-center justify-between text-sm font-semibold">
               <span className="text-fg">Net Payable</span>
-              <span className="font-mono text-accent text-base">{formatINR(netPayable)}</span>
+              <span className="num font-semibold text-accent text-base">{formatINR(netPayable)}</span>
             </div>
           </div>
         </div>
@@ -1264,7 +1280,27 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             const MUTED = '#374151';
             const RULE = '#E2E8F0';
             const BRAND = '#1B365D';
-            const mono = { fontFamily: '"JetBrains Mono", "SF Mono", Menlo, Consolas, monospace', fontVariantNumeric: 'tabular-nums' as const };
+
+            // Currency figures and amounts: clean proportional typography with tabular numerals (no typewriter slop)
+            const numStyle: React.CSSProperties = {
+              fontFamily: INVOICE_FONT_STACK,
+              fontVariantNumeric: 'tabular-nums',
+              fontFeatureSettings: '"tnum", "cv11"',
+              letterSpacing: '-0.01em',
+            };
+            // Alphanumeric tax/banking codes (GSTIN, PAN, Bank A/C, IFSC, Invoice No, SAC)
+            const identStyle: React.CSSProperties = {
+              fontFamily: 'ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono", Menlo, Consolas, monospace',
+              fontVariantNumeric: 'tabular-nums',
+              letterSpacing: '0.03em',
+            };
+            // Dates and calendar metadata
+            const dateStyle: React.CSSProperties = {
+              fontFamily: INVOICE_FONT_STACK,
+              fontVariantNumeric: 'tabular-nums',
+              letterSpacing: '0.01em',
+            };
+
             const label: React.CSSProperties = { fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: MUTED };
             const showSac = [...services, ...expenses].some((s) => s.sacCode);
             const cell: React.CSSProperties = { padding: '12px 0', borderBottom: `1px solid ${RULE}`, verticalAlign: 'top', fontSize: 12 };
@@ -1284,16 +1320,17 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                   display: 'flex',
                   flexDirection: 'column',
                   borderTop: `4px solid ${BRAND}`,
+                  pageBreakInside: 'avoid',
                 }}
               >
                 {/* Letterhead */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 }}>
                   <img src="/logo-light.png" alt={firm.name} style={{ height: 52, width: 'auto', objectFit: 'contain' }} />
                   <div style={{ textAlign: 'right', fontSize: 11, color: MUTED, lineHeight: 1.6, fontWeight: 500 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: INK }}>{firm.name}</div>
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: INK, letterSpacing: '-0.01em' }}>{firm.name}</div>
                     <div>{firm.category}</div>
                     <div>{firm.address}</div>
-                    <div>{firm.phone}</div>
+                    <div style={numStyle}>{firm.phone}</div>
                     <div>{firm.email}</div>
                   </div>
                 </div>
@@ -1306,19 +1343,19 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', columnGap: 20, rowGap: 5, fontSize: 11.5 }}>
                     <span style={{ color: MUTED, fontWeight: 600 }}>Invoice no.</span>
-                    <span style={{ ...mono, fontWeight: 700, textAlign: 'right', color: INK }}>{invoiceNumber}</span>
+                    <span style={{ ...identStyle, fontWeight: 700, textAlign: 'right', color: INK }}>{invoiceNumber}</span>
                     <span style={{ color: MUTED, fontWeight: 600 }}>Date of issue</span>
-                    <span style={{ ...mono, fontWeight: 600, textAlign: 'right', color: INK }}>{formattedDate}</span>
+                    <span style={{ ...dateStyle, fontWeight: 600, textAlign: 'right', color: INK }}>{formattedDate}</span>
                     {firm.gstin && (
                       <>
                         <span style={{ color: MUTED, fontWeight: 600 }}>Our GSTIN</span>
-                        <span style={{ ...mono, fontWeight: 600, textAlign: 'right', color: INK }}>{firm.gstin}</span>
+                        <span style={{ ...identStyle, fontWeight: 600, textAlign: 'right', color: INK }}>{firm.gstin}</span>
                       </>
                     )}
                     {firm.pan && (
                       <>
                         <span style={{ color: MUTED, fontWeight: 600 }}>Our PAN</span>
-                        <span style={{ ...mono, fontWeight: 600, textAlign: 'right', color: INK }}>{firm.pan}</span>
+                        <span style={{ ...identStyle, fontWeight: 600, textAlign: 'right', color: INK }}>{firm.pan}</span>
                       </>
                     )}
                   </div>
@@ -1329,12 +1366,12 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                   <div>
                     <div style={label}>Billed to</div>
                     <div style={{ fontSize: 14.5, fontWeight: 700, color: INK, marginTop: 6 }}>{clientName || 'Client name'}</div>
-                    {phone && <div style={{ ...mono, color: MUTED, fontWeight: 500, marginTop: 3, fontSize: 11.5 }}>{phone}</div>}
+                    {phone && <div style={{ ...numStyle, color: MUTED, fontWeight: 500, marginTop: 3, fontSize: 11.5 }}>{phone}</div>}
                   </div>
                   {gstin && (
                     <div style={{ textAlign: 'right' }}>
                       <div style={label}>GSTIN</div>
-                      <div style={{ ...mono, fontWeight: 700, color: INK, marginTop: 6, fontSize: 12 }}>{gstin}</div>
+                      <div style={{ ...identStyle, fontWeight: 700, color: INK, marginTop: 6, fontSize: 12 }}>{gstin}</div>
                     </div>
                   )}
                 </div>
@@ -1343,19 +1380,19 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 32 }}>
                   <thead>
                     <tr>
-                      <th style={{ ...label, textAlign: 'left', width: 28, paddingBottom: 10, borderBottom: `2px solid ${INK}` }}>#</th>
+                      <th style={{ ...label, textAlign: 'left', width: 32, paddingBottom: 10, borderBottom: `2px solid ${INK}` }}>#</th>
                       <th style={{ ...label, textAlign: 'left', paddingBottom: 10, borderBottom: `2px solid ${INK}` }}>Description</th>
-                      {showSac && <th style={{ ...label, textAlign: 'left', width: 72, paddingBottom: 10, borderBottom: `2px solid ${INK}` }}>SAC</th>}
-                      <th style={{ ...label, textAlign: 'right', width: 120, paddingBottom: 10, borderBottom: `2px solid ${INK}` }}>Amount (₹)</th>
+                      {showSac && <th style={{ ...label, textAlign: 'left', width: 76, paddingBottom: 10, borderBottom: `2px solid ${INK}` }}>SAC</th>}
+                      <th style={{ ...label, textAlign: 'right', width: 130, paddingBottom: 10, borderBottom: `2px solid ${INK}` }}>Amount (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {services.map((item) => (
                       <tr key={item.id}>
-                        <td style={{ ...cell, ...mono, color: MUTED, fontWeight: 600 }}>{String(++n).padStart(2, '0')}</td>
+                        <td style={{ ...cell, ...numStyle, color: MUTED, fontWeight: 600 }}>{String(++n).padStart(2, '0')}</td>
                         <td style={{ ...cell, fontWeight: 600, paddingRight: 16, color: INK }}>{item.description || '—'}</td>
-                        {showSac && <td style={{ ...cell, ...mono, color: MUTED, fontWeight: 500 }}>{item.sacCode || ''}</td>}
-                        <td style={{ ...cell, ...mono, textAlign: 'right', fontWeight: 600, color: INK }}>{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
+                        {showSac && <td style={{ ...cell, ...identStyle, color: MUTED, fontWeight: 500 }}>{item.sacCode || ''}</td>}
+                        <td style={{ ...cell, ...numStyle, textAlign: 'right', fontWeight: 600, color: INK, fontSize: 12.5 }}>{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
                       </tr>
                     ))}
                     {expenses.length > 0 && (
@@ -1368,8 +1405,8 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                       <tr key={item.id}>
                         <td style={cell} />
                         <td style={{ ...cell, fontWeight: 600, paddingRight: 16, color: INK }}>{item.description || '—'}</td>
-                        {showSac && <td style={{ ...cell, ...mono, color: MUTED, fontWeight: 500 }}>{item.sacCode || ''}</td>}
-                        <td style={{ ...cell, ...mono, textAlign: 'right', fontWeight: 600, color: INK }}>{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
+                        {showSac && <td style={{ ...cell, ...identStyle, color: MUTED, fontWeight: 500 }}>{item.sacCode || ''}</td>}
+                        <td style={{ ...cell, ...numStyle, textAlign: 'right', fontWeight: 600, color: INK, fontSize: 12.5 }}>{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
                       </tr>
                     ))}
                     {includeOutstanding && debtorBalance > 0 && (
@@ -1377,7 +1414,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                         <td style={cell} />
                         <td style={{ ...cell, fontWeight: 600, paddingRight: 16, color: INK }}>Outstanding as on {formattedDate}</td>
                         {showSac && <td style={cell} />}
-                        <td style={{ ...cell, ...mono, textAlign: 'right', fontWeight: 600, color: INK }}>{formatINR(debtorBalance)}</td>
+                        <td style={{ ...cell, ...numStyle, textAlign: 'right', fontWeight: 600, color: INK, fontSize: 12.5 }}>{formatINR(debtorBalance)}</td>
                       </tr>
                     )}
                   </tbody>
@@ -1385,25 +1422,25 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
                 {/* Totals */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
-                  <div style={{ width: 290 }}>
+                  <div style={{ width: 300 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: MUTED, fontWeight: 500 }}>
                       <span style={{ fontWeight: 600 }}>Subtotal</span>
-                      <span style={{ ...mono, fontWeight: 600, color: INK }}>{formatINR(grossTotal)}</span>
+                      <span style={{ ...numStyle, fontWeight: 600, color: INK, fontSize: 12.5 }}>{formatINR(grossTotal)}</span>
                     </div>
                     {advanceReceived > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: MUTED, fontWeight: 500 }}>
                         <span style={{ fontWeight: 600 }}>Less: advance received</span>
-                        <span style={{ ...mono, fontWeight: 600, color: INK }}>−{formatINR(advanceReceived)}</span>
+                        <span style={{ ...numStyle, fontWeight: 600, color: INK, fontSize: 12.5 }}>−{formatINR(advanceReceived)}</span>
                       </div>
                     )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8, padding: '12px 0', borderTop: `2px solid ${INK}` }}>
                       <span style={{ fontWeight: 700, fontSize: 13, color: INK }}>Amount payable</span>
-                      <span style={{ ...mono, fontSize: 19, fontWeight: 700, color: BRAND }}>{formatINR(netPayable)}</span>
+                      <span style={{ ...numStyle, fontSize: 20, fontWeight: 700, color: BRAND, letterSpacing: '-0.02em' }}>{formatINR(netPayable)}</span>
                     </div>
                   </div>
                 </div>
                 <div style={{ marginTop: 6, fontSize: 11, color: MUTED, textAlign: 'right', fontWeight: 500 }}>
-                  <span style={{ fontStyle: 'italic' }}>{amountInWords}</span>
+                  <span style={{ fontStyle: 'italic', fontFamily: INVOICE_FONT_STACK }}>{amountInWords}</span>
                 </div>
 
                 <div style={{ flex: 1 }} />
@@ -1418,13 +1455,13 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                       <span style={{ color: MUTED, fontWeight: 600 }}>Bank</span>
                       <span style={{ color: INK, fontWeight: 500 }}>{firm.bank}{firm.branch ? `, ${firm.branch}` : ''}</span>
                       <span style={{ color: MUTED, fontWeight: 600 }}>Account no.</span>
-                      <span style={{ ...mono, fontWeight: 600, color: INK }}>{firm.account}</span>
+                      <span style={{ ...identStyle, fontWeight: 600, color: INK }}>{firm.account}</span>
                       <span style={{ color: MUTED, fontWeight: 600 }}>IFSC</span>
-                      <span style={{ ...mono, fontWeight: 600, color: INK }}>{firm.ifsc}</span>
+                      <span style={{ ...identStyle, fontWeight: 600, color: INK }}>{firm.ifsc}</span>
                       {firm.upi && (
                         <>
                           <span style={{ color: MUTED, fontWeight: 600 }}>UPI</span>
-                          <span style={{ ...mono, fontWeight: 600, color: INK }}>{firm.upi}</span>
+                          <span style={{ ...identStyle, fontWeight: 600, color: INK }}>{firm.upi}</span>
                         </>
                       )}
                     </div>

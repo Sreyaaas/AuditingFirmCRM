@@ -263,3 +263,10 @@ Dropdown lists remain in `practice_configs`.
   - Fixed location formatting duplication (`Partnership · Kerala, Kerala` / `Kerala, Kerala, India`) via `formatLocation` normalization.
   - Added prominent `Edit` button in `ClientDetailDrawer` header and transformed "Contact & Partners" into interactive cards with 1-click WhatsApp and copy actions for each contact.
   - Wired `SelectRecipientModal` into `ClientDetailDrawer` footer WhatsApp action for multi-contact clients.
+* **Invoice High-Definition Print Engine & Tabular Numeral Typography Refinement:**
+  - Upgraded PDF generation engine in `InvoiceGeneratorModal.tsx` (`handleDownloadPdf` and `handleShareWhatsAppPdf`) with `scale: 3.5`, `quality: 1.0`, `windowWidth: 1200`, and `onclone` fixed A4 sizing (`width: 794px`, `maxWidth: 794px`, `minWidth: 794px`). This delivers 356+ DPI print-grade resolution that stays tack-sharp when zoomed in up to 300%–400% on phones and high-DPI displays without pixelation or compression artifacts.
+  - Eliminated "AI slop" typewriter monospace font (`JetBrains Mono / Consolas`) on currency figures, totals, and dates. Replaced with `INVOICE_FONT_STACK` (`"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`) with OpenType tabular figures (`font-variant-numeric: tabular-nums; font-feature-settings: 'tnum', 'cv11'`).
+  - Native Indian Rupee symbol `₹` now matches the exact typeface, weight, baseline, and optical density of the digits across line items, subtotals, advances, and amount payable.
+  - Alphanumeric tax/banking codes (GSTIN, PAN, Bank A/C, IFSC, Invoice No, SAC) formatted with dedicated crisp character spacing (`identStyle`).
+  - Left invoice editor panel updated to use `.num font-semibold` and `.num font-medium` instead of raw monospace fonts.
+  - Paginated "Needs attention" on home screen and Compliance Task Manager tables to 5 items per page with page size selector to keep views calm and uncluttered.
