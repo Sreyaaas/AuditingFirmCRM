@@ -7,6 +7,10 @@
  */
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
+export const FIRM_ONEDRIVE_ROOT_URL =
+  (import.meta.env.VITE_ONEDRIVE_ROOT_URL as string) ||
+  'https://1drv.ms/f/c/6d023fceb42274e4/IgCNp_1ksPz6T7DWVH-fWb9BAS4cixWOzACXwdw4XkMGDjY?e=LV2A9e';
+
 export interface WhatsAppTemplateSettings {
   docRequest: string;
   paymentReminder: string;
@@ -27,6 +31,7 @@ export interface FirmProfileSettings {
   accountNumber: string;
   ifscCode: string;
   upiId: string;
+  oneDriveRootUrl?: string;
 }
 
 /** Admin-configurable behaviour of the CRM. */
@@ -76,6 +81,7 @@ export const DEFAULT_FIRM_PROFILE: FirmProfileSettings = {
   accountNumber: '',
   ifscCode: '',
   upiId: '',
+  oneDriveRootUrl: FIRM_ONEDRIVE_ROOT_URL,
 };
 
 const fyFor = (d = new Date()) => {

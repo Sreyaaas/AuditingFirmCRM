@@ -19,7 +19,7 @@ import {
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 import { Client, DebtorRecord, OfficeBillingEntry } from '../types/crm';
-import { AppPreferences, FirmProfileSettings } from '../services/firmConfigService';
+import { AppPreferences, FirmProfileSettings, FIRM_ONEDRIVE_ROOT_URL } from '../services/firmConfigService';
 import { numberToWordsINR } from '../utils/numberToWords';
 import { sendToIndividual, sendToGroup, cleanWhatsAppPhone, dispatchAppToast } from '../utils/whatsapp';
 import { Badge, Button, IconButton, Input, Modal, formatINR, cn } from './ui';
@@ -460,7 +460,8 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   );
   const clientOneDriveFolder =
     matchedClient?.oneDriveFolderUrl ||
-    `https://shameerassociates.sharepoint.com/clients/${clientName.replace(/\s+/g, '') || 'General'}`;
+    firmProfile?.oneDriveRootUrl ||
+    FIRM_ONEDRIVE_ROOT_URL;
 
   // Actions: Direct OneDrive Upload
   const handleStoreToOneDriveDirectly = () => {

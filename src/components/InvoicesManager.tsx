@@ -20,6 +20,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Client, DebtorRecord, OfficeBillingEntry } from '../types/crm';
+import { FIRM_ONEDRIVE_ROOT_URL } from '../services/firmConfigService';
 import {
   Badge,
   Button,
@@ -145,7 +146,7 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
     );
     const clientFolder =
       matchedClient?.oneDriveFolderUrl ||
-      `https://shameerassociates.sharepoint.com/clients/${entry.clientName.replace(/\s+/g, '')}`;
+      FIRM_ONEDRIVE_ROOT_URL;
     const cleanInv = (entry.invoiceNumber || `SA-${entry.serialNo}`).replace(/[^a-zA-Z0-9-]/g, '_');
     const docUrl = `${clientFolder}/Invoices/INV-${cleanInv}.pdf`;
 
@@ -545,13 +546,13 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
                   href={
                     viewingOneDriveDoc.entry.oneDriveUrl ||
                     viewingOneDriveDoc.client?.oneDriveFolderUrl ||
-                    'https://shameerassociates.sharepoint.com'
+                    FIRM_ONEDRIVE_ROOT_URL
                   }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium bg-ink text-ink-fg hover:opacity-90 transition-opacity"
                 >
-                  <span>Open in SharePoint</span>
+                  <span>Open in OneDrive</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
@@ -588,8 +589,7 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
               </span>
               <div className="p-2 rounded border border-line bg-surface font-mono text-2xs text-fg break-all">
                 {viewingOneDriveDoc.client?.oneDriveFolderUrl ||
-                  `https://shameerassociates.sharepoint.com/clients/${viewingOneDriveDoc.entry.clientName.replace(/\s+/g, '')}`}
-                /Invoices/
+                  FIRM_ONEDRIVE_ROOT_URL}
               </div>
             </div>
 

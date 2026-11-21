@@ -565,6 +565,15 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
                 {firmField('ifscCode', 'IFSC', { mono: true })}
                 {firmField('upiId', 'UPI ID', { mono: true })}
               </div>
+            </Card>
+            <Card>
+              <CardHeader title="Document storage (Microsoft OneDrive)" description="Master cloud repository for client folders, tax returns, and invoice PDFs" />
+              <div className="p-4 space-y-2">
+                {firmField('oneDriveRootUrl', 'Master OneDrive / SharePoint URL', { mono: true, className: 'w-full' })}
+                <p className="text-2xs text-fg-subtle">
+                  Client document tabs and invoice cloud archiving will open this live repository.
+                </p>
+              </div>
               <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-line">
                 {firmMsg && <Saved error={firmMsg.error}>{firmMsg.text}</Saved>}
                 <Button type="submit" variant="primary">

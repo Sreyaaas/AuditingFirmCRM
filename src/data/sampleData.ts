@@ -99,7 +99,7 @@ export const SAMPLE_CLIENTS: Client[] = [
     assignedStaffId: "staff-ameen",
     monthlyAuditFee: 9000,
     city: "Calicut",
-    oneDriveFolderUrl: "https://shameerassociates.sharepoint.com/clients/C-001-Havos",
+    oneDriveFolderUrl: "https://1drv.ms/f/c/6d023fceb42274e4/IgCNp_1ksPz6T7DWVH-fWb9BAS4cixWOzACXwdw4XkMGDjY?e=LV2A9e",
     status: "Active"
   },
   {
@@ -118,7 +118,7 @@ export const SAMPLE_CLIENTS: Client[] = [
     assignedStaffId: "staff-susmi",
     monthlyAuditFee: 5760,
     city: "Kochi",
-    oneDriveFolderUrl: "https://shameerassociates.sharepoint.com/clients/C-002-KMTraders",
+    oneDriveFolderUrl: "https://1drv.ms/f/c/6d023fceb42274e4/IgCNp_1ksPz6T7DWVH-fWb9BAS4cixWOzACXwdw4XkMGDjY?e=LV2A9e",
     status: "Active"
   },
   {
@@ -137,7 +137,7 @@ export const SAMPLE_CLIENTS: Client[] = [
     assignedStaffId: "staff-susmi",
     monthlyAuditFee: 7500,
     city: "Calicut",
-    oneDriveFolderUrl: "https://shameerassociates.sharepoint.com/clients/C-003-MalabarSpices",
+    oneDriveFolderUrl: "https://1drv.ms/f/c/6d023fceb42274e4/IgCNp_1ksPz6T7DWVH-fWb9BAS4cixWOzACXwdw4XkMGDjY?e=LV2A9e",
     status: "Active"
   },
   {
@@ -156,7 +156,7 @@ export const SAMPLE_CLIENTS: Client[] = [
     assignedStaffId: "staff-susmi",
     monthlyAuditFee: 4500,
     city: "Calicut",
-    oneDriveFolderUrl: "https://shameerassociates.sharepoint.com/clients/C-004-RafeekSons",
+    oneDriveFolderUrl: "https://1drv.ms/f/c/6d023fceb42274e4/IgCNp_1ksPz6T7DWVH-fWb9BAS4cixWOzACXwdw4XkMGDjY?e=LV2A9e",
     status: "Active"
   },
   {
@@ -175,7 +175,7 @@ export const SAMPLE_CLIENTS: Client[] = [
     assignedStaffId: "staff-ameen",
     monthlyAuditFee: 3500,
     city: "Calicut",
-    oneDriveFolderUrl: "https://shameerassociates.sharepoint.com/clients/C-005-SpanishAbsolute",
+    oneDriveFolderUrl: "https://1drv.ms/f/c/6d023fceb42274e4/IgCNp_1ksPz6T7DWVH-fWb9BAS4cixWOzACXwdw4XkMGDjY?e=LV2A9e",
     status: "Active"
   }
 ];

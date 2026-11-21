@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Building2 } from 'lucide-react';
 import { Button, Field, Input, Modal, Select } from './ui';
 import { Client, StaffMember } from '../types/crm';
+import { FIRM_ONEDRIVE_ROOT_URL } from '../services/firmConfigService';
 
 interface NewClientModalProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
       assignedStaffId,
       monthlyAuditFee: Number(monthlyAuditFee) || 0,
       city: city.trim(),
-      oneDriveFolderUrl: `https://shameerassociates.sharepoint.com/clients/${clientCode}`,
+      oneDriveFolderUrl: FIRM_ONEDRIVE_ROOT_URL,
       status: 'Active',
     };
 

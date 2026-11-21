@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ExternalLink, Copy, Check, MessageSquare, ReceiptText } from 'lucide-react';
 import { Client, MonthlyTask, ITRFiling, StaffMember, StaffTicket, DebtorRecord, OfficeBillingEntry } from '../types/crm';
+import { FIRM_ONEDRIVE_ROOT_URL } from '../services/firmConfigService';
 import { Avatar, Badge, Button, DescriptionList, EmptyState, Modal, SearchInput, Segmented, Tabs, cn, formatDate, formatINR, statusTone } from './ui';
 
 interface ClientDetailDrawerProps {
@@ -135,12 +136,12 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
       footer={
         <>
           <a
-            href={client.oneDriveFolderUrl}
+            href={client.oneDriveFolderUrl || FIRM_ONEDRIVE_ROOT_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="mr-auto inline-flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg transition-colors"
           >
-            SharePoint folder
+            OneDrive folder
             <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
           </a>
           <Button variant="ghost" onClick={onClose}>
@@ -478,14 +479,12 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
 
       {activeTab === 'onedrive' && (
         <EmptyState
-          title="Client documents"
-          description={client.oneDriveFolderUrl ? 'Returns, workings and statements are kept in the client folder.' : 'No document folder has been linked for this client yet.'}
+          title="Client documents & records"
+          description="Returns, workings, portal filings, and statements are kept in the firm's OneDrive."
           action={
-            client.oneDriveFolderUrl && (
-              <a href={client.oneDriveFolderUrl} target="_blank" rel="noopener noreferrer">
-                <Button icon={ExternalLink}>Open Folder</Button>
-              </a>
-            )
+            <a href={client.oneDriveFolderUrl || FIRM_ONEDRIVE_ROOT_URL} target="_blank" rel="noopener noreferrer">
+              <Button icon={ExternalLink}>Open in OneDrive</Button>
+            </a>
           }
         />
       )}

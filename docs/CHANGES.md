@@ -233,3 +233,8 @@ Dropdown lists remain in `practice_configs`.
   - Added full Annual Compliance structure matching Shameer & Associates taxonomy with two-tier tabs (Tier 1: Income Tax Return, Audit, ROC Compliance; Tier 2: Sub-services such as Individual, Business, Tax Audit, Company, Statutory Audit, GSTR-9, GSTR-9C, AOC-4, DPT-3) with synchronized counts and real-time status filtering.
   - Streamlined task creation to a single clean `+ New Task` button in the compliance page action toolbar, eliminating duplicate ghost buttons and hiding redundant top-header buttons on compliance modules.
   - Added contextual category locking (`lockCategory`) to `NewTaskModal` so section-specific `New Task` buttons lock the category and display tailored titles/descriptions while the global header button retains full category tab switching.
+* **Official Microsoft OneDrive Repository Integration:**
+  - Configured the firm's authentic live OneDrive repository (`https://1drv.ms/f/c/6d023fceb42274e4/IgCNp_1ksPz6T7DWVH-fWb9BAS4cixWOzACXwdw4XkMGDjY?e=LV2A9e`) via `VITE_ONEDRIVE_ROOT_URL` in `.env` and `.env.example` with safe fallback in `src/services/firmConfigService.ts`.
+  - Replaced all obsolete placeholder `shameerassociates.sharepoint.com` URLs across `ClientDetailDrawer`, `InvoicesManager`, `InvoiceGeneratorModal`, `NewClientModal`, and sample data.
+  - Added an editable "Document storage (Microsoft OneDrive)" management section to `PracticeConfigManager` under Firm Settings so administrators can inspect or update the master repository URL anytime directly from the CRM interface.
+  - Wired client documents tab, invoice cloud archiving preview, and modal shortcuts to smoothly launch the firm's authentic OneDrive workspace.
