@@ -39,7 +39,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
   const [partnerPhone, setPartnerPhone] = useState(clientToEdit?.partnerPhone || '');
   const [secondaryPhone, setSecondaryPhone] = useState(clientToEdit?.secondaryPhone || '');
   const [email, setEmail] = useState(clientToEdit ? clientToEdit.email : '');
-  const [city, setCity] = useState(clientToEdit ? clientToEdit.city : 'Kerala');
+  const [city, setCity] = useState(clientToEdit ? clientToEdit.city : 'Kochi');
   const [monthlyAuditFee, setMonthlyAuditFee] = useState<number>(clientToEdit ? clientToEdit.monthlyAuditFee : 3000);
   const [assignedStaffId, setAssignedStaffId] = useState(clientToEdit ? clientToEdit.assignedStaffId : (staffList[0]?.id || 'staff-ameen'));
   const [isRecurringGST, setIsRecurringGST] = useState<boolean>(clientToEdit ? clientToEdit.isRecurringGST : true);
@@ -82,7 +82,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
       setPartnerPhone('');
       setSecondaryPhone('');
       setEmail('');
-      setCity('Kerala');
+      setCity('Kochi');
       setMonthlyAuditFee(3000);
       setAssignedStaffId(staffList[0]?.id || 'staff-ameen');
       setIsRecurringGST(true);
@@ -230,17 +230,19 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
               <Input placeholder="+91 94470 12345" value={partnerPhone} onChange={(e) => setPartnerPhone(e.target.value)} className="font-mono" />
             </Field>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Secondary / Office phone (Optional)">
               <Input placeholder="Landline / Mobile 2" value={secondaryPhone} onChange={(e) => setSecondaryPhone(e.target.value)} className="font-mono" />
             </Field>
-            <Field label="Email" className="sm:col-span-2">
+            <Field label="Email">
               <Input type="email" placeholder="accounts@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
             </Field>
           </div>
-          <Field label="City">
-            <Input placeholder="Kochi" value={city} onChange={(e) => setCity(e.target.value)} />
-          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="City">
+              <Input placeholder="Kochi" value={city} onChange={(e) => setCity(e.target.value)} />
+            </Field>
+          </div>
         </section>
 
         <section className="space-y-4 pt-5 border-t border-line">
