@@ -82,6 +82,11 @@ export interface Client {
   city: string;
   oneDriveFolderUrl: string;
   status: 'Active' | 'Archived' | 'On Hold';
+  gstUsername?: string;
+  gstPassword?: string;
+  itUsername?: string;
+  itPassword?: string;
+  tracesPassword?: string;
 }
 
 export interface MonthlyTask {
@@ -107,6 +112,8 @@ export interface MonthlyTask {
   assignmentTitle?: string; // For "Other Assignments" (e.g. "Share Transfer")
   financialYear?: string;   // e.g. "2021-22", "2026-27"
   estimatedFee?: number;
+  isBilled?: boolean;
+  invoiceNumber?: string;
 }
 
 export interface ITRFiling {
@@ -126,6 +133,9 @@ export interface ITRFiling {
   acknowledgmentNo?: string;
   lastActivity: string;
   phone: string;
+  estimatedFee?: number;
+  isBilled?: boolean;
+  invoiceNumber?: string;
 }
 
 /** One month of a client's fee account. Closing = opening - received + billed. */

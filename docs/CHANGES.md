@@ -255,3 +255,11 @@ Dropdown lists remain in `practice_configs`.
   - When clicking "Send to Client", "WhatsApp PDF", or "Text Only", if multiple phone numbers exist, the system prompts the user to choose the exact recipient with a 1-click dialog showing name, role tag, and monospace number.
   - If only a single number exists, messages and invoice PDFs continue to send immediately with zero friction.
   - Added interactive recipient selection chips to `WhatsAppModal` so practitioners can also view and toggle recipient numbers directly while editing messages.
+* **Client Portal Credentials Vault & Missed Invoices Radar:**
+  - Added secure credential storage for GST Portal, Income Tax e-Filing, and TRACES in `Client` model (`gstUsername`, `gstPassword`, `itUsername`, `itPassword`, `tracesPassword`).
+  - Added migration `006_client_portal_credentials.sql` with safe fallback handling in `dbSyncService.ts`.
+  - Added "Portal Access Vault" card in `ClientDetailDrawer.tsx` with masked passwords, show/hide toggle (`Eye`/`EyeOff`), 1-click copy with instant feedback, and direct portal links.
+  - Built "Missed Invoices Radar" in `InvoicesManager.tsx` cross-checking completed compliance tasks against billed invoices with KPI counters (Filed Returns Audited, Billed Returns, Missed Invoices, Unbilled Potential) and 1-click invoice drafting.
+  - Fixed location formatting duplication (`Partnership · Kerala, Kerala` / `Kerala, Kerala, India`) via `formatLocation` normalization.
+  - Added prominent `Edit` button in `ClientDetailDrawer` header and transformed "Contact & Partners" into interactive cards with 1-click WhatsApp and copy actions for each contact.
+  - Wired `SelectRecipientModal` into `ClientDetailDrawer` footer WhatsApp action for multi-contact clients.

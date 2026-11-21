@@ -18,8 +18,11 @@ import {
   Filter,
   Users,
   Trash2,
+  Radio,
+  FileCheck2,
+  FileX2,
 } from 'lucide-react';
-import { Client, DebtorRecord, OfficeBillingEntry } from '../types/crm';
+import { Client, DebtorRecord, OfficeBillingEntry, MonthlyTask, ITRFiling } from '../types/crm';
 import { FIRM_ONEDRIVE_ROOT_URL } from '../services/firmConfigService';
 import {
   Badge,
@@ -36,6 +39,7 @@ import {
   Segmented,
   Select,
   TableCard,
+  Tabs,
   Toolbar,
   cn,
   formatDate,
@@ -48,6 +52,9 @@ interface InvoicesManagerProps {
   billings: OfficeBillingEntry[];
   clients: Client[];
   debtors: DebtorRecord[];
+  monthlyTasks?: MonthlyTask[];
+  quarterlyTasks?: MonthlyTask[];
+  itrFilings?: ITRFiling[];
   canEdit?: boolean;
   onOpenInvoiceModal: (clientOrDebtor?: Client | DebtorRecord | null, prefillBilling?: OfficeBillingEntry) => void;
   onUpdateBilling?: (updated: OfficeBillingEntry) => void;
@@ -59,6 +66,9 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
   billings,
   clients,
   debtors,
+  monthlyTasks = [],
+  quarterlyTasks = [],
+  itrFilings = [],
   canEdit = true,
   onOpenInvoiceModal,
   onUpdateBilling,
@@ -74,6 +84,12 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
     entry: OfficeBillingEntry;
     client?: Client;
   } | null>(null);
+
+  // Radar View State
+  const [activeManagerTab, setActiveManagerTab] = useState<'register' | 'radar'>('register');
+  const [radarSearch, setRadarSearch] = useState('');
+  const [radarCategory, setRadarCategory] = useState<'all' | 'Monthly Compliance' | 'Quarterly' | 'Annual ITR'>('all');
+  const [radarStatus, setRadarStatus] = useState<'missed' | 'billed' | 'all'>('missed');
 
   // Available periods from billings
   const periods = useMemo(() => {
@@ -139,6 +155,206 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
       totalCount: billings.length,
     };
   }, [billings]);
+
+  // Cross-Check Algorithm: Audit all completed compliance tasks and ITR filings against billings
+  const auditedReturns = useMemo(() => {
+    const list: {
+      id: string;
+      clientId: string;
+      clientName: string;
+      tradeName: string;
+      pan: string;
+      gstin: string;
+      entityType: string;
+      category: 'Monthly Compliance' | 'Quarterly' | 'Annual ITR';
+      serviceType: string;
+      period: string;
+      assignmentTitle?: string;
+      filedDateOrArn: string;
+      isBilled: boolean;
+      matchedInvoice?: OfficeBillingEntry;
+      estimatedFee: number;
+    }[] = [];
+
+    const isMatch = (b: OfficeBillingEntry, cName: string, tName: string, service: string, period: string) => {
+      const bn = (b.clientName || '').trim().toLowerCase();
+      const cn = cName.trim().toLowerCase();
+      const tn = tName.trim().toLowerCase();
+      const clientMatched = bn === cn || bn === tn || (cn && bn.includes(cn)) || (tn && bn.includes(tn));
+      if (!clientMatched) return false;
+
+      const desc = (b.natureOfService || '').toLowerCase();
+      const srv = service.toLowerCase();
+      const fMonth = (b.filingMonth || '').toLowerCase();
+      const p = period.toLowerCase();
+
+      const periodMatched = Boolean(fMonth && p && (fMonth === p || p.includes(fMonth) || fMonth.includes(p)));
+      const descMatched = desc.includes(srv) || (srv.includes('gstr') && desc.includes('gst')) || (srv.includes('itr') && desc.includes('tax'));
+      return periodMatched || descMatched;
+    };
+
+    // 1. Monthly tasks
+    (monthlyTasks || []).forEach((t) => {
+      if (t.status === 'Filed' || t.status === 'Completed') {
+        const client = clients.find((c) => c.id === t.clientId || c.tradeName.toLowerCase() === t.tradeName.toLowerCase());
+        const service = t.filingType;
+        const matched = billings.find((b) => isMatch(b, t.clientName, t.tradeName, service, t.period) || (t.invoiceNumber && b.invoiceNumber === t.invoiceNumber));
+        list.push({
+          id: t.id,
+          clientId: t.clientId,
+          clientName: t.clientName,
+          tradeName: t.tradeName || t.clientName,
+          pan: client?.pan || '',
+          gstin: client?.gstin || t.gstin || '',
+          entityType: client?.entityType || 'Client',
+          category: 'Monthly Compliance',
+          serviceType: service,
+          period: t.period,
+          filedDateOrArn: t.arnNumber || 'Filed',
+          isBilled: Boolean(matched || t.isBilled),
+          matchedInvoice: matched,
+          estimatedFee: t.estimatedFee || client?.monthlyAuditFee || 3000,
+        });
+      }
+    });
+
+    // 2. Quarterly tasks
+    (quarterlyTasks || []).forEach((t) => {
+      if (t.status === 'Filed' || t.status === 'Completed') {
+        const client = clients.find((c) => c.id === t.clientId || c.tradeName.toLowerCase() === t.tradeName.toLowerCase());
+        const service = t.filingType || t.assignmentTitle || 'Quarterly Filing';
+        const matched = billings.find((b) => isMatch(b, t.clientName, t.tradeName, service, t.period) || (t.invoiceNumber && b.invoiceNumber === t.invoiceNumber));
+        list.push({
+          id: t.id,
+          clientId: t.clientId,
+          clientName: t.clientName,
+          tradeName: t.tradeName || t.clientName,
+          pan: client?.pan || '',
+          gstin: client?.gstin || t.gstin || '',
+          entityType: client?.entityType || 'Client',
+          category: 'Quarterly',
+          serviceType: service,
+          period: t.period,
+          assignmentTitle: t.assignmentTitle,
+          filedDateOrArn: t.arnNumber || 'Filed',
+          isBilled: Boolean(matched || t.isBilled),
+          matchedInvoice: matched,
+          estimatedFee: t.estimatedFee || client?.monthlyAuditFee || 5000,
+        });
+      }
+    });
+
+    // 3. ITR filings
+    (itrFilings || []).forEach((i) => {
+      if (i.status === 'Filed & e-Verified' || (i.status as string) === 'Completed' || (i.status as string) === 'Filed') {
+        const client = clients.find((c) => c.id === i.clientId || c.tradeName.toLowerCase() === i.clientName.toLowerCase());
+        const service = i.itrForm || 'Income Tax Return';
+        const period = i.assessmentYear || 'AY 2026-27';
+        const matched = billings.find((b) => isMatch(b, i.clientName, i.clientName, service, period) || (i.invoiceNumber && b.invoiceNumber === i.invoiceNumber));
+        list.push({
+          id: i.id,
+          clientId: i.clientId,
+          clientName: i.clientName,
+          tradeName: client?.tradeName || i.clientName,
+          pan: i.pan || client?.pan || '',
+          gstin: client?.gstin || '',
+          entityType: i.entityType || client?.entityType || 'Individual',
+          category: 'Annual ITR',
+          serviceType: service,
+          period,
+          filedDateOrArn: i.acknowledgmentNo || 'Filed & e-Verified',
+          isBilled: Boolean(matched || i.isBilled),
+          matchedInvoice: matched,
+          estimatedFee: i.estimatedFee || client?.monthlyAuditFee || 4500,
+        });
+      }
+    });
+
+    return list;
+  }, [monthlyTasks, quarterlyTasks, itrFilings, billings, clients]);
+
+  // Radar KPIs
+  const radarKPIs = useMemo(() => {
+    const totalAudited = auditedReturns.length;
+    const billedReturns = auditedReturns.filter((r) => r.isBilled).length;
+    const missedReturns = auditedReturns.filter((r) => !r.isBilled);
+    const unbilledCount = missedReturns.length;
+    const unbilledPotential = missedReturns.reduce((sum, r) => sum + r.estimatedFee, 0);
+
+    return {
+      totalAudited,
+      billedReturns,
+      unbilledCount,
+      unbilledPotential,
+    };
+  }, [auditedReturns]);
+
+  // Filtered Radar Returns
+  const filteredRadarReturns = useMemo(() => {
+    const q = radarSearch.toLowerCase().trim();
+    return auditedReturns.filter((r) => {
+      if (radarCategory !== 'all' && r.category !== radarCategory) return false;
+      if (radarStatus === 'missed' && r.isBilled) return false;
+      if (radarStatus === 'billed' && !r.isBilled) return false;
+
+      if (!q) return true;
+      return (
+        r.clientName.toLowerCase().includes(q) ||
+        r.tradeName.toLowerCase().includes(q) ||
+        r.gstin.toLowerCase().includes(q) ||
+        r.pan.toLowerCase().includes(q) ||
+        r.serviceType.toLowerCase().includes(q) ||
+        r.period.toLowerCase().includes(q) ||
+        r.filedDateOrArn.toLowerCase().includes(q)
+      );
+    });
+  }, [auditedReturns, radarCategory, radarStatus, radarSearch]);
+
+  const handleGenerateInvoiceForReturn = (item: {
+    clientId: string;
+    clientName: string;
+    tradeName: string;
+    serviceType: string;
+    period: string;
+    assignmentTitle?: string;
+    estimatedFee: number;
+  }) => {
+    const matchedClient = clients.find(
+      (c) =>
+        c.id === item.clientId ||
+        c.tradeName.toLowerCase() === item.clientName.toLowerCase() ||
+        c.name.toLowerCase() === item.clientName.toLowerCase()
+    );
+
+    const fee = item.estimatedFee || matchedClient?.monthlyAuditFee || 3000;
+    const desc = item.assignmentTitle
+      ? `${item.assignmentTitle} — ${item.period}`
+      : `${item.serviceType} Filing — ${item.period}`;
+
+    const prefill: OfficeBillingEntry = {
+      serialNo: 0,
+      date: new Date().toISOString().slice(0, 10),
+      clientName: matchedClient?.tradeName || item.clientName,
+      natureOfService: desc,
+      filingMonth: item.period,
+      period: item.period.slice(0, 7) || new Date().toISOString().slice(0, 7),
+      professionalIncome: fee,
+      oopExpenses: 0,
+      billingStatus: 'Billed',
+      user: 'Staff',
+      lineItems: [
+        {
+          id: `srv-${Date.now()}`,
+          description: desc,
+          amount: fee,
+          sacCode: '998231',
+          itemType: 'service',
+        },
+      ],
+    };
+
+    onOpenInvoiceModal(matchedClient || null, prefill);
+  };
 
   // Simulated single OneDrive sync
   const handleStoreInOneDrive = (entry: OfficeBillingEntry) => {
@@ -253,7 +469,7 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
             </Badge>
           </span>
         }
-        description="Office tax invoices, client billing history, and SharePoint / OneDrive document archives."
+        description="Office tax invoices, client billing history, and compliance billing radar."
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -278,31 +494,49 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
         }
       />
 
-      {/* KPI Metrics */}
-      <MetricGrid className="grid-cols-2 lg:grid-cols-4">
-        <Metric
-          label="Total Invoiced"
-          value={formatINR(metrics.totalInvoiced)}
-          hint={`${billings.length} total entries generated`}
+      {/* Main Tab Navigation */}
+      <div className="border-b border-line pb-px">
+        <Tabs
+          value={activeManagerTab}
+          onChange={(v) => setActiveManagerTab(v as any)}
+          options={[
+            { value: 'register', label: 'Invoices Register', count: billings.length },
+            {
+              value: 'radar',
+              label: 'Missed Invoices Radar',
+              count: radarKPIs.unbilledCount,
+            },
+          ]}
         />
-        <Metric
-          label="This Month"
-          value={formatINR(metrics.thisMonthBilled)}
-          hint="Billed in current period"
-        />
-        <Metric
-          label="Settled"
-          value={formatINR(metrics.totalReceived)}
-          tone="success"
-          hint="Payments marked received"
-        />
-        <Metric
-          label="OneDrive Archive"
-          value={`${metrics.syncedCount} / ${metrics.totalCount}`}
-          hint="Stored in client cloud folders"
-          tone={metrics.syncedCount === metrics.totalCount && metrics.totalCount > 0 ? 'success' : undefined}
-        />
-      </MetricGrid>
+      </div>
+
+      {activeManagerTab === 'register' ? (
+        <>
+          {/* KPI Metrics */}
+          <MetricGrid className="grid-cols-2 lg:grid-cols-4">
+            <Metric
+              label="Total Invoiced"
+              value={formatINR(metrics.totalInvoiced)}
+              hint={`${billings.length} total entries generated`}
+            />
+            <Metric
+              label="This Month"
+              value={formatINR(metrics.thisMonthBilled)}
+              hint="Billed in current period"
+            />
+            <Metric
+              label="Settled"
+              value={formatINR(metrics.totalReceived)}
+              tone="success"
+              hint="Payments marked received"
+            />
+            <Metric
+              label="OneDrive Archive"
+              value={`${metrics.syncedCount} / ${metrics.totalCount}`}
+              hint="Stored in client cloud folders"
+              tone={metrics.syncedCount === metrics.totalCount && metrics.totalCount > 0 ? 'success' : undefined}
+            />
+          </MetricGrid>
 
       {/* Invoices Table Card */}
       <TableCard
@@ -543,6 +777,150 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
           </tbody>
         </table>
       </TableCard>
+        </>
+      ) : (
+        <>
+          {/* Radar KPI Metrics */}
+          <MetricGrid className="grid-cols-2 lg:grid-cols-4">
+            <Metric
+              label="Filed Returns Audited"
+              value={radarKPIs.totalAudited}
+              hint="Completed compliance filings"
+            />
+            <Metric
+              label="Billed Returns"
+              value={radarKPIs.billedReturns}
+              hint="Invoice matched in register"
+              tone="success"
+            />
+            <Metric
+              label="Missed Invoices"
+              value={radarKPIs.unbilledCount}
+              hint="Completed without invoice"
+              tone={radarKPIs.unbilledCount > 0 ? 'danger' : 'success'}
+            />
+            <Metric
+              label="Unbilled Potential"
+              value={formatINR(radarKPIs.unbilledPotential)}
+              hint="Estimated unbilled professional fees"
+              tone={radarKPIs.unbilledPotential > 0 ? 'warning' : undefined}
+            />
+          </MetricGrid>
+
+          {/* Missed Invoices Radar Table Card */}
+          <TableCard
+            toolbar={
+              <Toolbar className="justify-between flex-wrap gap-2.5">
+                <div className="flex items-center gap-2 flex-1 max-w-sm">
+                  <SearchInput
+                    value={radarSearch}
+                    onChange={(e) => setRadarSearch(e.target.value)}
+                    placeholder="Search client, GSTIN, PAN or return…"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Select
+                    value={radarCategory}
+                    onChange={(e) => setRadarCategory(e.target.value as any)}
+                    className="w-48 text-xs"
+                  >
+                    <option value="all">All Compliance Categories</option>
+                    <option value="Monthly Compliance">Monthly Compliance</option>
+                    <option value="Quarterly">Quarterly Compliance</option>
+                    <option value="Annual ITR">Annual ITR & ROC</option>
+                  </Select>
+
+                  <Select
+                    value={radarStatus}
+                    onChange={(e) => setRadarStatus(e.target.value as any)}
+                    className="w-48 text-xs font-medium"
+                  >
+                    <option value="missed">Missed (Unbilled Only)</option>
+                    <option value="billed">Billed</option>
+                    <option value="all">All Filed Returns</option>
+                  </Select>
+                </div>
+              </Toolbar>
+            }
+          >
+            {filteredRadarReturns.length === 0 ? (
+              <EmptyState
+                title={radarStatus === 'missed' ? 'Zero missed invoices detected' : 'No returns match filters'}
+                description={
+                  radarStatus === 'missed'
+                    ? 'All filed compliance returns and statutory filings currently have invoices generated.'
+                    : 'Try adjusting the search query or category filters.'
+                }
+              />
+            ) : (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Return & Service</th>
+                    <th>Period / AY</th>
+                    <th>Filed Date / ARN</th>
+                    <th>Billing Status</th>
+                    <th className="text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRadarReturns.map((item) => {
+                    const clientObj = clients.find((c) => c.id === item.clientId);
+                    return (
+                      <tr key={item.id} className="hover:bg-hover">
+                        <td className="py-2.5">
+                          <div className="font-medium text-fg">{item.tradeName}</div>
+                          <div className="flex items-center gap-1.5 text-xs text-fg-subtle mt-0.5 min-w-0">
+                            <span>{item.entityType}</span>
+                            <span className="text-fg-faint">·</span>
+                            <span className="ident text-2xs">{item.gstin || item.pan || '—'}</span>
+                          </div>
+                        </td>
+                        <td className="py-2.5">
+                          <div className="text-fg font-medium">{item.serviceType}</div>
+                          <div className="text-xs text-fg-subtle">{item.category}</div>
+                        </td>
+                        <td className="py-2.5 font-mono text-fg text-xs">{item.period}</td>
+                        <td className="py-2.5">
+                          <span className="ident text-xs text-fg-subtle" title={item.filedDateOrArn}>
+                            {item.filedDateOrArn}
+                          </span>
+                        </td>
+                        <td className="py-2.5">
+                          <Badge tone={item.isBilled ? 'success' : 'danger'}>
+                            {item.isBilled ? 'Billed' : 'Missed'}
+                          </Badge>
+                        </td>
+                        <td className="py-2.5 text-right">
+                          {item.isBilled ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onOpenInvoiceModal(clientObj || null, item.matchedInvoice)}
+                            >
+                              View
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handleGenerateInvoiceForReturn(item)}
+                            >
+                              Generate Invoice
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </TableCard>
+        </>
+      )}
 
       {/* OneDrive File Inspector Modal */}
       {viewingOneDriveDoc && (

@@ -16,11 +16,13 @@ import {
 interface WhatsAppModalProps {
   isOpen: boolean;
   onClose: () => void;
+  client?: Client | null;
   task?: MonthlyTask | null;
   itrFiling?: ITRFiling | null;
   debtor?: DebtorRecord | any | null;
   ticket?: StaffTicket | null;
   gstItem?: GSTComplianceItem | null;
+  initialPhone?: string;
   staffName?: string;
   customTemplates?: WhatsAppTemplateSettings;
   firmProfile?: FirmProfileSettings;
@@ -31,11 +33,13 @@ interface WhatsAppModalProps {
 
 const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
   onClose,
+  client,
   task,
   itrFiling,
   debtor,
   ticket,
   gstItem,
+  initialPhone,
   staffName = '',
   customTemplates,
   firmProfile: propFirmProfile,
@@ -45,19 +49,21 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
   const storedTemplates = customTemplates || getStoredWhatsAppTemplates();
   const profile = propFirmProfile || getStoredFirmProfile();
 
-  const clientName = gstItem?.clientName || task?.clientName || itrFiling?.clientName || debtor?.clientName || ticket?.clientName || 'Client';
-  const tradeName = gstItem?.tradeName || task?.tradeName || debtor?.tradeName || ticket?.tradeName || clientName;
-  const rawPhone = gstItem?.phone || task?.phone || itrFiling?.phone || debtor?.phone || ticket?.callerPhone || '+91 98200 00000';
+  const clientName = client?.name || gstItem?.clientName || task?.clientName || itrFiling?.clientName || debtor?.clientName || ticket?.clientName || 'Client';
+  const tradeName = client?.tradeName || gstItem?.tradeName || task?.tradeName || debtor?.tradeName || ticket?.tradeName || clientName;
+  const rawPhone = initialPhone || client?.phone || gstItem?.phone || task?.phone || itrFiling?.phone || debtor?.phone || ticket?.callerPhone || '+91 98200 00000';
   const cleanPhone = toWhatsAppNumber(rawPhone, countryCode);
 
-  const matchedClient = (clients || []).find((c) =>
-    (task?.clientId && c.id === task.clientId) ||
-    (itrFiling?.clientId && c.id === itrFiling.clientId) ||
-    (debtor?.clientId && c.id === debtor.clientId) ||
-    (ticket?.clientId && c.id === ticket.clientId) ||
-    (c.tradeName && c.tradeName.toLowerCase() === tradeName.toLowerCase()) ||
-    (c.name && c.name.toLowerCase() === clientName.toLowerCase())
-  );
+  const matchedClient =
+    client ||
+    (clients || []).find((c) =>
+      (task?.clientId && c.id === task.clientId) ||
+      (itrFiling?.clientId && c.id === itrFiling.clientId) ||
+      (debtor?.clientId && c.id === debtor.clientId) ||
+      (ticket?.clientId && c.id === ticket.clientId) ||
+      (c.tradeName && c.tradeName.toLowerCase() === tradeName.toLowerCase()) ||
+      (c.name && c.name.toLowerCase() === clientName.toLowerCase())
+    );
 
   const phoneOptions = getClientPhoneOptions(matchedClient, rawPhone);
   const [isRecipientPickerOpen, setIsRecipientPickerOpen] = useState(false);
@@ -203,9 +209,37 @@ Shameer & Associates`,
     },
   ] : [];
 
+  const clientTemplates = client ? [
+    {
+      id: 'general_notice',
+      label: 'General Notice',
+      text: `Hello ${tradeName},\n\nThis is an update from Shameer & Associates regarding your account.\n\nPlease let us know if you require any assistance or if there are any documents to be processed.\n\nThank you,\n${staffName || 'Shameer & Associates'}`,
+    },
+    {
+      id: 'doc_request',
+      label: 'Doc Request',
+      text: renderTemplate(storedTemplates.docRequest, {
+        clientName: tradeName,
+        period: 'the current period',
+        dueDate: 'upcoming deadline',
+        amount: '',
+        upiId: profile.upiId,
+        arn: '',
+        bankName: profile.bankName,
+        accountNumber: profile.accountNumber,
+        ifscCode: profile.ifscCode,
+      }),
+    },
+    {
+      id: 'bank_details',
+      label: 'Bank Details',
+      text: `Dear ${tradeName},\n\nHere are the bank details for Shameer & Associates:\n\nBank: ${profile.bankName}\nAccount Name: ${profile.beneficiaryName}\nA/C No: ${profile.accountNumber}\nIFSC: ${profile.ifscCode}\nUPI ID: ${profile.upiId}\n\nPlease share the transaction reference once transferred.\n\nThank you,\nShameer & Associates`,
+    },
+  ] : [];
+
   const activeTemplates = gstItem 
     ? gstTemplates 
-    : (itrFiling ? itrTemplates : (ticket ? ticketTemplates : (debtor ? debtorTemplates : standardTemplates)));
+    : (itrFiling ? itrTemplates : (ticket ? ticketTemplates : (debtor ? debtorTemplates : (clientTemplates.length > 0 ? clientTemplates : standardTemplates))));
 
   const [selectedTemplateIndex, setSelectedTemplateIndex] = useState(0);
   const [message, setMessage] = useState(activeTemplates[0]?.text || '');
@@ -216,7 +250,7 @@ Shameer & Associates`,
     setSelectedTemplateIndex(0);
     setMessage(activeTemplates[0]?.text || '');
     setPhone(cleanPhone);
-  }, [task, itrFiling, debtor, ticket, gstItem]);
+  }, [client, task, itrFiling, debtor, ticket, gstItem, cleanPhone]);
 
   const handleSelectTemplate = (idx: number) => {
     setSelectedTemplateIndex(idx);

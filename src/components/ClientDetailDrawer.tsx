@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { ExternalLink, Copy, Check, MessageSquare, ReceiptText, Pencil } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ExternalLink, Copy, Check, MessageSquare, ReceiptText, Pencil, Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
 import { Client, MonthlyTask, ITRFiling, StaffMember, StaffTicket, DebtorRecord, OfficeBillingEntry } from '../types/crm';
 import { FIRM_ONEDRIVE_ROOT_URL } from '../services/firmConfigService';
 import { Avatar, Badge, Button, DescriptionList, EmptyState, Modal, SearchInput, Segmented, Tabs, cn, formatDate, formatINR, statusTone } from './ui';
+import { getClientPhoneOptions, cleanWhatsAppPhone, PhoneRecipientOption } from '../utils/whatsapp';
+import { SelectRecipientModal } from './SelectRecipientModal';
 
 interface ClientDetailDrawerProps {
   isOpen: boolean;
@@ -15,11 +17,18 @@ interface ClientDetailDrawerProps {
   tickets?: StaffTicket[];
   staffList?: StaffMember[];
   billings?: OfficeBillingEntry[];
-  onOpenWhatsApp: (taskOrItr: any) => void;
+  onOpenWhatsApp: (taskOrItrOrClient: any, targetPhone?: string, forceGroup?: boolean) => void;
   onGenerateInvoice?: (client: Client) => void;
   onViewInvoice?: (billing: OfficeBillingEntry) => void;
   onEditClient?: (client: Client) => void;
 }
+
+const formatLocation = (city?: string, state = 'Kerala') => {
+  const c = (city || '').trim();
+  const s = (state || 'Kerala').trim();
+  if (!c || c.toLowerCase() === s.toLowerCase()) return s;
+  return `${c}, ${s}`;
+};
 
 
 export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
@@ -40,6 +49,32 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'compliance' | 'billings' | 'onedrive' | 'tickets'>('profile');
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [unmaskedPasswords, setUnmaskedPasswords] = useState<{ [key: string]: boolean }>({});
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [isRecipientPickerOpen, setIsRecipientPickerOpen] = useState(false);
+
+  const phoneOptions = useMemo(() => {
+    return getClientPhoneOptions(client);
+  }, [client]);
+
+  const handleWhatsAppFooterClick = () => {
+    if (phoneOptions.length > 1) {
+      setIsRecipientPickerOpen(true);
+    } else {
+      onOpenWhatsApp(task || itrFiling || client, phoneOptions[0]?.phone);
+    }
+  };
+
+  const togglePasswordVisibility = (key: string) => {
+    setUnmaskedPasswords((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const copyToClipboard = (text: string, key: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
 
   if (!isOpen || !client) return null;
 
@@ -104,7 +139,8 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
   const hasBalance = !!debtor && debtor.currentBalance > 0;
 
   return (
-    <Modal
+    <>
+      <Modal
       isOpen={isOpen}
       onClose={onClose}
       size="lg"
@@ -116,8 +152,18 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
           <Badge className="ident">{client.clientCode}</Badge>
           <Badge tone={client.isRecurringGST ? 'info' : 'neutral'}>{client.isRecurringGST ? 'Monthly GST' : 'Annual ITR'}</Badge>
           <span className="text-xs text-fg-subtle ml-0.5">
-            {client.entityType} · {client.city}, Kerala
+            {client.entityType} · {formatLocation(client.city)}
           </span>
+          {onEditClient && (
+            <button
+              type="button"
+              onClick={() => onEditClient(client)}
+              className="inline-flex items-center gap-1 text-2xs text-fg-muted hover:text-fg hover:underline ml-1.5 font-medium cursor-pointer"
+            >
+              <Pencil className="w-3 h-3" />
+              Edit
+            </button>
+          )}
         </div>
       }
       subheader={
@@ -170,9 +216,11 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
               Generate Invoice
             </Button>
           )}
-          <Button variant="primary" icon={MessageSquare} onClick={() => onOpenWhatsApp(task || client)}>
-            Message on WhatsApp
-          </Button>
+          {phoneOptions.length > 0 && (
+            <Button variant="primary" icon={MessageSquare} onClick={handleWhatsAppFooterClick}>
+              Message on WhatsApp
+            </Button>
+          )}
         </>
       }
     >
@@ -205,30 +253,400 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
               </div>
               <div>
                 <dt className="eyebrow">Location</dt>
-                <dd className="mt-1 text-sm text-fg">{client.city}, Kerala, India</dd>
+                <dd className="mt-1 text-sm text-fg">{formatLocation(client.city)}, India</dd>
               </div>
             </dl>
           </section>
 
           <section className="pt-5 border-t border-line">
-            <SectionTitle>Contact & Partners</SectionTitle>
-            <DescriptionList
-              columns={3}
-              items={[
-                { label: 'Primary contact', value: client.contactPerson || '—' },
-                { label: 'Phone / WhatsApp', value: client.phone || '—', mono: true },
-                { label: 'Email', value: client.email || '—' },
-                ...(client.partnerName || client.partnerPhone
-                  ? [
-                      { label: 'Partner / Director', value: client.partnerName || 'Partner' },
-                      { label: 'Partner WhatsApp', value: client.partnerPhone || '—', mono: true },
-                    ]
-                  : []),
-                ...(client.secondaryPhone
-                  ? [{ label: 'Secondary / Office phone', value: client.secondaryPhone, mono: true }]
-                  : []),
-              ]}
-            />
+            <SectionTitle
+              right={
+                onEditClient && (
+                  <button
+                    type="button"
+                    onClick={() => onEditClient(client)}
+                    className="text-xs text-accent hover:underline font-medium"
+                  >
+                    Edit contacts
+                  </button>
+                )
+              }
+            >
+              Contact & Partners
+            </SectionTitle>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Primary Contact Card */}
+              <div className="p-3 rounded-[6px] border border-line bg-surface flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="eyebrow">Primary contact</span>
+                    <Badge tone="info">Primary</Badge>
+                  </div>
+                  <div className="mt-1.5 text-sm font-semibold text-fg">
+                    {client.contactPerson || 'Primary Contact'}
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs font-mono text-fg-muted">
+                    <span>{client.phone || '—'}</span>
+                    {client.phone && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(client.phone, 'phone_primary')}
+                          className="text-fg-faint hover:text-fg p-1 rounded transition-colors cursor-pointer"
+                          title="Copy phone"
+                        >
+                          {copiedField === 'phone_primary' ? (
+                            <Check className="w-3.5 h-3.5 text-success" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onOpenWhatsApp(task || client, client.phone)}
+                          className="text-accent hover:text-accent/80 p-1 rounded transition-colors cursor-pointer"
+                          title="WhatsApp Primary Contact"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {client.email && (
+                    <div className="mt-1.5 text-xs text-fg-subtle truncate">
+                      {client.email}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Partner / Director Contact Card */}
+              {(client.partnerName || client.partnerPhone) && (
+                <div className="p-3 rounded-[6px] border border-line bg-surface flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="eyebrow">Partner / Director</span>
+                      <Badge tone="neutral">Partner</Badge>
+                    </div>
+                    <div className="mt-1.5 text-sm font-semibold text-fg">
+                      {client.partnerName || 'Partner / Director'}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-xs font-mono text-fg-muted">
+                      <span>{client.partnerPhone || '—'}</span>
+                      {client.partnerPhone && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(client.partnerPhone || '', 'phone_partner')}
+                            className="text-fg-faint hover:text-fg p-1 rounded transition-colors cursor-pointer"
+                            title="Copy partner phone"
+                          >
+                            {copiedField === 'phone_partner' ? (
+                              <Check className="w-3.5 h-3.5 text-success" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onOpenWhatsApp(task || client, client.partnerPhone)}
+                            className="text-accent hover:text-accent/80 p-1 rounded transition-colors cursor-pointer"
+                            title="WhatsApp Partner"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Secondary / Office Phone */}
+              {client.secondaryPhone && (
+                <div className="p-3 rounded-[6px] border border-line bg-surface flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="eyebrow">Office / Secondary</span>
+                      <Badge tone="neutral">Office</Badge>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-xs font-mono text-fg-muted">
+                      <span>{client.secondaryPhone}</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(client.secondaryPhone || '', 'phone_sec')}
+                          className="text-fg-faint hover:text-fg p-1 rounded transition-colors cursor-pointer"
+                          title="Copy office phone"
+                        >
+                          {copiedField === 'phone_sec' ? (
+                            <Check className="w-3.5 h-3.5 text-success" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onOpenWhatsApp(task || client, client.secondaryPhone)}
+                          className="text-accent hover:text-accent/80 p-1 rounded transition-colors cursor-pointer"
+                          title="WhatsApp Office Phone"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="pt-5 border-t border-line">
+            <SectionTitle
+              right={
+                onEditClient && (
+                  <button
+                    type="button"
+                    onClick={() => onEditClient(client)}
+                    className="text-xs text-accent hover:underline font-medium"
+                  >
+                    Edit credentials
+                  </button>
+                )
+              }
+            >
+              Portal Access Vault
+            </SectionTitle>
+
+            <div className="border border-line rounded-[6px] overflow-hidden bg-surface divide-y divide-line">
+              {/* GST Portal */}
+              <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-hover/50 transition-colors">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-fg">GST Portal</span>
+                    <Badge tone="info">Goods & Services Tax</Badge>
+                  </div>
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-fg-subtle text-2xs block">User ID / GSTIN</span>
+                      <div className="mt-0.5 flex items-center gap-1.5 font-mono text-fg">
+                        <span>{client.gstUsername || client.gstin || '—'}</span>
+                        {(client.gstUsername || client.gstin) && (
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(client.gstUsername || client.gstin, 'gst_user')}
+                            className="text-fg-faint hover:text-fg transition-colors cursor-pointer"
+                            title="Copy username"
+                          >
+                            {copiedKey === 'gst_user' ? (
+                              <Check className="w-3.5 h-3.5 text-success" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-fg-subtle text-2xs block">Password</span>
+                      <div className="mt-0.5 flex items-center gap-1.5 font-mono text-fg">
+                        <span>
+                          {client.gstPassword
+                            ? unmaskedPasswords['gst']
+                              ? client.gstPassword
+                              : '••••••••'
+                            : '—'}
+                        </span>
+                        {client.gstPassword && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility('gst')}
+                              className="text-fg-faint hover:text-fg transition-colors cursor-pointer"
+                              title={unmaskedPasswords['gst'] ? 'Hide password' : 'Show password'}
+                            >
+                              {unmaskedPasswords['gst'] ? (
+                                <EyeOff className="w-3.5 h-3.5" />
+                              ) : (
+                                <Eye className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(client.gstPassword || '', 'gst_pwd')}
+                              className="text-fg-faint hover:text-fg transition-colors cursor-pointer"
+                              title="Copy password"
+                            >
+                              {copiedKey === 'gst_pwd' ? (
+                                <Check className="w-3.5 h-3.5 text-success" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="sm:self-center">
+                  <a
+                    href="https://services.gst.gov.in/services/login"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline py-1 px-2.5 rounded-[4px] border border-line bg-subtle hover:bg-hover transition-colors"
+                  >
+                    Open GST Portal
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Income Tax Portal */}
+              <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-hover/50 transition-colors">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-fg">Income Tax e-Filing</span>
+                    <Badge tone="neutral">ITD Portal</Badge>
+                  </div>
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-fg-subtle text-2xs block">User ID / PAN</span>
+                      <div className="mt-0.5 flex items-center gap-1.5 font-mono text-fg">
+                        <span>{client.itUsername || client.pan || '—'}</span>
+                        {(client.itUsername || client.pan) && (
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(client.itUsername || client.pan, 'it_user')}
+                            className="text-fg-faint hover:text-fg transition-colors cursor-pointer"
+                            title="Copy username"
+                          >
+                            {copiedKey === 'it_user' ? (
+                              <Check className="w-3.5 h-3.5 text-success" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-fg-subtle text-2xs block">Password</span>
+                      <div className="mt-0.5 flex items-center gap-1.5 font-mono text-fg">
+                        <span>
+                          {client.itPassword
+                            ? unmaskedPasswords['it']
+                              ? client.itPassword
+                              : '••••••••'
+                            : '—'}
+                        </span>
+                        {client.itPassword && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility('it')}
+                              className="text-fg-faint hover:text-fg transition-colors cursor-pointer"
+                              title={unmaskedPasswords['it'] ? 'Hide password' : 'Show password'}
+                            >
+                              {unmaskedPasswords['it'] ? (
+                                <EyeOff className="w-3.5 h-3.5" />
+                              ) : (
+                                <Eye className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(client.itPassword || '', 'it_pwd')}
+                              className="text-fg-faint hover:text-fg transition-colors cursor-pointer"
+                              title="Copy password"
+                            >
+                              {copiedKey === 'it_pwd' ? (
+                                <Check className="w-3.5 h-3.5 text-success" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="sm:self-center">
+                  <a
+                    href="https://eportal.incometax.gov.in/iec/foservices/#/login"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline py-1 px-2.5 rounded-[4px] border border-line bg-subtle hover:bg-hover transition-colors"
+                  >
+                    Open IT Portal
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+
+              {/* TRACES (if password configured) */}
+              {client.tracesPassword && (
+                <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-hover/50 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-fg">TRACES TDS Portal</span>
+                      <Badge tone="neutral">TDS / Form 16</Badge>
+                    </div>
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-fg-subtle text-2xs block">User ID / TAN</span>
+                        <span className="mt-0.5 block font-mono text-fg">{client.pan || client.tradeName}</span>
+                      </div>
+                      <div>
+                        <span className="text-fg-subtle text-2xs block">Password</span>
+                        <div className="mt-0.5 flex items-center gap-1.5 font-mono text-fg">
+                          <span>
+                            {unmaskedPasswords['traces'] ? client.tracesPassword : '••••••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility('traces')}
+                            className="text-fg-faint hover:text-fg transition-colors cursor-pointer"
+                            title={unmaskedPasswords['traces'] ? 'Hide password' : 'Show password'}
+                          >
+                            {unmaskedPasswords['traces'] ? (
+                              <EyeOff className="w-3.5 h-3.5" />
+                            ) : (
+                              <Eye className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(client.tracesPassword || '', 'traces_pwd')}
+                            className="text-fg-faint hover:text-fg transition-colors cursor-pointer"
+                            title="Copy password"
+                          >
+                            {copiedKey === 'traces_pwd' ? (
+                              <Check className="w-3.5 h-3.5 text-success" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="sm:self-center">
+                    <a
+                      href="https://contents.tdscpc.gov.in/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline py-1 px-2.5 rounded-[4px] border border-line bg-subtle hover:bg-hover transition-colors"
+                    >
+                      Open TRACES
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
           </section>
 
           <section className="pt-5 border-t border-line">
@@ -638,6 +1056,22 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
           )}
         </div>
       )}
-    </Modal>
+      </Modal>
+
+      <SelectRecipientModal
+        isOpen={isRecipientPickerOpen}
+        onClose={() => setIsRecipientPickerOpen(false)}
+        clientName={client.tradeName || client.name}
+        options={phoneOptions}
+        onSelect={(opt) => {
+          setIsRecipientPickerOpen(false);
+          onOpenWhatsApp(task || itrFiling || client, opt.phone);
+        }}
+        onSendToGroup={() => {
+          setIsRecipientPickerOpen(false);
+          onOpenWhatsApp(task || itrFiling || client, undefined, true);
+        }}
+      />
+    </>
   );
 };

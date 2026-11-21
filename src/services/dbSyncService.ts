@@ -382,9 +382,14 @@ export const fetchClientsFromDb = async (): Promise<Client[]> => {
       isRecurringStatutory: Boolean(row.is_recurring_statutory),
       assignedStaffId: row.assigned_staff_id || 'staff-ameen',
       monthlyAuditFee: Number(row.monthly_audit_fee) || 0,
-      city: row.city || 'Kerala',
+      city: row.city || 'Kochi',
       oneDriveFolderUrl: row.onedrive_folder_url || '',
-      status: row.status || 'Active'
+      status: row.status || 'Active',
+      gstUsername: row.gst_username || undefined,
+      gstPassword: row.gst_password || undefined,
+      itUsername: row.it_username || undefined,
+      itPassword: row.it_password || undefined,
+      tracesPassword: row.traces_password || undefined,
     }));
 
     localStorage.setItem('shameer_crm_clients_local', JSON.stringify(mapped));
@@ -428,6 +433,11 @@ export const saveClientToDb = async (client: Client): Promise<{ success: boolean
         ...(client.partnerName ? { partner_name: client.partnerName } : {}),
         ...(client.partnerPhone ? { partner_phone: client.partnerPhone } : {}),
         ...(client.secondaryPhone ? { secondary_phone: client.secondaryPhone } : {}),
+        ...(client.gstUsername ? { gst_username: client.gstUsername } : {}),
+        ...(client.gstPassword ? { gst_password: client.gstPassword } : {}),
+        ...(client.itUsername ? { it_username: client.itUsername } : {}),
+        ...(client.itPassword ? { it_password: client.itPassword } : {}),
+        ...(client.tracesPassword ? { traces_password: client.tracesPassword } : {}),
       };
 
       const clientUuid = ensureUuid(client.id, 'client');
@@ -505,6 +515,11 @@ export const updateClientInDb = async (clientId: string, updates: Partial<Client
       if (updates.assignedStaffId) dbUpdates.assigned_staff_id = ensureUuid(updates.assignedStaffId, 'staff');
       if (updates.monthlyAuditFee !== undefined) dbUpdates.monthly_audit_fee = updates.monthlyAuditFee;
       if (updates.oneDriveFolderUrl) dbUpdates.onedrive_folder_url = updates.oneDriveFolderUrl;
+      if (updates.gstUsername !== undefined) dbUpdates.gst_username = updates.gstUsername || null;
+      if (updates.gstPassword !== undefined) dbUpdates.gst_password = updates.gstPassword || null;
+      if (updates.itUsername !== undefined) dbUpdates.it_username = updates.itUsername || null;
+      if (updates.itPassword !== undefined) dbUpdates.it_password = updates.itPassword || null;
+      if (updates.tracesPassword !== undefined) dbUpdates.traces_password = updates.tracesPassword || null;
 
       const uuid = ensureUuid(clientId, 'client');
       const { error } = await supabase.from('clients').update(dbUpdates).or(`id.eq.${uuid},client_code.eq.${clientId}`);

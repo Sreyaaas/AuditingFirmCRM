@@ -28,6 +28,7 @@ import { InvoicesManager } from './components/InvoicesManager';
 import { OtherAssignmentsManager } from './components/OtherAssignmentsManager';
 import { TaskCategory } from './types/crm';
 import { Avatar, Button, Card, EmptyState, PageHeader } from './components/ui';
+import { sendToGroup } from './utils/whatsapp';
 
 import {
   fetchPracticeConfigs,
@@ -410,11 +411,13 @@ export function App() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
+  const [whatsAppClient, setWhatsAppClient] = useState<Client | null>(null);
   const [whatsAppTask, setWhatsAppTask] = useState<MonthlyTask | null>(null);
   const [whatsAppITR, setWhatsAppITR] = useState<ITRFiling | null>(null);
   const [whatsAppDebtor, setWhatsAppDebtor] = useState<DebtorRecord | null>(null);
   const [whatsAppTicket, setWhatsAppTicket] = useState<StaffTicket | null>(null);
   const [whatsAppGST, setWhatsAppGST] = useState<GSTComplianceItem | null>(null);
+  const [whatsAppInitialPhone, setWhatsAppInitialPhone] = useState<string | undefined>(undefined);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
@@ -729,17 +732,21 @@ export function App() {
 
   // ------------------------------------------------------- WhatsApp
   const openWhatsApp = (patch: {
+    client?: Client | null;
     task?: MonthlyTask | null;
     itr?: ITRFiling | null;
     debtor?: DebtorRecord | null;
     ticket?: StaffTicket | null;
     gst?: GSTComplianceItem | null;
+    initialPhone?: string;
   }) => {
+    setWhatsAppClient(patch.client ?? null);
     setWhatsAppTask(patch.task ?? null);
     setWhatsAppITR(patch.itr ?? null);
     setWhatsAppDebtor(patch.debtor ?? null);
     setWhatsAppTicket(patch.ticket ?? null);
     setWhatsAppGST(patch.gst ?? null);
+    setWhatsAppInitialPhone(patch.initialPhone);
     setIsWhatsAppOpen(true);
   };
 
@@ -1226,6 +1233,9 @@ export function App() {
                   billings={billings}
                   clients={clients}
                   debtors={debtors}
+                  monthlyTasks={monthlyWorkTasks}
+                  quarterlyTasks={quarterlyTasks}
+                  itrFilings={combinedAnnualFilings}
                   canEdit={canEditFees}
                   onOpenInvoiceModal={(clientOrDebtor, prefill) => {
                     setInvoiceModalTarget(clientOrDebtor || null);
@@ -1374,11 +1384,13 @@ export function App() {
       <WhatsAppModal
         isOpen={isWhatsAppOpen}
         onClose={() => setIsWhatsAppOpen(false)}
+        client={whatsAppClient}
         task={whatsAppTask}
         itrFiling={whatsAppITR}
         debtor={whatsAppDebtor}
         ticket={whatsAppTicket}
         gstItem={whatsAppGST}
+        initialPhone={whatsAppInitialPhone}
         staffName={currentUser.name}
         customTemplates={templates}
         firmProfile={firmProfile}
@@ -1402,9 +1414,17 @@ export function App() {
           setInvoicePrefillBilling(billing);
           setIsInvoiceModalOpen(true);
         }}
-        onOpenWhatsApp={(item) => {
+        onOpenWhatsApp={(item, targetPhone, forceGroup) => {
           setIsDrawerOpen(false);
-          openWhatsApp({ task: item });
+          if (forceGroup) {
+            sendToGroup(`Hello ${selectedClient?.tradeName || selectedClient?.name || 'Client'},\n\nUpdate from Shameer & Associates.`);
+            return;
+          }
+          if (item && 'entityType' in item) {
+            openWhatsApp({ client: item, initialPhone: targetPhone });
+          } else {
+            openWhatsApp({ task: item, initialPhone: targetPhone });
+          }
         }}
         onGenerateInvoice={(c) => {
           setIsDrawerOpen(false);

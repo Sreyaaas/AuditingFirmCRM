@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, Pencil } from 'lucide-react';
+import { Building2, Pencil, Eye, EyeOff } from 'lucide-react';
 import { Button, Field, Input, Modal, Select } from './ui';
 import { Client, StaffMember, EntityType } from '../types/crm';
 import { FIRM_ONEDRIVE_ROOT_URL } from '../services/firmConfigService';
@@ -46,6 +46,14 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
   const [isRecurringStatutory, setIsRecurringStatutory] = useState<boolean>(clientToEdit ? clientToEdit.isRecurringStatutory : false);
   const [oneDriveFolderUrl, setOneDriveFolderUrl] = useState<string>(clientToEdit ? clientToEdit.oneDriveFolderUrl : FIRM_ONEDRIVE_ROOT_URL);
   const [status, setStatus] = useState<'Active' | 'Archived' | 'On Hold'>(clientToEdit ? clientToEdit.status : 'Active');
+  const [gstUsername, setGstUsername] = useState(clientToEdit?.gstUsername || '');
+  const [gstPassword, setGstPassword] = useState(clientToEdit?.gstPassword || '');
+  const [itUsername, setItUsername] = useState(clientToEdit?.itUsername || '');
+  const [itPassword, setItPassword] = useState(clientToEdit?.itPassword || '');
+  const [tracesPassword, setTracesPassword] = useState(clientToEdit?.tracesPassword || '');
+  const [showGstPassword, setShowGstPassword] = useState(false);
+  const [showItPassword, setShowItPassword] = useState(false);
+  const [showTracesPassword, setShowTracesPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -69,6 +77,11 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
       setIsRecurringStatutory(clientToEdit.isRecurringStatutory);
       setOneDriveFolderUrl(clientToEdit.oneDriveFolderUrl || FIRM_ONEDRIVE_ROOT_URL);
       setStatus(clientToEdit.status);
+      setGstUsername(clientToEdit.gstUsername || '');
+      setGstPassword(clientToEdit.gstPassword || '');
+      setItUsername(clientToEdit.itUsername || '');
+      setItPassword(clientToEdit.itPassword || '');
+      setTracesPassword(clientToEdit.tracesPassword || '');
     } else if (isOpen) {
       setClientCode(nextClientCode);
       setName('');
@@ -89,6 +102,11 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
       setIsRecurringStatutory(false);
       setOneDriveFolderUrl(FIRM_ONEDRIVE_ROOT_URL);
       setStatus('Active');
+      setGstUsername('');
+      setGstPassword('');
+      setItUsername('');
+      setItPassword('');
+      setTracesPassword('');
     }
   }, [isOpen, clientToEdit, nextClientCode, entityTypes, staffList]);
 
@@ -120,6 +138,11 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
         city: city.trim(),
         oneDriveFolderUrl: oneDriveFolderUrl.trim() || clientToEdit.oneDriveFolderUrl || FIRM_ONEDRIVE_ROOT_URL,
         status,
+        gstUsername: gstUsername.trim() || undefined,
+        gstPassword: gstPassword.trim() || undefined,
+        itUsername: itUsername.trim() || undefined,
+        itPassword: itPassword.trim() || undefined,
+        tracesPassword: tracesPassword.trim() || undefined,
       };
 
       if (onUpdateClient) {
@@ -147,6 +170,11 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
         city: city.trim(),
         oneDriveFolderUrl: oneDriveFolderUrl.trim() || FIRM_ONEDRIVE_ROOT_URL,
         status,
+        gstUsername: gstUsername.trim() || undefined,
+        gstPassword: gstPassword.trim() || undefined,
+        itUsername: itUsername.trim() || undefined,
+        itPassword: itPassword.trim() || undefined,
+        tracesPassword: tracesPassword.trim() || undefined,
       };
 
       if (onAddClient) {
@@ -287,6 +315,106 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
               className="font-mono text-xs"
             />
           </Field>
+        </section>
+
+        <section className="space-y-4 pt-5 border-t border-line">
+          <div className="flex items-center justify-between">
+            <div className="eyebrow">Government Portal Access (Credentials)</div>
+            <span className="text-2xs text-fg-subtle">Vault records</span>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <span className="text-xs font-semibold text-fg block mb-2">GST Portal</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="GST Username">
+                  <Input
+                    placeholder="GSTIN or portal username"
+                    value={gstUsername}
+                    onChange={(e) => setGstUsername(e.target.value)}
+                    className="font-mono"
+                  />
+                </Field>
+                <Field label="GST Password">
+                  <div className="relative">
+                    <Input
+                      type={showGstPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={gstPassword}
+                      onChange={(e) => setGstPassword(e.target.value)}
+                      className="font-mono pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGstPassword(!showGstPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg focus:outline-none cursor-pointer"
+                      title={showGstPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showGstPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </Field>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-line/60">
+              <span className="text-xs font-semibold text-fg block mb-2">Income Tax e-Filing Portal</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="IT e-Filing Username">
+                  <Input
+                    placeholder="PAN or portal user ID"
+                    value={itUsername}
+                    onChange={(e) => setItUsername(e.target.value)}
+                    className="font-mono"
+                  />
+                </Field>
+                <Field label="IT e-Filing Password">
+                  <div className="relative">
+                    <Input
+                      type={showItPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={itPassword}
+                      onChange={(e) => setItPassword(e.target.value)}
+                      className="font-mono pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowItPassword(!showItPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg focus:outline-none cursor-pointer"
+                      title={showItPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showItPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </Field>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-line/60">
+              <span className="text-xs font-semibold text-fg block mb-2">TRACES TDS Portal</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="TRACES Password (Optional)">
+                  <div className="relative">
+                    <Input
+                      type={showTracesPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={tracesPassword}
+                      onChange={(e) => setTracesPassword(e.target.value)}
+                      className="font-mono pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowTracesPassword(!showTracesPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg focus:outline-none cursor-pointer"
+                      title={showTracesPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showTracesPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </Field>
+              </div>
+            </div>
+          </div>
         </section>
       </form>
     </Modal>
