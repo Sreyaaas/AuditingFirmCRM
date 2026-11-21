@@ -35,7 +35,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
   onGenerateInvoice,
   onViewInvoice,
 }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'onedrive' | 'compliance' | 'tickets'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'compliance' | 'billings' | 'onedrive' | 'tickets'>('profile');
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   if (!isOpen || !client) return null;
@@ -48,6 +48,15 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
     const cTrade = (client.tradeName || '').trim().toLowerCase();
     return bName === cName || bName === cTrade || (cTrade && bName.includes(cTrade)) || (cName && bName.includes(cName));
   });
+
+  const totalBilled = clientBillings.reduce(
+    (sum, b) => sum + (Number(b.professionalIncome) || 0) + (Number(b.oopExpenses) || 0),
+    0
+  );
+  const totalReceived = clientBillings
+    .filter((b) => b.billingStatus === 'Received')
+    .reduce((sum, b) => sum + (Number(b.professionalIncome) || 0) + (Number(b.oopExpenses) || 0), 0);
+  const totalPending = totalBilled - totalReceived;
 
   const getStaff = (id: string | null) => {
     if (!id) return null;
@@ -116,6 +125,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
           options={[
             { value: 'profile', label: 'Profile' },
             { value: 'compliance', label: 'Filings & fees' },
+            { value: 'billings', label: 'Bill records', count: clientBillings.length || undefined },
             { value: 'onedrive', label: 'Documents' },
             { value: 'tickets', label: 'Calls', count: clientTickets.length || undefined },
           ]}
@@ -217,20 +227,29 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
           <section className="pt-5 border-t border-line">
             <SectionTitle
               right={
-                onGenerateInvoice && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    icon={ReceiptText}
-                    onClick={() => {
-                      onClose();
-                      onGenerateInvoice(client);
-                    }}
-                    className="h-6 text-2xs px-2"
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('billings')}
+                    className="text-xs text-accent hover:underline font-medium"
                   >
-                    Generate Invoice
-                  </Button>
-                )
+                    View tab ({clientBillings.length})
+                  </button>
+                  {onGenerateInvoice && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={ReceiptText}
+                      onClick={() => {
+                        onClose();
+                        onGenerateInvoice(client);
+                      }}
+                      className="h-6 text-2xs px-2"
+                    >
+                      Generate Invoice
+                    </Button>
+                  )}
+                </div>
               }
             >
               Bill records
@@ -282,10 +301,10 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
                             <Badge
                               tone={
                                 b.billingStatus === 'Received'
-                                  ? 'success'
-                                  : b.billingStatus === 'Pending'
-                                  ? 'warning'
-                                  : 'info'
+                                ? 'success'
+                                : b.billingStatus === 'Pending'
+                                ? 'warning'
+                                : 'info'
                               }
                               dot
                             >
@@ -315,6 +334,145 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
               </div>
             )}
           </section>
+        </div>
+      )}
+
+      {activeTab === 'billings' && (
+        <div className="space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-semibold text-fg">Bill records & invoices</h4>
+              <p className="text-xs text-fg-subtle mt-0.5">
+                {clientBillings.length === 1 ? '1 invoice recorded' : `${clientBillings.length} invoices recorded`} for {client.tradeName}
+              </p>
+            </div>
+            {onGenerateInvoice && (
+              <Button
+                size="sm"
+                variant="primary"
+                icon={ReceiptText}
+                onClick={() => {
+                  onClose();
+                  onGenerateInvoice(client);
+                }}
+              >
+                Generate Invoice
+              </Button>
+            )}
+          </div>
+
+          {clientBillings.length > 0 && (
+            <div className="grid grid-cols-3 gap-3 p-3 rounded-lg border border-line bg-subtle/40">
+              <div>
+                <span className="text-2xs uppercase tracking-wider text-fg-subtle font-medium block">Total Invoiced</span>
+                <span className="num text-sm font-semibold text-fg mt-0.5 block">{formatINR(totalBilled)}</span>
+              </div>
+              <div>
+                <span className="text-2xs uppercase tracking-wider text-fg-subtle font-medium block">Total Settled</span>
+                <span className="num text-sm font-semibold text-success mt-0.5 block">{formatINR(totalReceived)}</span>
+              </div>
+              <div>
+                <span className="text-2xs uppercase tracking-wider text-fg-subtle font-medium block">Pending Balance</span>
+                <span className={cn('num text-sm font-semibold mt-0.5 block', totalPending > 0 ? 'text-warning' : 'text-fg-muted')}>
+                  {formatINR(totalPending)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {clientBillings.length === 0 ? (
+            <EmptyState
+              icon={ReceiptText}
+              title="No bills recorded yet"
+              description={`No office tax invoices or bills have been generated for ${client.tradeName}.`}
+              action={
+                onGenerateInvoice && (
+                  <Button
+                    variant="primary"
+                    icon={ReceiptText}
+                    onClick={() => {
+                      onClose();
+                      onGenerateInvoice(client);
+                    }}
+                  >
+                    Create First Invoice
+                  </Button>
+                )
+              }
+            />
+          ) : (
+            <div className="border border-line rounded-[6px] overflow-hidden bg-surface">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-subtle text-fg-subtle border-b border-line text-2xs uppercase tracking-wider">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Inv #</th>
+                    <th className="px-3 py-2 font-medium">Date</th>
+                    <th className="px-3 py-2 font-medium">Nature of Service</th>
+                    <th className="px-3 py-2 font-medium text-right">Fee (₹)</th>
+                    <th className="px-3 py-2 font-medium text-right">OOP (₹)</th>
+                    <th className="px-3 py-2 font-medium text-right">Total (₹)</th>
+                    <th className="px-3 py-2 font-medium text-center">Status</th>
+                    <th className="px-3 py-2 font-medium text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {clientBillings.map((b) => {
+                    const invNo = b.invoiceNumber || `SA/${String(b.serialNo).padStart(4, '0')}`;
+                    const fee = Number(b.professionalIncome) || 0;
+                    const oop = Number(b.oopExpenses) || 0;
+                    const total = fee + oop;
+                    return (
+                      <tr key={b.id || b.serialNo} className="hover:bg-hover transition-colors">
+                        <td className="px-3 py-2.5 font-mono font-medium text-fg">{invNo}</td>
+                        <td className="px-3 py-2.5 font-mono text-fg-muted">{b.date ? formatDate(b.date) : '—'}</td>
+                        <td className="px-3 py-2.5 text-fg truncate max-w-[200px]" title={b.natureOfService}>
+                          {b.natureOfService || 'Professional fees'}
+                        </td>
+                        <td className="px-3 py-2.5 num font-medium text-right text-fg">
+                          {formatINR(fee)}
+                        </td>
+                        <td className="px-3 py-2.5 num text-right text-fg-muted">
+                          {oop ? formatINR(oop) : '—'}
+                        </td>
+                        <td className="px-3 py-2.5 num font-semibold text-right text-fg">
+                          {formatINR(total)}
+                        </td>
+                        <td className="px-3 py-2.5 text-center">
+                          <Badge
+                            tone={
+                              b.billingStatus === 'Received'
+                                ? 'success'
+                                : b.billingStatus === 'Pending'
+                                ? 'warning'
+                                : 'neutral'
+                            }
+                            dot
+                          >
+                            {b.billingStatus || 'Billed'}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2.5 text-right">
+                          {onViewInvoice && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-6 text-2xs px-2"
+                              onClick={() => {
+                                onClose();
+                                onViewInvoice(b);
+                              }}
+                            >
+                              View
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
