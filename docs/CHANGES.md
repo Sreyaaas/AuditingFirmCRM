@@ -238,3 +238,10 @@ Dropdown lists remain in `practice_configs`.
   - Replaced all obsolete placeholder `shameerassociates.sharepoint.com` URLs across `ClientDetailDrawer`, `InvoicesManager`, `InvoiceGeneratorModal`, `NewClientModal`, and sample data.
   - Added an editable "Document storage (Microsoft OneDrive)" management section to `PracticeConfigManager` under Firm Settings so administrators can inspect or update the master repository URL anytime directly from the CRM interface.
   - Wired client documents tab, invoice cloud archiving preview, and modal shortcuts to smoothly launch the firm's authentic OneDrive workspace.
+* **Client Partner Contacts & Destination Bank Selection:**
+  - Added partner name, partner WhatsApp, and secondary phone number fields to `Client` model (`src/types/crm.ts`) and `NewClientModal.tsx`.
+  - Added contact display for partner and secondary numbers in `ClientDetailDrawer.tsx` under "Contact & Partners".
+  - Removed outdated "Monthly GST" and "Statutory audit" checkboxes from the "Work & fees" section in `NewClientModal.tsx`.
+  - In `DebtorsManager.tsx` (Record Payment modal): Added a "Landed in Bank" dropdown for all non-cash payment modes (`Bank transfer`, `UPI`, `Cheque`) with choices: `Office BOB`, `Office IDFC`, and `Shameer HDFC`.
+  - Wired destination bank and payment details into `App.tsx` activity logs and toast notifications.
+  - Added database migration `supabase/migrations/005_client_partner_contacts.sql` with safe fallback handling in `dbSyncService.ts`.

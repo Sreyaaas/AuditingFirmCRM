@@ -71,6 +71,9 @@ export interface Client {
   pan: string;
   contactPerson: string;
   phone: string;
+  partnerName?: string;
+  partnerPhone?: string;
+  secondaryPhone?: string;
   email: string;
   isRecurringGST: boolean;
   isRecurringStatutory: boolean;

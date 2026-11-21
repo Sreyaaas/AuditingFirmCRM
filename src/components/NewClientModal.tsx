@@ -29,12 +29,13 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
   const [pan, setPan] = useState('');
   const [contactPerson, setContactPerson] = useState('');
   const [phone, setPhone] = useState('+91 ');
+  const [partnerName, setPartnerName] = useState('');
+  const [partnerPhone, setPartnerPhone] = useState('');
+  const [secondaryPhone, setSecondaryPhone] = useState('');
   const [email, setEmail] = useState('');
   const [city, setCity] = useState('Kerala');
   const [monthlyAuditFee, setMonthlyAuditFee] = useState<number>(3000);
   const [assignedStaffId, setAssignedStaffId] = useState(staffList[0]?.id || 'staff-ameen');
-  const [isRecurringGST, setIsRecurringGST] = useState(true);
-  const [isRecurringStatutory, setIsRecurringStatutory] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,9 +54,12 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
       pan: (pan.trim().toUpperCase() || (gstin.length >= 12 ? gstin.slice(2, 12).toUpperCase() : '')),
       contactPerson: contactPerson.trim(),
       phone: phone.trim(),
+      partnerName: partnerName.trim() || undefined,
+      partnerPhone: partnerPhone.trim() || undefined,
+      secondaryPhone: secondaryPhone.trim() || undefined,
       email: email.trim(),
-      isRecurringGST,
-      isRecurringStatutory,
+      isRecurringGST: true,
+      isRecurringStatutory: false,
       assignedStaffId,
       monthlyAuditFee: Number(monthlyAuditFee) || 0,
       city: city.trim(),
@@ -128,23 +132,34 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
         </section>
 
         <section className="space-y-4 pt-5 border-t border-line">
-          <div className="eyebrow">Contact</div>
+          <div className="eyebrow">Contact & Partners</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Contact person">
-              <Input placeholder="Managing Director" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
+            <Field label="Contact person (Primary)">
+              <Input placeholder="Managing Director / Name" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
             </Field>
-            <Field label="WhatsApp number">
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="font-mono" />
+            <Field label="Primary WhatsApp number" required>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="font-mono" placeholder="+91 98470 12345" />
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Partner / Director name (Optional)">
+              <Input placeholder="Partner 2 / Director name" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} />
+            </Field>
+            <Field label="Partner WhatsApp number (Optional)">
+              <Input placeholder="+91 94470 12345" value={partnerPhone} onChange={(e) => setPartnerPhone(e.target.value)} className="font-mono" />
             </Field>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Field label="Secondary / Office phone (Optional)">
+              <Input placeholder="Landline / Mobile 2" value={secondaryPhone} onChange={(e) => setSecondaryPhone(e.target.value)} className="font-mono" />
+            </Field>
             <Field label="Email" className="sm:col-span-2">
               <Input type="email" placeholder="accounts@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
             </Field>
-            <Field label="City">
-              <Input placeholder="Kochi" value={city} onChange={(e) => setCity(e.target.value)} />
-            </Field>
           </div>
+          <Field label="City">
+            <Input placeholder="Kochi" value={city} onChange={(e) => setCity(e.target.value)} />
+          </Field>
         </section>
 
         <section className="space-y-4 pt-5 border-t border-line">
@@ -162,16 +177,6 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
                 ))}
               </Select>
             </Field>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <label className="flex items-center gap-2 cursor-pointer text-sm text-fg">
-              <input type="checkbox" checked={isRecurringGST} onChange={(e) => setIsRecurringGST(e.target.checked)} className="h-3.5 w-3.5" />
-              Monthly GST (GSTR-1 &amp; 3B)
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer text-sm text-fg">
-              <input type="checkbox" checked={isRecurringStatutory} onChange={(e) => setIsRecurringStatutory(e.target.checked)} className="h-3.5 w-3.5" />
-              Statutory audit
-            </label>
           </div>
         </section>
       </form>

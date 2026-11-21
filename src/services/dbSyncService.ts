@@ -374,6 +374,9 @@ export const fetchClientsFromDb = async (): Promise<Client[]> => {
       pan: row.pan || '',
       contactPerson: row.contact_person || '',
       phone: row.phone || '',
+      partnerName: row.partner_name || '',
+      partnerPhone: row.partner_phone || '',
+      secondaryPhone: row.secondary_phone || '',
       email: row.email || '',
       isRecurringGST: Boolean(row.is_recurring_gst),
       isRecurringStatutory: Boolean(row.is_recurring_statutory),
@@ -400,7 +403,7 @@ export const saveClientToDb = async (client: Client): Promise<{ success: boolean
     localStorage.setItem('shameer_crm_clients_local', JSON.stringify(updated));
 
     if (isSupabaseConfigured()) {
-      const dbPayload = {
+      const basePayload: any = {
         client_code: client.clientCode,
         name: client.name,
         trade_name: client.tradeName,
@@ -420,9 +423,24 @@ export const saveClientToDb = async (client: Client): Promise<{ success: boolean
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
+      const extendedPayload = {
+        ...basePayload,
+        ...(client.partnerName ? { partner_name: client.partnerName } : {}),
+        ...(client.partnerPhone ? { partner_phone: client.partnerPhone } : {}),
+        ...(client.secondaryPhone ? { secondary_phone: client.secondaryPhone } : {}),
+      };
+
+      let { error } = await supabase
         .from('clients')
-        .upsert(dbPayload, { onConflict: 'client_code' });
+        .upsert(extendedPayload, { onConflict: 'client_code' });
+
+      // If remote Supabase schema hasn't added the partner columns yet, gracefully fall back to base payload
+      if (error && (error.message?.includes('column') || error.code === '42703')) {
+        const fallback = await supabase
+          .from('clients')
+          .upsert(basePayload, { onConflict: 'client_code' });
+        error = fallback.error;
+      }
 
       if (error) {
         return { success: false, error: error.message };

@@ -184,13 +184,22 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
           </section>
 
           <section className="pt-5 border-t border-line">
-            <SectionTitle>Contact</SectionTitle>
+            <SectionTitle>Contact & Partners</SectionTitle>
             <DescriptionList
               columns={3}
               items={[
-                { label: 'Contact person', value: client.contactPerson || '—' },
+                { label: 'Primary contact', value: client.contactPerson || '—' },
                 { label: 'Phone / WhatsApp', value: client.phone || '—', mono: true },
                 { label: 'Email', value: client.email || '—' },
+                ...(client.partnerName || client.partnerPhone
+                  ? [
+                      { label: 'Partner / Director', value: client.partnerName || 'Partner' },
+                      { label: 'Partner WhatsApp', value: client.partnerPhone || '—', mono: true },
+                    ]
+                  : []),
+                ...(client.secondaryPhone
+                  ? [{ label: 'Secondary / Office phone', value: client.secondaryPhone, mono: true }]
+                  : []),
               ]}
             />
           </section>

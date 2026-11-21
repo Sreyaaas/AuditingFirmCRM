@@ -767,13 +767,26 @@ export function App() {
   };
 
   // ------------------------------------------------------- fees
-  const handleRecordDebtorPayment = async (debtorId: string, amount: number) => {
+  const handleRecordDebtorPayment = async (
+    debtorId: string,
+    amount: number,
+    mode?: string,
+    reference?: string,
+    bankAccount?: string
+  ) => {
     const record = debtors.find((d) => d.id === debtorId);
     if (!record) return;
     const updated = applyPayment(record, amount);
     setDebtors((prev) => prev.map((d) => (d.id === debtorId ? updated : d)));
-    showToast(`₹${amount.toLocaleString('en-IN')} received from ${record.clientName}`);
-    addActivityLog('Payment received', `₹${amount.toLocaleString('en-IN')} · balance now ₹${updated.currentBalance.toLocaleString('en-IN')}`, record.clientName, 'Payment');
+    const bankDesc = bankAccount ? ` into ${bankAccount}` : '';
+    const refDesc = reference ? ` (Ref: ${reference})` : '';
+    showToast(`₹${amount.toLocaleString('en-IN')} received from ${record.clientName}${bankDesc}`);
+    addActivityLog(
+      'Payment received',
+      `₹${amount.toLocaleString('en-IN')} via ${mode || 'Payment'}${bankDesc}${refDesc} · balance now ₹${updated.currentBalance.toLocaleString('en-IN')}`,
+      record.clientName,
+      'Payment'
+    );
     reportSave(await saveDebtorToDb(updated), 'Payment');
   };
 

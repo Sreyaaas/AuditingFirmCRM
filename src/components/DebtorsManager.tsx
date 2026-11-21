@@ -22,7 +22,7 @@ interface DebtorsManagerProps {
   canImport: boolean;
   gstCompliance: GSTComplianceItem[];
   onOpenWhatsApp: (debtor: DebtorRecord) => void;
-  onRecordPayment: (debtorId: string, amountCleared: number) => void;
+  onRecordPayment: (debtorId: string, amountCleared: number, mode?: string, reference?: string, bankAccount?: string) => void;
   onAddBilling?: (
     debtorId: string,
     billingAmount: number,
@@ -196,6 +196,7 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
   const [quickPayId, setQuickPayId] = useState('');
   const [amountInput, setAmountInput] = useState('');
   const [paymentMode, setPaymentMode] = useState('Bank transfer');
+  const [destinationBank, setDestinationBank] = useState<'Office BOB' | 'Office IDFC' | 'Shameer HDFC'>('Office BOB');
   const [paymentRef, setPaymentRef] = useState('');
   const [billingFor, setBillingFor] = useState<DebtorRecord | null>(null);
   const [billingService, setBillingService] = useState('GST filing');
@@ -401,10 +402,17 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
     const target = paymentFor || debtors.find((d) => d.id === quickPayId);
     const amount = parseFloat(amountInput);
     if (!target || !(amount > 0)) return;
-    onRecordPayment(target.id, amount);
+    onRecordPayment(
+      target.id,
+      amount,
+      paymentMode,
+      paymentRef.trim() || undefined,
+      paymentMode !== 'Cash' ? destinationBank : undefined
+    );
     setPaymentFor(null);
     setIsQuickPayOpen(false);
     setAmountInput('');
+    setPaymentRef('');
   };
 
   const submitBilling = (e: React.FormEvent) => {
@@ -1126,17 +1134,26 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
           <Field label="Amount received (₹)" required>
             <Input type="number" step="any" min="1" required autoFocus value={amountInput} onChange={(e) => setAmountInput(e.target.value)} className="num" />
           </Field>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Mode">
               <Select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
-                <option>Bank transfer</option>
-                <option>UPI</option>
-                <option>Cheque</option>
-                <option>Cash</option>
+                <option value="Bank transfer">Bank transfer</option>
+                <option value="UPI">UPI</option>
+                <option value="Cheque">Cheque</option>
+                <option value="Cash">Cash</option>
               </Select>
             </Field>
-            <Field label="Reference">
-              <Input placeholder="UTR / cheque no." value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} />
+            {paymentMode !== 'Cash' ? (
+              <Field label="Landed in Bank" required>
+                <Select value={destinationBank} onChange={(e) => setDestinationBank(e.target.value as any)}>
+                  <option value="Office BOB">Office BOB</option>
+                  <option value="Office IDFC">Office IDFC</option>
+                  <option value="Shameer HDFC">Shameer HDFC</option>
+                </Select>
+              </Field>
+            ) : null}
+            <Field label="Reference" className={paymentMode === 'Cash' ? 'sm:col-span-1' : 'sm:col-span-2'}>
+              <Input placeholder={paymentMode === 'Cash' ? 'Receipt / note' : 'UTR / Transaction / Cheque no.'} value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} />
             </Field>
           </div>
         </form>
