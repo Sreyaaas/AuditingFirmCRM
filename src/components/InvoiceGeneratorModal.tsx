@@ -21,8 +21,9 @@ import html2pdf from 'html2pdf.js';
 import { Client, DebtorRecord, OfficeBillingEntry } from '../types/crm';
 import { AppPreferences, FirmProfileSettings, FIRM_ONEDRIVE_ROOT_URL } from '../services/firmConfigService';
 import { numberToWordsINR } from '../utils/numberToWords';
-import { sendToIndividual, sendToGroup, cleanWhatsAppPhone, dispatchAppToast } from '../utils/whatsapp';
+import { sendToIndividual, sendToGroup, cleanWhatsAppPhone, dispatchAppToast, getClientPhoneOptions, PhoneRecipientOption } from '../utils/whatsapp';
 import { Badge, Button, IconButton, Input, Modal, formatINR, cn } from './ui';
+import { SelectRecipientModal } from './SelectRecipientModal';
 
 export interface InvoiceLineItem {
   id: string;
@@ -455,13 +456,19 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
   // Client OneDrive folder path
   const matchedClient = useMemo(
-    () => clients.find((c) => c.tradeName.toLowerCase() === clientName.toLowerCase()),
-    [clients, clientName]
+    () => clients.find((c) => (selectedClientId && c.id === selectedClientId) || c.tradeName.toLowerCase() === clientName.toLowerCase() || c.name.toLowerCase() === clientName.toLowerCase()),
+    [clients, clientName, selectedClientId]
   );
   const clientOneDriveFolder =
     matchedClient?.oneDriveFolderUrl ||
     firmProfile?.oneDriveRootUrl ||
     FIRM_ONEDRIVE_ROOT_URL;
+
+  const phoneOptions = useMemo(() => {
+    return getClientPhoneOptions(matchedClient, phone);
+  }, [matchedClient, phone]);
+
+  const [recipientPickerAction, setRecipientPickerAction] = useState<'pdf' | 'text' | null>(null);
 
   // Actions: Direct OneDrive Upload
   const handleStoreToOneDriveDirectly = () => {
@@ -608,7 +615,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   };
 
   // Actions: WhatsApp PDF (Native Web Share with auto-download fallback)
-  const handleShareWhatsAppPdf = async (forceGroup = false) => {
+  const handleShareWhatsAppPdf = async (forceGroup = false, targetPhone?: string) => {
     const element = document.getElementById('printable-invoice');
     if (!element) return;
 
@@ -667,9 +674,10 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     if (forceGroup) {
       sendToGroup(coverNote);
     } else {
-      const clean = cleanWhatsAppPhone(phone);
+      const activePhone = targetPhone || phone;
+      const clean = cleanWhatsAppPhone(activePhone);
       if (clean) {
-        sendToIndividual(phone, coverNote);
+        sendToIndividual(activePhone, coverNote);
       } else {
         sendToGroup(coverNote);
       }
@@ -679,7 +687,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   };
 
   // Actions: WhatsApp
-  const handleShareWhatsApp = async (forceGroup = false) => {
+  const handleShareWhatsApp = async (forceGroup = false, targetPhone?: string) => {
     const firmName = firmProfile?.legalName || DEFAULT_OFFICE_FIRM.name;
     const bank = firmProfile?.bankName || DEFAULT_OFFICE_FIRM.bankName;
     const acct = firmProfile?.accountNumber || DEFAULT_OFFICE_FIRM.accountNumber;
@@ -732,12 +740,29 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     if (forceGroup) {
       await sendToGroup(msg);
     } else {
-      const clean = cleanWhatsAppPhone(phone);
+      const activePhone = targetPhone || phone;
+      const clean = cleanWhatsAppPhone(activePhone);
       if (clean) {
-        await sendToIndividual(phone, msg);
+        await sendToIndividual(activePhone, msg);
       } else {
         await sendToGroup(msg);
       }
+    }
+  };
+
+  const handleWhatsAppPdfTrigger = () => {
+    if (phoneOptions.length > 1) {
+      setRecipientPickerAction('pdf');
+    } else {
+      handleShareWhatsAppPdf(false, phoneOptions[0]?.phone || phone);
+    }
+  };
+
+  const handleWhatsAppTextTrigger = () => {
+    if (phoneOptions.length > 1) {
+      setRecipientPickerAction('text');
+    } else {
+      handleShareWhatsApp(false, phoneOptions[0]?.phone || phone);
     }
   };
 
@@ -853,7 +878,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               <Button
                 variant="secondary"
                 icon={FileText}
-                onClick={() => handleShareWhatsAppPdf(false)}
+                onClick={handleWhatsAppPdfTrigger}
                 disabled={isSaving}
                 title="Generate invoice PDF and open client WhatsApp to attach"
               >
@@ -873,7 +898,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               <Button
                 variant="ghost"
                 icon={MessageSquare}
-                onClick={() => handleShareWhatsApp(false)}
+                onClick={handleWhatsAppTextTrigger}
                 disabled={isSaving}
                 title="Send formatted text summary only"
                 className="text-xs text-fg-subtle hover:text-fg"
@@ -1418,6 +1443,29 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
           })()}
         </div>
       </div>
+
+      <SelectRecipientModal
+        isOpen={!!recipientPickerAction}
+        onClose={() => setRecipientPickerAction(null)}
+        clientName={clientName}
+        options={phoneOptions}
+        onSelect={(opt) => {
+          if (recipientPickerAction === 'pdf') {
+            handleShareWhatsAppPdf(false, opt.phone);
+          } else if (recipientPickerAction === 'text') {
+            handleShareWhatsApp(false, opt.phone);
+          }
+          setRecipientPickerAction(null);
+        }}
+        onSendToGroup={() => {
+          if (recipientPickerAction === 'pdf') {
+            handleShareWhatsAppPdf(true);
+          } else if (recipientPickerAction === 'text') {
+            handleShareWhatsApp(true);
+          }
+          setRecipientPickerAction(null);
+        }}
+      />
     </Modal>
   );
 };

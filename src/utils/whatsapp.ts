@@ -12,6 +12,66 @@ export const cleanWhatsAppPhone = (phone?: string, defaultCountry = '91'): strin
   return digits;
 };
 
+export interface PhoneRecipientOption {
+  label: string;
+  role: 'Primary' | 'Partner' | 'Office' | string;
+  phone: string;
+  rawPhone: string;
+  name?: string;
+}
+
+/**
+ * Extracts and deduplicates all valid phone numbers available for a client
+ * (Primary contact, Partner / Director, Secondary / Office).
+ */
+export const getClientPhoneOptions = (
+  client?: {
+    contactPerson?: string;
+    phone?: string;
+    partnerName?: string;
+    partnerPhone?: string;
+    secondaryPhone?: string;
+  } | null,
+  fallbackPhone?: string
+): PhoneRecipientOption[] => {
+  const options: PhoneRecipientOption[] = [];
+  const seenDigits = new Set<string>();
+
+  const add = (raw: string | undefined, role: string, name?: string) => {
+    if (!raw) return;
+    const clean = cleanWhatsAppPhone(raw);
+    if (!clean) return;
+    const digits = clean.replace(/\D/g, '');
+    if (!digits || seenDigits.has(digits)) return;
+    seenDigits.add(digits);
+
+    let label = role;
+    if (name && name.trim()) {
+      label = `${name.trim()} (${role})`;
+    }
+
+    options.push({
+      label,
+      role,
+      phone: clean,
+      rawPhone: raw,
+      name: name?.trim(),
+    });
+  };
+
+  if (client) {
+    add(client.phone, 'Primary contact', client.contactPerson);
+    add(client.partnerPhone, 'Partner / Director', client.partnerName);
+    add(client.secondaryPhone, 'Secondary / Office');
+  }
+
+  if (fallbackPhone) {
+    add(fallbackPhone, 'Primary contact');
+  }
+
+  return options;
+};
+
 export const dispatchAppToast = (message: string, error = false) => {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('app-toast', { detail: { message, error } }));

@@ -1383,6 +1383,7 @@ export function App() {
         customTemplates={templates}
         firmProfile={firmProfile}
         countryCode={preferences.whatsappCountryCode}
+        clients={clients}
       />
 
       <ClientDetailDrawer

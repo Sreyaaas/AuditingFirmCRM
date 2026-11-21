@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Send, Copy, Check, MessageSquare, Users } from 'lucide-react';
-import { Button, Field, Input, Label, Modal, Segmented, Textarea, formatINR } from './ui';
-import { sendToGroup } from '../utils/whatsapp';
-import { MonthlyTask, ITRFiling, StaffTicket, DebtorRecord, GSTComplianceItem } from '../types/crm';
+import { Button, Field, Input, Label, Modal, Segmented, Textarea, formatINR, cn } from './ui';
+import { sendToGroup, cleanWhatsAppPhone, getClientPhoneOptions, PhoneRecipientOption } from '../utils/whatsapp';
+import { MonthlyTask, ITRFiling, StaffTicket, DebtorRecord, GSTComplianceItem, Client } from '../types/crm';
+import { SelectRecipientModal } from './SelectRecipientModal';
 import { 
   getStoredWhatsAppTemplates, 
   getStoredFirmProfile, 
@@ -25,6 +26,7 @@ interface WhatsAppModalProps {
   firmProfile?: FirmProfileSettings;
   /** Country calling code for 10-digit numbers (from Settings). */
   countryCode?: string;
+  clients?: Client[];
 }
 
 const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
@@ -38,6 +40,7 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
   customTemplates,
   firmProfile: propFirmProfile,
   countryCode,
+  clients = [],
 }) => {
   const storedTemplates = customTemplates || getStoredWhatsAppTemplates();
   const profile = propFirmProfile || getStoredFirmProfile();
@@ -46,6 +49,18 @@ const WhatsAppModalForm: React.FC<WhatsAppModalProps> = ({
   const tradeName = gstItem?.tradeName || task?.tradeName || debtor?.tradeName || ticket?.tradeName || clientName;
   const rawPhone = gstItem?.phone || task?.phone || itrFiling?.phone || debtor?.phone || ticket?.callerPhone || '+91 98200 00000';
   const cleanPhone = toWhatsAppNumber(rawPhone, countryCode);
+
+  const matchedClient = (clients || []).find((c) =>
+    (task?.clientId && c.id === task.clientId) ||
+    (itrFiling?.clientId && c.id === itrFiling.clientId) ||
+    (debtor?.clientId && c.id === debtor.clientId) ||
+    (ticket?.clientId && c.id === ticket.clientId) ||
+    (c.tradeName && c.tradeName.toLowerCase() === tradeName.toLowerCase()) ||
+    (c.name && c.name.toLowerCase() === clientName.toLowerCase())
+  );
+
+  const phoneOptions = getClientPhoneOptions(matchedClient, rawPhone);
+  const [isRecipientPickerOpen, setIsRecipientPickerOpen] = useState(false);
 
   const standardTemplates = [
     {
@@ -214,10 +229,21 @@ Shameer & Associates`,
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleOpenWhatsApp = () => {
+  const handleOpenWhatsApp = (targetPhone?: string) => {
+    const dest = targetPhone || phone;
+    const clean = cleanWhatsAppPhone(dest);
     const encoded = encodeURIComponent(message);
-    const targetUrl = `https://wa.me/${phone}?text=${encoded}`;
+    const targetUrl = `https://wa.me/${clean}?text=${encoded}`;
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    onClose();
+  };
+
+  const handleSendToClientClick = () => {
+    if (phoneOptions.length > 1) {
+      setIsRecipientPickerOpen(true);
+    } else {
+      handleOpenWhatsApp(phone);
+    }
   };
 
   const contextLabel = ticket
@@ -260,7 +286,7 @@ Shameer & Associates`,
           <Button
             variant="primary"
             icon={Send}
-            onClick={handleOpenWhatsApp}
+            onClick={handleSendToClientClick}
             disabled={!phone || !message.trim()}
             title={!phone ? 'No phone number for this client' : 'Open a chat with the client'}
           >
@@ -270,6 +296,31 @@ Shameer & Associates`,
       }
     >
       <div className="space-y-4">
+        {phoneOptions.length > 1 && (
+          <div className="flex items-center gap-1.5 flex-wrap p-2 rounded-[6px] border border-line bg-subtle/50">
+            <span className="text-2xs text-fg-subtle uppercase tracking-wider font-semibold mr-1">Choose number:</span>
+            {phoneOptions.map((opt) => {
+              const isSelected = cleanWhatsAppPhone(phone) === opt.phone;
+              return (
+                <button
+                  key={opt.phone}
+                  type="button"
+                  onClick={() => setPhone(opt.phone)}
+                  className={cn(
+                    'px-2.5 py-1 rounded-[5px] text-xs transition-all flex items-center gap-1.5 border cursor-pointer',
+                    isSelected
+                      ? 'bg-surface text-fg border-line-strong font-medium shadow-sm'
+                      : 'bg-transparent text-fg-muted hover:text-fg hover:bg-hover border-transparent'
+                  )}
+                >
+                  <span>{opt.name || opt.role}</span>
+                  <span className="font-mono text-2xs opacity-75">+{opt.phone}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Recipient number" hint="Country code included, digits only">
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="font-mono" />
@@ -296,6 +347,22 @@ Shameer & Associates`,
         </Field>
         <div className="text-xs text-fg-subtle num text-right -mt-2">{message.length} characters</div>
       </div>
+
+      <SelectRecipientModal
+        isOpen={isRecipientPickerOpen}
+        onClose={() => setIsRecipientPickerOpen(false)}
+        clientName={tradeName}
+        options={phoneOptions}
+        onSelect={(opt) => {
+          setIsRecipientPickerOpen(false);
+          handleOpenWhatsApp(opt.phone);
+        }}
+        onSendToGroup={() => {
+          setIsRecipientPickerOpen(false);
+          sendToGroup(message);
+          onClose();
+        }}
+      />
     </Modal>
   );
 };

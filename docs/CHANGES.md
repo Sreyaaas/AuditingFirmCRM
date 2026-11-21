@@ -250,3 +250,8 @@ Dropdown lists remain in `practice_configs`.
   - Enhanced `NewClientModal` with `clientToEdit` and `onUpdateClient` props, dynamic titles ("Edit Client Details" vs "New Client"), pre-populated form state on selection change, and status/service toggle controls.
   - Upgraded `saveClientToDb` and `updateClientInDb` in `src/services/dbSyncService.ts` to cleanly update existing client records in Supabase and `localStorage` without duplication or dropping custom fields.
   - Integrated dedicated "Bill records" tab into `ClientDetailDrawer` with live bill count, itemized invoice table, status badges, and quick invoice viewer.
+* **Multi-Contact Recipient Selection for WhatsApp & Invoices:**
+  - Created centered `SelectRecipientModal` and helper `getClientPhoneOptions` to automatically detect when a client has optional/multiple contact numbers (Primary contact, Partner / Director, Secondary / Office phone).
+  - When clicking "Send to Client", "WhatsApp PDF", or "Text Only", if multiple phone numbers exist, the system prompts the user to choose the exact recipient with a 1-click dialog showing name, role tag, and monospace number.
+  - If only a single number exists, messages and invoice PDFs continue to send immediately with zero friction.
+  - Added interactive recipient selection chips to `WhatsAppModal` so practitioners can also view and toggle recipient numbers directly while editing messages.

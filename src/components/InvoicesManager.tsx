@@ -41,7 +41,8 @@ import {
   formatDate,
   formatINR,
 } from './ui';
-import { cleanWhatsAppPhone, sendToGroup, sendToIndividual } from '../utils/whatsapp';
+import { cleanWhatsAppPhone, sendToGroup, sendToIndividual, getClientPhoneOptions, PhoneRecipientOption } from '../utils/whatsapp';
+import { SelectRecipientModal } from './SelectRecipientModal';
 
 interface InvoicesManagerProps {
   billings: OfficeBillingEntry[];
@@ -195,10 +196,18 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
     }
   };
 
+  const [recipientPickerTarget, setRecipientPickerTarget] = useState<{
+    entry: OfficeBillingEntry;
+    options: PhoneRecipientOption[];
+    msg: string;
+  } | null>(null);
+
   // Quick WhatsApp share from billing record
   const handleWhatsApp = (entry: OfficeBillingEntry, forceGroup = false) => {
     const matchedClient = clients.find(
-      (c) => c.tradeName.toLowerCase() === entry.clientName.toLowerCase()
+      (c) =>
+        c.tradeName.toLowerCase() === entry.clientName.toLowerCase() ||
+        c.name.toLowerCase() === entry.clientName.toLowerCase()
     );
     const total = (Number(entry.professionalIncome) || 0) + (Number(entry.oopExpenses) || 0);
 
@@ -217,6 +226,14 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
 
     if (forceGroup) {
       sendToGroup(msg);
+      return;
+    }
+
+    const options = getClientPhoneOptions(matchedClient);
+    if (options.length > 1) {
+      setRecipientPickerTarget({ entry, options, msg });
+    } else if (options.length === 1) {
+      sendToIndividual(options[0].phone, msg);
     } else if (matchedClient?.phone && cleanWhatsAppPhone(matchedClient.phone)) {
       sendToIndividual(matchedClient.phone, msg);
     } else {
@@ -612,6 +629,25 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
             onDeleteBilling?.(invoiceToDelete.id || invoiceToDelete.invoiceNumber || '');
             setInvoiceToDelete(null);
           }
+        }}
+      />
+
+      <SelectRecipientModal
+        isOpen={!!recipientPickerTarget}
+        onClose={() => setRecipientPickerTarget(null)}
+        clientName={recipientPickerTarget?.entry.clientName}
+        options={recipientPickerTarget?.options || []}
+        onSelect={(opt) => {
+          if (recipientPickerTarget) {
+            sendToIndividual(opt.phone, recipientPickerTarget.msg);
+          }
+          setRecipientPickerTarget(null);
+        }}
+        onSendToGroup={() => {
+          if (recipientPickerTarget) {
+            sendToGroup(recipientPickerTarget.msg);
+          }
+          setRecipientPickerTarget(null);
         }}
       />
     </div>
