@@ -245,3 +245,8 @@ Dropdown lists remain in `practice_configs`.
   - In `DebtorsManager.tsx` (Record Payment modal): Added a "Landed in Bank" dropdown for all non-cash payment modes (`Bank transfer`, `UPI`, `Cheque`) with choices: `Office BOB`, `Office IDFC`, and `Shameer HDFC`.
   - Wired destination bank and payment details into `App.tsx` activity logs and toast notifications.
   - Added database migration `supabase/migrations/005_client_partner_contacts.sql` with safe fallback handling in `dbSyncService.ts`.
+* **Client Details Editing & Bill Records Integration:**
+  - Added full client editing workflow accessible from both the Client Directory (quick row action `Pencil` icon and `...` menu "Edit client details…") and the Client Profile Modal (Profile section "Edit Details" button and modal footer "Edit Client" button).
+  - Enhanced `NewClientModal` with `clientToEdit` and `onUpdateClient` props, dynamic titles ("Edit Client Details" vs "New Client"), pre-populated form state on selection change, and status/service toggle controls.
+  - Upgraded `saveClientToDb` and `updateClientInDb` in `src/services/dbSyncService.ts` to cleanly update existing client records in Supabase and `localStorage` without duplication or dropping custom fields.
+  - Integrated dedicated "Bill records" tab into `ClientDetailDrawer` with live bill count, itemized invoice table, status badges, and quick invoice viewer.

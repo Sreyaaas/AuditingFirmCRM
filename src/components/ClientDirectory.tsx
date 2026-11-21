@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, MoreHorizontal, Plus, ReceiptText } from 'lucide-react';
+import { MessageSquare, MoreHorizontal, Plus, ReceiptText, Pencil } from 'lucide-react';
 import { Client, StaffMember } from '../types/crm';
 import { NewClientModal } from './NewClientModal';
 import { Avatar, Badge, Button, ConfirmDialog, EmptyState, IconButton, Menu, PageHeader, Pagination, SearchInput, Segmented, Select, TableCard, Toolbar, formatINR, nameInitials } from './ui';
@@ -12,6 +12,7 @@ interface ClientDirectoryProps {
   onSelectClient: (clientId: string) => void;
   onOpenWhatsAppForClient: (client: Client) => void;
   onGenerateInvoice?: (client: Client) => void;
+  onEditClient?: (client: Client) => void;
   onAddClient?: (newClient: Client) => Promise<void>;
   /** Administrators only: hide or restore a client. */
   onArchive?: (clientId: string, archived: boolean) => void;
@@ -27,6 +28,7 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
   onSelectClient,
   onOpenWhatsAppForClient,
   onGenerateInvoice,
+  onEditClient,
   onAddClient,
   onArchive,
   onDelete,
@@ -210,6 +212,14 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                   <td className="num text-right text-fg whitespace-nowrap">{formatINR(client.monthlyAuditFee)}</td>
                   <td className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {onEditClient && (
+                        <IconButton
+                          icon={Pencil}
+                          label="Edit client details"
+                          size="sm"
+                          onClick={() => onEditClient(client)}
+                        />
+                      )}
                       {onGenerateInvoice && (
                         <IconButton
                           icon={ReceiptText}
@@ -222,7 +232,7 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                       <Button size="sm" onClick={() => onSelectClient(client.id)}>
                         View Account
                       </Button>
-                      {(onArchive || onDelete || onGenerateInvoice) && (
+                      {(onArchive || onDelete || onGenerateInvoice || onEditClient) && (
                         <div className="relative">
                           <IconButton icon={MoreHorizontal} label={`More actions for ${client.tradeName}`} size="sm" onClick={() => setMenuFor(menuFor === client.id ? null : client.id)} />
                           <Menu
@@ -230,11 +240,13 @@ export const ClientDirectory: React.FC<ClientDirectoryProps> = ({
                             onClose={() => setMenuFor(null)}
                             align="right"
                             items={[
+                              ...(onEditClient ? [{ value: 'edit', label: 'Edit client details…' }] : []),
                               ...(onGenerateInvoice ? [{ value: 'invoice', label: 'Generate invoice…' }] : []),
                               ...(onArchive ? [{ value: 'archive', label: client.status === 'Archived' ? 'Restore client' : 'Archive client' }] : []),
                               ...(onDelete ? [{ value: 'delete', label: 'Delete…', danger: true }] : []),
                             ]}
                             onSelect={(v) => {
+                              if (v === 'edit') onEditClient?.(client);
                               if (v === 'invoice') onGenerateInvoice?.(client);
                               if (v === 'archive') onArchive?.(client.id, client.status !== 'Archived');
                               if (v === 'delete') setConfirmDelete(client);

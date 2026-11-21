@@ -18,6 +18,7 @@ import { WhatsAppModal } from './components/WhatsAppModal';
 import { ClientDetailDrawer } from './components/ClientDetailDrawer';
 import { NewTaskModal } from './components/NewTaskModal';
 import { NewTicketModal } from './components/NewTicketModal';
+import { NewClientModal } from './components/NewClientModal';
 import { CommandPalette } from './components/CommandPalette';
 import { LoginView, SetNewPasswordView } from './components/LoginView';
 import { PracticeConfigManager } from './components/PracticeConfigManager';
@@ -419,6 +420,7 @@ export function App() {
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [invoiceModalTarget, setInvoiceModalTarget] = useState<Client | DebtorRecord | null>(null);
   const [invoicePrefillBilling, setInvoicePrefillBilling] = useState<OfficeBillingEntry | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [toast, setToast] = useState<{ message: string; error?: boolean } | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const toastTimer = useRef<number>();
@@ -635,6 +637,15 @@ export function App() {
     addActivityLog('Client added', `${newClient.name} (${newClient.clientCode})`, newClient.name, 'Client');
     const res = await saveClientToDb(newClient);
     if (!res.success || res.error) showToast(`Client was not saved: ${res.error}`, true);
+  };
+
+  const handleUpdateClient = async (updatedClient: Client) => {
+    setClients((prev) => prev.map((c) => (c.id === updatedClient.id ? updatedClient : c)));
+    setSelectedClient((prev) => (prev && prev.id === updatedClient.id ? updatedClient : prev));
+    showToast(`${updatedClient.tradeName} updated`);
+    addActivityLog('Client updated', `${updatedClient.name} (${updatedClient.clientCode}) details updated`, updatedClient.name, 'Client');
+    const res = await saveClientToDb(updatedClient);
+    if (!res.success || res.error) showToast(`Client updates not saved: ${res.error}`, true);
   };
 
   const handleAddTask = async (newTask: MonthlyTask) => {
@@ -1193,6 +1204,7 @@ export function App() {
                 isAdmin={isAdmin}
                 entityTypes={practiceConfigs.entity_types}
                 onAddClient={handleAddNewClient}
+                onEditClient={(client) => setEditingClient(client)}
                 onArchive={isAdmin ? handleArchiveClient : undefined}
                 onDelete={isAdmin ? handleDeleteClient : undefined}
                 onSelectClient={handleSelectClient}
@@ -1399,6 +1411,7 @@ export function App() {
           setInvoicePrefillBilling(null);
           setIsInvoiceModalOpen(true);
         }}
+        onEditClient={(client) => setEditingClient(client)}
       />
 
       <NewTaskModal
@@ -1443,6 +1456,17 @@ export function App() {
         firmProfile={firmProfile}
         onRecordBilling={handleRecordBilling}
       />
+
+      {editingClient && (
+        <NewClientModal
+          isOpen={!!editingClient}
+          onClose={() => setEditingClient(null)}
+          staffList={staffList}
+          entityTypes={practiceConfigs.entity_types}
+          clientToEdit={editingClient}
+          onUpdateClient={handleUpdateClient}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, Copy, Check, MessageSquare, ReceiptText } from 'lucide-react';
+import { ExternalLink, Copy, Check, MessageSquare, ReceiptText, Pencil } from 'lucide-react';
 import { Client, MonthlyTask, ITRFiling, StaffMember, StaffTicket, DebtorRecord, OfficeBillingEntry } from '../types/crm';
 import { FIRM_ONEDRIVE_ROOT_URL } from '../services/firmConfigService';
 import { Avatar, Badge, Button, DescriptionList, EmptyState, Modal, SearchInput, Segmented, Tabs, cn, formatDate, formatINR, statusTone } from './ui';
@@ -18,6 +18,7 @@ interface ClientDetailDrawerProps {
   onOpenWhatsApp: (taskOrItr: any) => void;
   onGenerateInvoice?: (client: Client) => void;
   onViewInvoice?: (billing: OfficeBillingEntry) => void;
+  onEditClient?: (client: Client) => void;
 }
 
 
@@ -35,6 +36,7 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
   onOpenWhatsApp,
   onGenerateInvoice,
   onViewInvoice,
+  onEditClient,
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'compliance' | 'billings' | 'onedrive' | 'tickets'>('profile');
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -147,6 +149,15 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
+          {onEditClient && (
+            <Button
+              variant="secondary"
+              icon={Pencil}
+              onClick={() => onEditClient(client)}
+            >
+              Edit Client
+            </Button>
+          )}
           {onGenerateInvoice && (
             <Button
               variant="secondary"
@@ -168,7 +179,23 @@ export const ClientDetailDrawer: React.FC<ClientDetailDrawerProps> = ({
       {activeTab === 'profile' && (
         <div className="space-y-6">
           <section>
-            <SectionTitle>Tax registration</SectionTitle>
+            <SectionTitle
+              right={
+                onEditClient && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={Pencil}
+                    onClick={() => onEditClient(client)}
+                    className="h-6 text-2xs px-2"
+                  >
+                    Edit Details
+                  </Button>
+                )
+              }
+            >
+              Tax registration
+            </SectionTitle>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
               <CopyValue label="GSTIN" value={client.gstin} field="gstin" />
               <CopyValue label="PAN" value={client.pan} field="pan" />

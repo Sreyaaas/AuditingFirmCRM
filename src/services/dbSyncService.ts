@@ -399,7 +399,7 @@ export const saveClientToDb = async (client: Client): Promise<{ success: boolean
   try {
     const local = localStorage.getItem('shameer_crm_clients_local');
     const existing: Client[] = local ? JSON.parse(local) : SAMPLE_CLIENTS;
-    const updated = [client, ...existing.filter(c => c.clientCode !== client.clientCode)];
+    const updated = [client, ...existing.filter(c => c.clientCode !== client.clientCode && c.id !== client.id)];
     localStorage.setItem('shameer_crm_clients_local', JSON.stringify(updated));
 
     if (isSupabaseConfigured()) {
@@ -430,16 +430,38 @@ export const saveClientToDb = async (client: Client): Promise<{ success: boolean
         ...(client.secondaryPhone ? { secondary_phone: client.secondaryPhone } : {}),
       };
 
-      let { error } = await supabase
+      const clientUuid = ensureUuid(client.id, 'client');
+      const { data: existingClient } = await supabase
         .from('clients')
-        .upsert(extendedPayload, { onConflict: 'client_code' });
+        .select('id')
+        .or(`id.eq.${clientUuid},client_code.eq.${client.clientCode}`)
+        .maybeSingle();
 
-      // If remote Supabase schema hasn't added the partner columns yet, gracefully fall back to base payload
-      if (error && (error.message?.includes('column') || error.code === '42703')) {
-        const fallback = await supabase
+      let error: any = null;
+      if (existingClient?.id) {
+        const updateRes = await supabase
           .from('clients')
-          .upsert(basePayload, { onConflict: 'client_code' });
-        error = fallback.error;
+          .update(extendedPayload)
+          .eq('id', existingClient.id);
+        error = updateRes.error;
+        if (error && (error.message?.includes('column') || error.code === '42703')) {
+          const fallback = await supabase
+            .from('clients')
+            .update(basePayload)
+            .eq('id', existingClient.id);
+          error = fallback.error;
+        }
+      } else {
+        const insertRes = await supabase
+          .from('clients')
+          .upsert(extendedPayload, { onConflict: 'client_code' });
+        error = insertRes.error;
+        if (error && (error.message?.includes('column') || error.code === '42703')) {
+          const fallback = await supabase
+            .from('clients')
+            .upsert(basePayload, { onConflict: 'client_code' });
+          error = fallback.error;
+        }
       }
 
       if (error) {
@@ -458,7 +480,7 @@ export const updateClientInDb = async (clientId: string, updates: Partial<Client
     const local = localStorage.getItem('shameer_crm_clients_local');
     if (local) {
       const parsed: Client[] = JSON.parse(local);
-      const updated = parsed.map(c => c.id === clientId ? { ...c, ...updates } : c);
+      const updated = parsed.map(c => (c.id === clientId || c.clientCode === clientId) ? { ...c, ...updates } : c);
       localStorage.setItem('shameer_crm_clients_local', JSON.stringify(updated));
     }
 
@@ -466,16 +488,26 @@ export const updateClientInDb = async (clientId: string, updates: Partial<Client
       const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
       if (updates.name) dbUpdates.name = updates.name;
       if (updates.tradeName) dbUpdates.trade_name = updates.tradeName;
+      if (updates.clientCode) dbUpdates.client_code = updates.clientCode;
+      if (updates.entityType) dbUpdates.entity_type = updates.entityType;
       if (updates.gstin) dbUpdates.gstin = updates.gstin;
       if (updates.pan) dbUpdates.pan = updates.pan;
+      if (updates.contactPerson) dbUpdates.contact_person = updates.contactPerson;
       if (updates.phone) dbUpdates.phone = updates.phone;
+      if (updates.partnerName !== undefined) dbUpdates.partner_name = updates.partnerName;
+      if (updates.partnerPhone !== undefined) dbUpdates.partner_phone = updates.partnerPhone;
+      if (updates.secondaryPhone !== undefined) dbUpdates.secondary_phone = updates.secondaryPhone;
       if (updates.email) dbUpdates.email = updates.email;
+      if (updates.city) dbUpdates.city = updates.city;
       if (updates.status) dbUpdates.status = updates.status;
+      if (updates.isRecurringGST !== undefined) dbUpdates.is_recurring_gst = updates.isRecurringGST;
+      if (updates.isRecurringStatutory !== undefined) dbUpdates.is_recurring_statutory = updates.isRecurringStatutory;
+      if (updates.assignedStaffId) dbUpdates.assigned_staff_id = ensureUuid(updates.assignedStaffId, 'staff');
       if (updates.monthlyAuditFee !== undefined) dbUpdates.monthly_audit_fee = updates.monthlyAuditFee;
       if (updates.oneDriveFolderUrl) dbUpdates.onedrive_folder_url = updates.oneDriveFolderUrl;
 
       const uuid = ensureUuid(clientId, 'client');
-      const { error } = await supabase.from('clients').update(dbUpdates).eq('id', uuid);
+      const { error } = await supabase.from('clients').update(dbUpdates).or(`id.eq.${uuid},client_code.eq.${clientId}`);
       if (error) return { success: false, error: error.message };
     }
 
