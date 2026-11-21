@@ -430,14 +430,14 @@ export const saveClientToDb = async (client: Client): Promise<{ success: boolean
 
       const extendedPayload = {
         ...basePayload,
-        ...(client.partnerName ? { partner_name: client.partnerName } : {}),
-        ...(client.partnerPhone ? { partner_phone: client.partnerPhone } : {}),
-        ...(client.secondaryPhone ? { secondary_phone: client.secondaryPhone } : {}),
-        ...(client.gstUsername ? { gst_username: client.gstUsername } : {}),
-        ...(client.gstPassword ? { gst_password: client.gstPassword } : {}),
-        ...(client.itUsername ? { it_username: client.itUsername } : {}),
-        ...(client.itPassword ? { it_password: client.itPassword } : {}),
-        ...(client.tracesPassword ? { traces_password: client.tracesPassword } : {}),
+        partner_name: client.partnerName || null,
+        partner_phone: client.partnerPhone || null,
+        secondary_phone: client.secondaryPhone || null,
+        gst_username: client.gstUsername || null,
+        gst_password: client.gstPassword || null,
+        it_username: client.itUsername || null,
+        it_password: client.itPassword || null,
+        traces_password: client.tracesPassword || null,
       };
 
       const clientUuid = ensureUuid(client.id, 'client');

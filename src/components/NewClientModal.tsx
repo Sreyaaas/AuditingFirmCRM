@@ -11,8 +11,10 @@ export interface NewClientModalProps {
   entityTypes: string[];
   nextClientCode?: string;
   clientToEdit?: Client | null;
-  onAddClient?: (newClient: Client) => Promise<void>;
-  onUpdateClient?: (updatedClient: Client) => Promise<void>;
+  initialClient?: Client | null;
+  onAddClient?: (newClient: Client) => Promise<void> | void;
+  onUpdateClient?: (updatedClient: Client) => Promise<void> | void;
+  onSaveClient?: (client: Client) => Promise<void> | void;
 }
 
 export const NewClientModal: React.FC<NewClientModalProps> = ({
@@ -22,66 +24,69 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
   entityTypes,
   nextClientCode = 'C-001',
   clientToEdit,
+  initialClient,
   onAddClient,
   onUpdateClient,
+  onSaveClient,
 }) => {
-  const isEditing = !!clientToEdit;
+  const activeClient = clientToEdit || initialClient;
+  const isEditing = !!activeClient;
 
-  const [clientCode, setClientCode] = useState(clientToEdit ? clientToEdit.clientCode : nextClientCode);
-  const [name, setName] = useState(clientToEdit ? clientToEdit.name : '');
-  const [tradeName, setTradeName] = useState(clientToEdit ? clientToEdit.tradeName : '');
-  const [entityType, setEntityType] = useState(clientToEdit ? clientToEdit.entityType : (entityTypes[0] || 'Private Limited'));
-  const [gstin, setGstin] = useState(clientToEdit ? clientToEdit.gstin : '');
-  const [pan, setPan] = useState(clientToEdit ? clientToEdit.pan : '');
-  const [contactPerson, setContactPerson] = useState(clientToEdit ? clientToEdit.contactPerson : '');
-  const [phone, setPhone] = useState(clientToEdit ? clientToEdit.phone : '+91 ');
-  const [partnerName, setPartnerName] = useState(clientToEdit?.partnerName || '');
-  const [partnerPhone, setPartnerPhone] = useState(clientToEdit?.partnerPhone || '');
-  const [secondaryPhone, setSecondaryPhone] = useState(clientToEdit?.secondaryPhone || '');
-  const [email, setEmail] = useState(clientToEdit ? clientToEdit.email : '');
-  const [city, setCity] = useState(clientToEdit ? clientToEdit.city : 'Kochi');
-  const [monthlyAuditFee, setMonthlyAuditFee] = useState<number>(clientToEdit ? clientToEdit.monthlyAuditFee : 3000);
-  const [assignedStaffId, setAssignedStaffId] = useState(clientToEdit ? clientToEdit.assignedStaffId : (staffList[0]?.id || 'staff-ameen'));
-  const [isRecurringGST, setIsRecurringGST] = useState<boolean>(clientToEdit ? clientToEdit.isRecurringGST : true);
-  const [isRecurringStatutory, setIsRecurringStatutory] = useState<boolean>(clientToEdit ? clientToEdit.isRecurringStatutory : false);
-  const [oneDriveFolderUrl, setOneDriveFolderUrl] = useState<string>(clientToEdit ? clientToEdit.oneDriveFolderUrl : FIRM_ONEDRIVE_ROOT_URL);
-  const [status, setStatus] = useState<'Active' | 'Archived' | 'On Hold'>(clientToEdit ? clientToEdit.status : 'Active');
-  const [gstUsername, setGstUsername] = useState(clientToEdit?.gstUsername || '');
-  const [gstPassword, setGstPassword] = useState(clientToEdit?.gstPassword || '');
-  const [itUsername, setItUsername] = useState(clientToEdit?.itUsername || '');
-  const [itPassword, setItPassword] = useState(clientToEdit?.itPassword || '');
-  const [tracesPassword, setTracesPassword] = useState(clientToEdit?.tracesPassword || '');
+  const [clientCode, setClientCode] = useState(activeClient ? activeClient.clientCode : nextClientCode);
+  const [name, setName] = useState(activeClient ? activeClient.name : '');
+  const [tradeName, setTradeName] = useState(activeClient ? activeClient.tradeName : '');
+  const [entityType, setEntityType] = useState(activeClient ? activeClient.entityType : (entityTypes[0] || 'Private Limited'));
+  const [gstin, setGstin] = useState(activeClient ? activeClient.gstin : '');
+  const [pan, setPan] = useState(activeClient ? activeClient.pan : '');
+  const [contactPerson, setContactPerson] = useState(activeClient ? activeClient.contactPerson : '');
+  const [phone, setPhone] = useState(activeClient ? activeClient.phone : '+91 ');
+  const [partnerName, setPartnerName] = useState(activeClient?.partnerName || '');
+  const [partnerPhone, setPartnerPhone] = useState(activeClient?.partnerPhone || '');
+  const [secondaryPhone, setSecondaryPhone] = useState(activeClient?.secondaryPhone || '');
+  const [email, setEmail] = useState(activeClient ? activeClient.email : '');
+  const [city, setCity] = useState(activeClient ? activeClient.city : 'Kochi');
+  const [monthlyAuditFee, setMonthlyAuditFee] = useState<number>(activeClient ? activeClient.monthlyAuditFee : 3000);
+  const [assignedStaffId, setAssignedStaffId] = useState(activeClient ? activeClient.assignedStaffId : (staffList[0]?.id || 'staff-ameen'));
+  const [isRecurringGST, setIsRecurringGST] = useState<boolean>(activeClient ? activeClient.isRecurringGST : true);
+  const [isRecurringStatutory, setIsRecurringStatutory] = useState<boolean>(activeClient ? activeClient.isRecurringStatutory : false);
+  const [oneDriveFolderUrl, setOneDriveFolderUrl] = useState<string>(activeClient ? activeClient.oneDriveFolderUrl : FIRM_ONEDRIVE_ROOT_URL);
+  const [status, setStatus] = useState<'Active' | 'Archived' | 'On Hold'>(activeClient ? activeClient.status : 'Active');
+  const [gstUsername, setGstUsername] = useState(activeClient?.gstUsername || '');
+  const [gstPassword, setGstPassword] = useState(activeClient?.gstPassword || '');
+  const [itUsername, setItUsername] = useState(activeClient?.itUsername || '');
+  const [itPassword, setItPassword] = useState(activeClient?.itPassword || '');
+  const [tracesPassword, setTracesPassword] = useState(activeClient?.tracesPassword || '');
   const [showGstPassword, setShowGstPassword] = useState(false);
   const [showItPassword, setShowItPassword] = useState(false);
   const [showTracesPassword, setShowTracesPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (clientToEdit) {
-      setClientCode(clientToEdit.clientCode);
-      setName(clientToEdit.name);
-      setTradeName(clientToEdit.tradeName);
-      setEntityType(clientToEdit.entityType);
-      setGstin(clientToEdit.gstin);
-      setPan(clientToEdit.pan);
-      setContactPerson(clientToEdit.contactPerson);
-      setPhone(clientToEdit.phone);
-      setPartnerName(clientToEdit.partnerName || '');
-      setPartnerPhone(clientToEdit.partnerPhone || '');
-      setSecondaryPhone(clientToEdit.secondaryPhone || '');
-      setEmail(clientToEdit.email);
-      setCity(clientToEdit.city);
-      setMonthlyAuditFee(clientToEdit.monthlyAuditFee);
-      setAssignedStaffId(clientToEdit.assignedStaffId);
-      setIsRecurringGST(clientToEdit.isRecurringGST);
-      setIsRecurringStatutory(clientToEdit.isRecurringStatutory);
-      setOneDriveFolderUrl(clientToEdit.oneDriveFolderUrl || FIRM_ONEDRIVE_ROOT_URL);
-      setStatus(clientToEdit.status);
-      setGstUsername(clientToEdit.gstUsername || '');
-      setGstPassword(clientToEdit.gstPassword || '');
-      setItUsername(clientToEdit.itUsername || '');
-      setItPassword(clientToEdit.itPassword || '');
-      setTracesPassword(clientToEdit.tracesPassword || '');
+    if (activeClient) {
+      setClientCode(activeClient.clientCode);
+      setName(activeClient.name);
+      setTradeName(activeClient.tradeName);
+      setEntityType(activeClient.entityType);
+      setGstin(activeClient.gstin);
+      setPan(activeClient.pan);
+      setContactPerson(activeClient.contactPerson);
+      setPhone(activeClient.phone);
+      setPartnerName(activeClient.partnerName || '');
+      setPartnerPhone(activeClient.partnerPhone || '');
+      setSecondaryPhone(activeClient.secondaryPhone || '');
+      setEmail(activeClient.email);
+      setCity(activeClient.city);
+      setMonthlyAuditFee(activeClient.monthlyAuditFee);
+      setAssignedStaffId(activeClient.assignedStaffId);
+      setIsRecurringGST(activeClient.isRecurringGST);
+      setIsRecurringStatutory(activeClient.isRecurringStatutory);
+      setOneDriveFolderUrl(activeClient.oneDriveFolderUrl || FIRM_ONEDRIVE_ROOT_URL);
+      setStatus(activeClient.status);
+      setGstUsername(activeClient.gstUsername || '');
+      setGstPassword(activeClient.gstPassword || '');
+      setItUsername(activeClient.itUsername || '');
+      setItPassword(activeClient.itPassword || '');
+      setTracesPassword(activeClient.tracesPassword || '');
     } else if (isOpen) {
       setClientCode(nextClientCode);
       setName('');
@@ -116,9 +121,9 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
 
     setSubmitting(true);
 
-    if (isEditing && clientToEdit) {
+    if (isEditing && activeClient) {
       const updated: Client = {
-        ...clientToEdit,
+        ...activeClient,
         clientCode: clientCode.trim(),
         name: name.trim(),
         tradeName: (tradeName.trim() || name.trim()),
@@ -136,7 +141,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
         assignedStaffId,
         monthlyAuditFee: Number(monthlyAuditFee) || 0,
         city: city.trim(),
-        oneDriveFolderUrl: oneDriveFolderUrl.trim() || clientToEdit.oneDriveFolderUrl || FIRM_ONEDRIVE_ROOT_URL,
+        oneDriveFolderUrl: oneDriveFolderUrl.trim() || activeClient.oneDriveFolderUrl || FIRM_ONEDRIVE_ROOT_URL,
         status,
         gstUsername: gstUsername.trim() || undefined,
         gstPassword: gstPassword.trim() || undefined,
@@ -147,6 +152,8 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
 
       if (onUpdateClient) {
         await onUpdateClient(updated);
+      } else if (onSaveClient) {
+        await onSaveClient(updated);
       }
     } else {
       const newClient: Client = {
@@ -179,6 +186,8 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
 
       if (onAddClient) {
         await onAddClient(newClient);
+      } else if (onSaveClient) {
+        await onSaveClient(newClient);
       }
     }
 
