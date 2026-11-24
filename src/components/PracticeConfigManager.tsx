@@ -12,6 +12,8 @@ import { LIGHT_THEMES, DARK_THEMES } from '../types/themes';
 import { Button, Card, CardHeader, Field, IconButton, Input, Label, Metric, MetricGrid, Segmented, Select, Textarea, cn } from './ui';
 import { Toggle } from './EmployeeManagement';
 import { debtorSheets, downloadExcelBackup } from '../utils/dataExport';
+import { usePwa } from '../hooks/usePwa';
+import { PwaInstallModal } from './PwaInstallModal';
 
 const LAST_BACKUP_KEY = 'crm-last-backup';
 
@@ -106,6 +108,8 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
   onBackupDownloaded,
 }) => {
   const [section, setSection] = useState<Section>('general');
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const { isInstallable, isInstalled, isIOS, promptInstall } = usePwa();
 
   // -------------------------------------------------- preferences
   const [prefs, setPrefs] = useState<AppPreferences>(preferences);
@@ -381,6 +385,48 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
                 </Row>
               </div>
               {prefsFooter}
+            </Card>
+
+            <Card>
+              <CardHeader
+                title="Progressive Web App (PWA)"
+                description="Install the CRM as a standalone application on desktop and mobile"
+              />
+              <div className="divide-y divide-line">
+                <Row
+                  title="App installation status"
+                  description="When installed, the CRM runs in its own window without browser toolbars, boots from offline cache, and enables system shortcuts."
+                >
+                  <div className="flex items-center gap-2.5">
+                    {isInstalled ? (
+                      <span className="text-xs font-medium text-success flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5" /> Installed Standalone App
+                      </span>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        icon={Download}
+                        onClick={async () => {
+                          if (isInstallable) {
+                            await promptInstall();
+                          } else {
+                            setIsInstallModalOpen(true);
+                          }
+                        }}
+                      >
+                        Install CRM App
+                      </Button>
+                    )}
+                  </div>
+                </Row>
+                <Row
+                  title="Offline caching"
+                  description="Static assets and app shell are automatically cached by the Service Worker for instant startup and offline resilience."
+                >
+                  <span className="text-xs font-medium text-fg">Active (Auto-updating)</span>
+                </Row>
+              </div>
             </Card>
           </div>
         )}
@@ -722,6 +768,14 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
           </div>
         )}
       </div>
+
+      <PwaInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        isIOS={isIOS}
+        canNativeInstall={isInstallable}
+        onNativeInstall={promptInstall}
+      />
     </div>
   );
 };

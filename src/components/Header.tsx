@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Plus, Palette, Check, ChevronDown, Menu, LogOut, KeyRound } from 'lucide-react';
+import { Search, Plus, Palette, Check, ChevronDown, Menu, LogOut, KeyRound, Download } from 'lucide-react';
 import { UserProfile } from '../types/crm';
 import { LIGHT_THEMES, DARK_THEMES } from '../types/themes';
-import { Avatar, Button, IconButton, Kbd, cn } from './ui';
+import { Avatar, Badge, Button, IconButton, Kbd, cn } from './ui';
 import { Toggle } from './EmployeeManagement';
+import { usePwa } from '../hooks/usePwa';
+import { PwaInstallModal } from './PwaInstallModal';
 
 interface HeaderProps {
   activeTab: string;
@@ -64,6 +66,8 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const { isInstallable, isInstalled, isOnline, isIOS, promptInstall } = usePwa();
   const title = TAB_TITLES[activeTab] || 'Overview';
 
   useEffect(() => {
@@ -89,11 +93,32 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="hidden sm:inline text-fg-subtle truncate">Shameer &amp; Associates</span>
           <span className="hidden sm:inline text-fg-faint">/</span>
           <h1 className="font-medium text-fg truncate">{title}</h1>
+          {!isOnline && (
+            <Badge tone="warning" className="ml-1.5">Offline</Badge>
+          )}
         </nav>
       </div>
 
       {/* Right — h-8 controls */}
       <div className="flex items-center gap-1.5 shrink-0">
+        {!isInstalled && (
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={Download}
+            onClick={async () => {
+              if (isInstallable) {
+                await promptInstall();
+              } else {
+                setIsInstallModalOpen(true);
+              }
+            }}
+            className="hidden xl:inline-flex h-8 text-xs font-medium"
+            title="Install CRM as native desktop/mobile app"
+          >
+            Install App
+          </Button>
+        )}
         <button
           onClick={onOpenCommandPalette}
           className="hidden md:flex w-64 lg:w-72 h-8 pl-2.5 pr-1.5 rounded-md bg-surface border border-line hover:border-line-strong items-center justify-between text-sm text-fg-faint transition-colors"
@@ -244,6 +269,22 @@ export const Header: React.FC<HeaderProps> = ({
                     Change password
                   </button>
                 )}
+                {!isInstalled && (
+                  <button
+                    onClick={async () => {
+                      setIsUserMenuOpen(false);
+                      if (isInstallable) {
+                        await promptInstall();
+                      } else {
+                        setIsInstallModalOpen(true);
+                      }
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 h-8 rounded-md text-sm text-fg-muted hover:text-fg hover:bg-hover transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5 text-accent" strokeWidth={1.75} />
+                    Install CRM app
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setIsUserMenuOpen(false);
@@ -265,6 +306,14 @@ export const Header: React.FC<HeaderProps> = ({
           </Button>
         )}
       </div>
+
+      <PwaInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        isIOS={isIOS}
+        canNativeInstall={isInstallable}
+        onNativeInstall={promptInstall}
+      />
     </header>
   );
 };

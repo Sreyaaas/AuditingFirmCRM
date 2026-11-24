@@ -270,3 +270,13 @@ Dropdown lists remain in `practice_configs`.
   - Alphanumeric tax/banking codes (GSTIN, PAN, Bank A/C, IFSC, Invoice No, SAC) formatted with dedicated crisp character spacing (`identStyle`).
   - Left invoice editor panel updated to use `.num font-semibold` and `.num font-medium` instead of raw monospace fonts.
   - Paginated "Needs attention" on home screen and Compliance Task Manager tables to 5 items per page with page size selector to keep views calm and uncluttered.
+* **Progressive Web App (PWA) Transformation:**
+  - Integrated `vite-plugin-pwa` with auto-updating Service Worker lifecycle (`workbox`) precaching application shell and fonts for instant, offline-capable startup.
+  - Generated full set of brand-tailored PWA icons: `pwa-64x64.png`, `pwa-192x192.png`, `pwa-512x512.png`, Android adaptive `maskable-icon-512x512.png`, and iOS `apple-touch-icon.png` (180x180) in firm navy `#1B365D`.
+  - Added Web App Manifest (`manifest.webmanifest`) with standalone display mode, orientation locking, theme color `#1B365D`, background `#0C0C0E`, and desktop/mobile app shortcuts to Clients, Invoices, and Monthly Compliance.
+  - Added mobile PWA meta tags in `index.html` (`viewport-fit=cover`, `apple-mobile-web-app-capable`, `black-translucent` status bar).
+  - Built custom `usePwa` hook to capture `beforeinstallprompt`, detect standalone launch, track online/offline connectivity, and detect iOS.
+  - Added header "Install App" action, user dropdown menu option, and dedicated "Progressive Web App (PWA)" management card in Practice Settings.
+  - Created centered Apple/Vercel minimal dialog `PwaInstallModal` with 1-click installation trigger and step-by-step iOS Safari "Add to Home Screen" visual walkthrough.
+  - Implemented network connection awareness with subtle `<Badge tone="warning">Offline</Badge>` indicator when connection drops.
+  - Optimized production bundle with Rollup code-splitting for vendor libraries (`react`, `supabase`, `xlsx`, `html2pdf`).
