@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ReceiptText,
   Plus,
@@ -35,6 +35,7 @@ import {
   MetricGrid,
   Modal,
   PageHeader,
+  Pagination,
   SearchInput,
   Segmented,
   Select,
@@ -130,6 +131,18 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
       return numB - numA;
     });
   }, [filteredBillings]);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, oneDriveFilter, selectedPeriod]);
+
+  const paginatedBillings = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedBillings.slice(start, start + pageSize);
+  }, [sortedBillings, page, pageSize]);
 
   // Overall KPI metrics
   const metrics = useMemo(() => {
@@ -593,22 +606,16 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
           </Toolbar>
         }
         footer={
-          <div className="flex items-center justify-between px-4 h-10 border-t border-line text-xs text-fg-subtle num">
-            <span>
-              Showing {filteredBillings.length} of {billings.length} invoices
-            </span>
-            <span>
-              Total Value:{' '}
-              <span className="text-fg font-medium">
-                {formatINR(
-                  filteredBillings.reduce(
-                    (s, b) => s + (Number(b.professionalIncome) || 0) + (Number(b.oopExpenses) || 0),
-                    0
-                  )
-                )}
-              </span>
-            </span>
-          </div>
+          sortedBillings.length > 0 ? (
+            <Pagination
+              page={page}
+              totalPages={Math.max(1, Math.ceil(sortedBillings.length / pageSize))}
+              totalItems={sortedBillings.length}
+              pageSize={pageSize}
+              onChange={setPage}
+              noun="invoices"
+            />
+          ) : undefined
         }
       >
         <table className="data-table">
@@ -654,7 +661,8 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
                 </td>
               </tr>
             ) : (
-              sortedBillings.map((b, idx) => {
+              paginatedBillings.map((b, idx) => {
+                const rowNum = (page - 1) * pageSize + idx + 1;
                 const total = (Number(b.professionalIncome) || 0) + (Number(b.oopExpenses) || 0);
                 const matchedClient = clients.find(
                   (c) => c.tradeName.toLowerCase() === b.clientName.toLowerCase()
@@ -665,10 +673,10 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
 
                 return (
                   <tr key={b.id || `${b.period}-${b.serialNo}-${idx}`}>
-                    <td className="num text-right text-fg-faint text-xs">{b.serialNo || idx + 1}</td>
+                    <td className="num text-right text-fg-faint text-xs">{b.serialNo || rowNum}</td>
                     <td>
                       <span className="font-mono text-xs font-semibold text-fg">
-                        {b.invoiceNumber || `SA/${String(b.serialNo || idx + 1).padStart(4, '0')}`}
+                        {b.invoiceNumber || `SA/${String(b.serialNo || rowNum).padStart(4, '0')}`}
                       </span>
                     </td>
                     <td className="num text-fg-muted whitespace-nowrap text-xs">
