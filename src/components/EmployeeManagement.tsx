@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, KeyRound, UserPlus, MoreHorizontal } from 'lucide-react';
+import { Plus, KeyRound, UserPlus, MoreHorizontal, Pencil } from 'lucide-react';
 import { UserProfile, UserRole } from '../types/crm';
 import type { NewMemberInput } from '../services/authService';
 import { MIN_PASSWORD_LENGTH, passwordProblem } from '../services/authService';
@@ -24,6 +24,7 @@ import {
   Toolbar,
   cn,
   formatDate,
+  nameInitials,
 } from './ui';
 
 interface EmployeeManagementProps {
@@ -76,6 +77,10 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
   const [newPassword, setNewPassword] = useState('');
   const [pwError, setPwError] = useState<string | null>(null);
   const [savingPw, setSavingPw] = useState(false);
+
+  const [editFor, setEditFor] = useState<UserProfile | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDesignation, setEditDesignation] = useState('');
 
   const filtered = profiles.filter((p) => {
     if (roleFilter !== 'all' && p.role !== roleFilter) return false;
@@ -272,10 +277,16 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
                         onClose={() => setMenuFor(null)}
                         align="right"
                         items={[
+                          { value: 'edit', label: 'Edit name & title', icon: Pencil },
                           { value: 'password', label: 'Set password', icon: KeyRound },
                           ...(isSelf ? [] : [{ value: 'status', label: inactive ? 'Activate' : 'Deactivate', danger: !inactive }]),
                         ]}
                         onSelect={(v) => {
+                          if (v === 'edit') {
+                            setEditFor(emp);
+                            setEditName(emp.name);
+                            setEditDesignation(emp.designation || '');
+                          }
                           if (v === 'password') {
                             setPasswordFor(emp);
                             setNewPassword('');
@@ -373,6 +384,58 @@ export const EmployeeManagement: React.FC<EmployeeManagementProps> = ({
           {pwError && <p className="text-sm text-danger">{pwError}</p>}
           <Field label="New password" required hint="They will use this the next time they sign in.">
             <Input type="text" required autoFocus autoComplete="off" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="font-mono" />
+          </Field>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={!!editFor}
+        onClose={() => setEditFor(null)}
+        size="sm"
+        icon={Pencil}
+        title="Edit team member"
+        description={editFor ? `Update display name and title for ${editFor.email}` : undefined}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditFor(null)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" form="edit-member-form">
+              Save Changes
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="edit-member-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!editFor || !editName.trim()) return;
+            const trimmed = editName.trim();
+            onUpdateEmployee(editFor.id, {
+              name: trimmed,
+              designation: editDesignation.trim() || editFor.designation,
+              initials: nameInitials(trimmed),
+            });
+            setEditFor(null);
+          }}
+          className="space-y-4"
+        >
+          <Field label="Display name" required>
+            <Input
+              autoFocus
+              required
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="e.g. Ameen"
+            />
+          </Field>
+          <Field label="Designation / title">
+            <Input
+              value={editDesignation}
+              onChange={(e) => setEditDesignation(e.target.value)}
+              placeholder="e.g. Partner & Senior Practitioner"
+            />
           </Field>
         </form>
       </Modal>
