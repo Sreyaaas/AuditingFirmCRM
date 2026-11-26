@@ -52,6 +52,7 @@ import {
 } from '../utils/masterData';
 import {
   ParsedMasterSheet,
+  exportAllMasterDataToExcel,
   exportMasterDataToExcel,
   parseMasterDataWorkbook,
 } from '../utils/masterDataWorkbook';
@@ -405,6 +406,17 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                 onClick={() => exportMasterDataToExcel(records, activeCategory, selectedPeriod)}
               >
                 Export
+              </Button>
+            )}
+            {records.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={Download}
+                onClick={() => exportAllMasterDataToExcel(records)}
+                title="Export all Master Data tabs into one combined Excel workbook"
+              >
+                Export All
               </Button>
             )}
           </>

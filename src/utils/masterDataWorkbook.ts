@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import { MasterDataCategory, MasterDataRecord, MasterPeriodValues } from '../types/crm';
-import { getTabConfig, getValuesForPeriod, isVisibleInPeriod, normalizeConstitution } from './masterData';
+import { MASTER_TABS, defaultPeriodForCadence, getTabConfig, getValuesForPeriod, isVisibleInPeriod, normalizeConstitution } from './masterData';
 
 export interface ParsedMasterSheet {
   category: MasterDataCategory;
@@ -246,4 +246,41 @@ export function exportMasterDataToExcel(
   XLSX.utils.book_append_sheet(wb, ws, cfg.shortLabel.replace(/[/\\?*[\]]/g, '-').slice(0, 31));
   const safePeriod = periodKey.replace(/\s+/g, '-');
   XLSX.writeFile(wb, `MasterData_${cfg.id}_${safePeriod}.xlsx`);
+}
+
+/** Exports all Master Data categories into a single multi-sheet Excel workbook. */
+export function exportAllMasterDataToExcel(records: MasterDataRecord[]) {
+  const wb = XLSX.utils.book_new();
+
+  for (const cfg of MASTER_TABS) {
+    const periodKey = defaultPeriodForCadence(cfg.cadence);
+    const active = records
+      .filter((r) => r.category === cfg.id && isVisibleInPeriod(r, periodKey))
+      .sort((a, b) => a.clientName.localeCompare(b.clientName));
+
+    const rows = active.map((r) => {
+      const vals = getValuesForPeriod(r, periodKey);
+      const row: Record<string, string | number> = {
+        Client: r.clientName,
+      };
+      if (cfg.showItrType) row['ITR 3'] = r.itrType || '';
+      row['Legal Constitution'] = r.legalConstitution || '';
+      row['User name'] = r.username || '';
+      row['Password'] = r.password || '';
+      if (cfg.showEmail) row['Email id'] = r.email || '';
+      if (cfg.showReference) row['Reference'] = r.reference || '';
+      if (cfg.showNatureOfService) row['Nature of service'] = r.natureOfService || '';
+      row['Professional Fees'] = vals.professionalFees || '';
+      row['Tax payable for the month'] = vals.taxPayable || '';
+      row['Reimbursement/OOP expenses'] = vals.oopExpenses || '';
+      row['Current outstanding balance'] = vals.currentOutstanding || '';
+      return row;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{ Client: '' }]);
+    XLSX.utils.book_append_sheet(wb, ws, cfg.shortLabel.replace(/[/\\?*[\]]/g, '-').slice(0, 31));
+  }
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `MasterData_All_${stamp}.xlsx`);
 }
