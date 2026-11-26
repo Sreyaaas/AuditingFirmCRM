@@ -13,6 +13,7 @@ import {
 import { MonthlyTask, StaffMember, FilingStatus } from '../types/crm';
 import { Trash2 } from 'lucide-react';
 import { Avatar, Badge, Button, ConfirmDialog, EmptyState, Field, IconButton, Input, Menu, Modal, PageHeader, Pagination, SearchInput, Select, TableCard, Tabs, Tone, cn, nameInitials, type SectionId } from './ui';
+import { useResponsivePageSize } from '../hooks/useResponsivePageSize';
 
 interface ComplianceTaskManagerProps {
   tasks: MonthlyTask[];
@@ -107,7 +108,10 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   const clearableInPeriodCount = tasks.filter(
     (t) => t.period === selectedPeriod && t.status !== 'Filed' && t.status !== 'Completed' && !t.arnNumber
   ).length;
-  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
+  const responsivePageSize = useResponsivePageSize({ reservedHeight: 380, min: 7, max: 24 });
+  const [customPageSize, setCustomPageSize] = useState<number | null>(null);
+  const itemsPerPage = customPageSize ?? responsivePageSize;
+  const setItemsPerPage = (n: number) => setCustomPageSize(n);
 
   const handlePeriodPrev = () => {
     const idx = periods.indexOf(selectedPeriod);
@@ -317,7 +321,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                 Generate Month Tasks
               </Button>
             )}
-            {section === 'monthly' && onClearGeneratedTasks && clearableInPeriodCount > 0 && (
+            {(section === 'monthly' || section === 'quarterly') && onClearGeneratedTasks && clearableInPeriodCount > 0 && (
               <Button
                 variant="danger"
                 size="md"

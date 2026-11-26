@@ -40,6 +40,7 @@ import {
   cn,
   formatINR,
 } from './ui';
+import { useResponsivePageSize } from '../hooks/useResponsivePageSize';
 import {
   MASTER_TABS,
   collectPeriodsForCategory,
@@ -176,7 +177,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
   const [constitutionFilter, setConstitutionFilter] = useState('all');
   const [itrTypeFilter, setItrTypeFilter] = useState<'all' | 'Other than business' | 'Business Income'>('all');
   const [page, setPage] = useState(1);
-  const pageSize = 15;
+  const pageSize = useResponsivePageSize({ reservedHeight: 480, min: 7, max: 24 });
 
   useEffect(() => {
     setPage(1);

@@ -33,6 +33,7 @@ import {
   formatINR,
   statusTone,
 } from './ui';
+import { useResponsivePageSize } from '../hooks/useResponsivePageSize';
 
 export interface OtherAssignmentsManagerProps {
   tasks: MonthlyTask[];
@@ -81,7 +82,10 @@ export const OtherAssignmentsManager: React.FC<OtherAssignmentsManagerProps> = (
   const [openStatusMenuId, setOpenStatusMenuId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<MonthlyTask | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
+  const responsivePageSize = useResponsivePageSize({ reservedHeight: 440, min: 7, max: 24 });
+  const [customPageSize, setCustomPageSize] = useState<number | null>(null);
+  const itemsPerPage = customPageSize ?? responsivePageSize;
+  const setItemsPerPage = (n: number) => setCustomPageSize(n);
 
   // Filter tasks
   const effectiveStaffFilter = selectedStaffId || (staffFilterState !== 'all' ? staffFilterState : null);

@@ -46,6 +46,7 @@ import {
   formatDate,
   formatINR,
 } from './ui';
+import { useResponsivePageSize } from '../hooks/useResponsivePageSize';
 import { cleanWhatsAppPhone, sendToGroup, sendToIndividual, getClientPhoneOptions, PhoneRecipientOption } from '../utils/whatsapp';
 import { SelectRecipientModal } from './SelectRecipientModal';
 
@@ -133,7 +134,7 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
   }, [filteredBillings]);
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const pageSize = useResponsivePageSize({ reservedHeight: 450, min: 7, max: 24 });
 
   useEffect(() => {
     setPage(1);

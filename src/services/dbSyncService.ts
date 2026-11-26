@@ -1287,7 +1287,7 @@ export const fetchActivityLogsFromDb = async (): Promise<ActivityLog[]> => {
       .from('activity_logs')
       .select('*')
       .order('timestamp', { ascending: false })
-      .limit(50);
+      .limit(500);
 
     if (error || !data) {
       console.error('Load failed (shameer_crm_activity_logs_local):', error?.message);
@@ -1296,7 +1296,9 @@ export const fetchActivityLogsFromDb = async (): Promise<ActivityLog[]> => {
 
     const mapped: ActivityLog[] = data.map((row: any) => ({
       id: row.id,
+      rawTimestamp: row.timestamp,
       timestamp: new Date(row.timestamp).toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
         year: 'numeric',
         month: 'short',
         day: '2-digit',
@@ -1312,7 +1314,7 @@ export const fetchActivityLogsFromDb = async (): Promise<ActivityLog[]> => {
       category: row.category,
     }));
 
-    localStorage.setItem('shameer_crm_activity_logs_local', JSON.stringify(mapped));
+    localStorage.setItem('shameer_crm_activity_logs_local', JSON.stringify(mapped.slice(0, 100)));
     return mapped;
   } catch (err) {
     console.error('Fetch activity logs error:', err);
@@ -1348,6 +1350,35 @@ export const saveActivityLogToDb = async (log: ActivityLog): Promise<{ success: 
   } catch (err: any) {
     return { success: false, error: err.message };
   }
+};
+
+/**
+ * Deletes audit trail entries older than `months` (default 6 months) to keep
+ * database storage lean while preserving recent history.
+ */
+export const pruneOldActivityLogsInDb = async (months = 6): Promise<{ deletedCount: number; error?: string }> => {
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - months);
+  const cutoffIso = cutoff.toISOString();
+
+  try {
+    const localRaw = localStorage.getItem('shameer_crm_activity_logs_local');
+    if (localRaw) {
+      const existing: ActivityLog[] = JSON.parse(localRaw);
+      const kept = existing.filter((l) => !l.rawTimestamp || l.rawTimestamp >= cutoffIso);
+      localStorage.setItem('shameer_crm_activity_logs_local', JSON.stringify(kept));
+    }
+  } catch {}
+
+  if (!isSupabaseConfigured()) return { deletedCount: 0 };
+
+  const { error, count } = await supabase
+    .from('activity_logs')
+    .delete({ count: 'exact' })
+    .lt('timestamp', cutoffIso);
+
+  if (error) return { deletedCount: 0, error: error.message };
+  return { deletedCount: count || 0 };
 };
 
 // ==============================================================================

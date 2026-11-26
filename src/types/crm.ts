@@ -23,6 +23,8 @@ export interface UserProfile {
 export interface ActivityLog {
   id: string;
   timestamp: string;
+  /** Raw ISO-8601 timestamp used for month/date grouping and 6-month retention. */
+  rawTimestamp?: string;
   userName: string;
   userRole: UserRole;
   action: string;

@@ -65,6 +65,7 @@ import {
   updateTicketInDb,
   fetchActivityLogsFromDb,
   saveActivityLogToDb,
+  pruneOldActivityLogsInDb,
   fetchMasterDataFromDb,
   saveMasterDataRecordToDb,
   bulkSaveMasterDataToDb,
@@ -1341,6 +1342,26 @@ export function App() {
                 onOpenWhatsApp={(task) => openWhatsApp({ task })}
                 onSelectClient={handleSelectClient}
                 onAddNewTask={(service) => handleOpenNewTaskWithService('quarterly', service, true)}
+                onClearGeneratedTasks={
+                  isAdmin
+                    ? async (period) => {
+                        const targets = monthlyTasks.filter(
+                          (t) =>
+                            t.category === 'quarterly' &&
+                            t.period === period &&
+                            t.status !== 'Filed' &&
+                            t.status !== 'Completed' &&
+                            !t.arnNumber
+                        );
+                        if (targets.length === 0) return 0;
+                        const removeIds = new Set(targets.map((t) => t.id));
+                        setMonthlyTasks((prev) => prev.filter((t) => !removeIds.has(t.id)));
+                        await Promise.all(targets.map((t) => deleteTaskFromDb(t.id)));
+                        showToast(`Cleared ${targets.length} unfiled tasks for ${period}`);
+                        return targets.length;
+                      }
+                    : undefined
+                }
               />
             )}
 
@@ -1542,7 +1563,32 @@ export function App() {
                 restricted('Team management is available to administrators only.')
               ))}
 
-            {activeTab === 'activity' && (isAdmin ? <ActivityHistory logs={activityLogs} /> : restricted('The audit trail is available to administrators only.'))}
+            {activeTab === 'activity' &&
+              (isAdmin ? (
+                <ActivityHistory
+                  logs={activityLogs}
+                  onPruneOldLogs={async () => {
+                    const res = await pruneOldActivityLogsInDb(6);
+                    if (res.error) {
+                      showToast(`Could not prune logs: ${res.error}`, true);
+                      return 0;
+                    }
+                    const cutoff = new Date();
+                    cutoff.setMonth(cutoff.getMonth() - 6);
+                    const cutoffMs = cutoff.getTime();
+                    setActivityLogs((prev) =>
+                      prev.filter((l) => {
+                        const d = l.rawTimestamp ? new Date(l.rawTimestamp) : new Date(l.timestamp);
+                        return Number.isNaN(d.getTime()) || d.getTime() >= cutoffMs;
+                      })
+                    );
+                    showToast(`Pruned ${res.deletedCount} audit logs older than 6 months`);
+                    return res.deletedCount;
+                  }}
+                />
+              ) : (
+                restricted('The audit trail is available to administrators only.')
+              ))}
 
             {activeTab === 'settings' &&
               (isAdmin ? (
