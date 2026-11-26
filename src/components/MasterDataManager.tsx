@@ -714,30 +714,37 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                     </td>
                     {canEdit && (
                       <td className="text-right whitespace-nowrap">
-                        <div className="relative inline-block">
+                        <div className="inline-flex items-center gap-0.5">
                           <IconButton
                             size="sm"
-                            icon={MoreHorizontal}
-                            label={`Actions for ${record.clientName}`}
-                            onClick={() => setMenuFor(menuFor === record.id ? null : record.id)}
-                          />
-                          <Menu
-                            open={menuFor === record.id}
-                            onClose={() => setMenuFor(null)}
-                            align="right"
-                            items={[
-                              { value: 'edit', label: 'Edit details', icon: Pencil },
-                              { value: 'remove', label: 'Remove client…', icon: Trash2, danger: true },
-                            ]}
-                            onSelect={(val) => {
-                              if (val === 'edit') {
-                                setEditingRecord(record);
-                                setIsAddOpen(true);
-                              } else if (val === 'remove') {
-                                setConfirmRemove(record);
-                              }
+                            icon={Pencil}
+                            label="Edit client details"
+                            onClick={() => {
+                              setEditingRecord(record);
+                              setIsAddOpen(true);
                             }}
                           />
+                          <div className="relative inline-block">
+                            <IconButton
+                              size="sm"
+                              icon={MoreHorizontal}
+                              label={`More actions for ${record.clientName}`}
+                              onClick={() => setMenuFor(menuFor === record.id ? null : record.id)}
+                            />
+                            <Menu
+                              open={menuFor === record.id}
+                              onClose={() => setMenuFor(null)}
+                              align="right"
+                              items={[
+                                { value: 'remove', label: 'Remove client…', icon: Trash2, danger: true },
+                              ]}
+                              onSelect={(val) => {
+                                if (val === 'remove') {
+                                  setConfirmRemove(record);
+                                }
+                              }}
+                            />
+                          </div>
                         </div>
                       </td>
                     )}
