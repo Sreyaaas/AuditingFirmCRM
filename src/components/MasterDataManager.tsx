@@ -7,6 +7,7 @@ import {
   Download,
   Eye,
   EyeOff,
+  MoreHorizontal,
   Pencil,
   Plus,
   Trash2,
@@ -26,6 +27,7 @@ import {
   Field,
   IconButton,
   Input,
+  Menu,
   Metric,
   MetricGrid,
   Modal,
@@ -186,6 +188,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
   // Password reveal & clipboard copy feedback
   const [revealedIds, setRevealedIds] = useState<Record<string, boolean>>({});
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
 
   const copyText = (key: string, text?: string) => {
     if (!text) return;
@@ -711,22 +714,29 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                     </td>
                     {canEdit && (
                       <td className="text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-0.5">
+                        <div className="relative inline-block">
                           <IconButton
                             size="sm"
-                            icon={Pencil}
-                            label="Edit client details"
-                            onClick={() => {
-                              setEditingRecord(record);
-                              setIsAddOpen(true);
-                            }}
+                            icon={MoreHorizontal}
+                            label={`Actions for ${record.clientName}`}
+                            onClick={() => setMenuFor(menuFor === record.id ? null : record.id)}
                           />
-                          <IconButton
-                            size="sm"
-                            icon={Trash2}
-                            label="Remove client from this period"
-                            onClick={() => setConfirmRemove(record)}
-                            className="hover:text-danger"
+                          <Menu
+                            open={menuFor === record.id}
+                            onClose={() => setMenuFor(null)}
+                            align="right"
+                            items={[
+                              { value: 'edit', label: 'Edit details', icon: Pencil },
+                              { value: 'remove', label: 'Remove client…', icon: Trash2, danger: true },
+                            ]}
+                            onSelect={(val) => {
+                              if (val === 'edit') {
+                                setEditingRecord(record);
+                                setIsAddOpen(true);
+                              } else if (val === 'remove') {
+                                setConfirmRemove(record);
+                              }
+                            }}
                           />
                         </div>
                       </td>
@@ -764,13 +774,13 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
         isOpen={!!confirmRemove}
         onClose={() => setConfirmRemove(null)}
         onConfirm={() => confirmRemove && handleRemoveClient(confirmRemove)}
-        title={`Remove ${confirmRemove?.clientName}?`}
+        title={`Are you sure you want to remove ${confirmRemove?.clientName}?`}
         description={
           confirmRemove?.effectiveFrom === selectedPeriod
             ? `This client was added in ${formatPeriodLabel(selectedPeriod, tabConfig.cadence)}. Removing it will permanently delete the entry.`
             : `This will remove ${confirmRemove?.clientName} starting from ${formatPeriodLabel(selectedPeriod, tabConfig.cadence)} and all future ${tabConfig.cadence === 'monthly' ? 'months' : 'years'}. Earlier historical periods will remain intact.`
         }
-        confirmLabel="Remove Client"
+        confirmLabel="Yes, Remove Client"
         danger
       />
 
