@@ -265,7 +265,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
 
   // Excel import state
   const fileRef = useRef<HTMLInputElement>(null);
-  const [importMultiSheet, setImportMultiSheet] = useState(false);
+  const [importMultiSheet, setImportMultiSheet] = useState(true);
   const [importPreview, setImportPreview] = useState<{
     fileName: string;
     sheets: ParsedMasterSheet[];
@@ -290,17 +290,26 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
 
   const handleConfirmImport = async () => {
     if (!importPreview) return;
-    const merged: MasterDataRecord[] = [];
+    const byKey = new Map<string, MasterDataRecord>();
 
+    // Seed with existing records so duplicates across sheets/sections merge cleanly
+    for (const r of records) {
+      byKey.set(`${r.category}::${r.clientName.trim().toLowerCase()}`, r);
+    }
+
+    const touched: MasterDataRecord[] = [];
     for (const sheet of importPreview.sheets) {
+      const sheetPeriod =
+        getTabConfig(sheet.category).cadence === tabConfig.cadence
+          ? selectedPeriod
+          : collectPeriodsForCategory(records, sheet.category)[0];
+
       for (const incoming of sheet.records) {
-        const existing = records.find(
-          (r) =>
-            r.category === incoming.category &&
-            r.clientName.trim().toLowerCase() === incoming.clientName.trim().toLowerCase()
-        );
+        const key = `${incoming.category}::${incoming.clientName.trim().toLowerCase()}`;
+        const existing = byKey.get(key);
+        const incomingVals = incoming.periodValues[selectedPeriod] || Object.values(incoming.periodValues)[0];
         if (existing) {
-          merged.push({
+          const updated: MasterDataRecord = {
             ...existing,
             legalConstitution: incoming.legalConstitution || existing.legalConstitution,
             itrType: incoming.itrType || existing.itrType,
@@ -312,17 +321,27 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
             removedFrom: undefined,
             periodValues: {
               ...existing.periodValues,
-              [selectedPeriod]: incoming.periodValues[selectedPeriod],
+              [sheetPeriod]: incomingVals,
             },
             updatedAt: new Date().toISOString(),
-          });
+          };
+          byKey.set(key, updated);
+          touched.push(updated);
         } else {
-          merged.push(incoming);
+          const created: MasterDataRecord = {
+            ...incoming,
+            effectiveFrom: sheetPeriod,
+            periodValues: { [sheetPeriod]: incomingVals },
+          };
+          byKey.set(key, created);
+          touched.push(created);
         }
       }
     }
 
-    await onBulkSaveRecords(merged);
+    // Deduplicate touched by id
+    const uniqueTouched = Array.from(new Map(touched.map((r) => [r.id, r])).values());
+    await onBulkSaveRecords(uniqueTouched);
     setImportPreview(null);
   };
 
@@ -401,7 +420,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                   variant="secondary"
                   icon={Upload}
                   onClick={() => {
-                    setImportMultiSheet(false);
+                    setImportMultiSheet(true);
                     fileRef.current?.click();
                   }}
                 >
