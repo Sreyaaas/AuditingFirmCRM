@@ -1329,7 +1329,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
             return (
               <div
                 id="printable-invoice"
-                className="printable-invoice-sheet w-full max-w-[680px] min-w-[540px] bg-white select-text shadow-sm print:min-w-0 print:max-w-none print:w-full"
+                className="printable-invoice-sheet shrink-0 w-full max-w-[680px] min-w-[540px] bg-white select-text shadow-sm print:min-w-0 print:max-w-none print:w-full"
                 style={{
                   fontFamily: INVOICE_FONT_STACK,
                   color: INK,
