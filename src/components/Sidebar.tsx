@@ -318,7 +318,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="text-2xs font-semibold uppercase tracking-wider text-fg-subtle">
               {FLYOUT_CONFIG[hoveredTab.id].title}
             </span>
-            <span className="text-3xs text-fg-faint font-medium">Filter service</span>
+            <span className="text-xs text-fg-faint font-medium">Filter service</span>
           </div>
           <div className="space-y-0.5">
             {FLYOUT_CONFIG[hoveredTab.id].items.map((svc, idx, arr) => {
@@ -326,7 +326,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               return (
                 <React.Fragment key={svc.label}>
                   {showGroupHeader && (
-                    <div className="pt-2 pb-0.5 px-2.5 text-3xs font-semibold uppercase tracking-wider text-fg-subtle border-t border-line/60 first:border-t-0 first:pt-1">
+                    <div className="pt-2 pb-0.5 px-2.5 text-xs font-semibold text-fg-subtle border-t border-line/60 first:border-t-0 first:pt-1">
                       {svc.group}
                     </div>
                   )}
@@ -347,7 +347,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         {svc.label}
                       </div>
                       {svc.hint && (
-                        <div className="text-3xs text-fg-subtle truncate mt-0.5">
+                        <div className="text-xs text-fg-subtle truncate mt-0.5">
                           {svc.hint}
                         </div>
                       )}

@@ -341,7 +341,7 @@ Shameer & Associates`,
                   type="button"
                   onClick={() => setPhone(opt.phone)}
                   className={cn(
-                    'px-2.5 py-1 rounded-[5px] text-xs transition-all flex items-center gap-1.5 border cursor-pointer',
+                    'px-2.5 py-1 rounded-[5px] text-xs transition-colors flex items-center gap-1.5 border cursor-pointer',
                     isSelected
                       ? 'bg-surface text-fg border-line-strong font-medium shadow-sm'
                       : 'bg-transparent text-fg-muted hover:text-fg hover:bg-hover border-transparent'

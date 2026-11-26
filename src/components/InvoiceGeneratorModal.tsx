@@ -1264,7 +1264,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                   <span>Download PDF &amp; open OneDrive folder on save</span>
                 </span>
               </label>
-              <p className="text-3xs text-fg-subtle pl-6 break-all min-w-0">
+              <p className="text-xs text-fg-subtle pl-6 break-all min-w-0">
                 Folder: <span className="font-mono text-fg break-all">{clientOneDriveFolder}/Invoices/</span>
               </p>
             </div>
@@ -1280,7 +1280,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         {/* =========================================================================
             RIGHT COLUMN: EXECUTIVE A4 DOCUMENT PREVIEW (Printed directly)
             ========================================================================= */}
-        <div className="lg:col-span-7 p-6 sm:p-8 bg-zinc-100 flex flex-col items-center justify-start overflow-y-auto overflow-x-auto max-h-[82vh] print:p-0 print:bg-white print:overflow-visible print:max-h-none print:block">
+        <div className="lg:col-span-7 p-6 sm:p-8 bg-subtle flex flex-col items-center justify-start overflow-y-auto overflow-x-auto max-h-[82vh] print:p-0 print:bg-white print:overflow-visible print:max-h-none print:block">
           {/* A4 sheet: printed and exported as PDF exactly as shown.
               Colours are fixed (not theme tokens) because this is a paper document. */}
           {(() => {

@@ -69,7 +69,7 @@ export const SelectRecipientModal: React.FC<SelectRecipientModalProps> = ({
               onClose();
               onSelect(opt);
             }}
-            className="w-full text-left p-3 rounded-[6px] border border-line bg-surface hover:bg-hover hover:border-line-strong transition-all flex items-center justify-between group cursor-pointer focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full text-left p-3 rounded-[6px] border border-line bg-surface hover:bg-hover hover:border-line-strong transition-colors flex items-center justify-between group cursor-pointer focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <div className="min-w-0 pr-3">
               <div className="flex items-center gap-2">

@@ -28,7 +28,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({
       <div className="space-y-4 py-1">
         {/* Brand identity header */}
         <div className="p-3.5 rounded-lg bg-subtle border border-line flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-[#1B365D] flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0">
+          <div className="w-12 h-12 rounded-lg bg-ink flex items-center justify-center text-ink-fg font-bold text-base shadow-sm shrink-0">
             SA
           </div>
           <div className="min-w-0 flex-1">

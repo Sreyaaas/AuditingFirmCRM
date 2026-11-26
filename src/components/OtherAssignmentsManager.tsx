@@ -331,13 +331,13 @@ export const OtherAssignmentsManager: React.FC<OtherAssignmentsManagerProps> = (
                         <span className="font-mono text-xs text-fg">{formatDate(task.dueDate)}</span>
                         <div className="mt-0.5">
                           {isDone ? (
-                            <span className="text-3xs font-medium text-success">Fulfilled</span>
+                            <span className="text-xs font-medium text-success">Fulfilled</span>
                           ) : isOverdue ? (
-                            <span className="num text-3xs font-bold text-danger">Overdue ({Math.abs(task.daysRemaining)}d)</span>
+                            <span className="num text-xs font-bold text-danger">Overdue ({Math.abs(task.daysRemaining)}d)</span>
                           ) : isDueSoon ? (
-                            <span className="num text-3xs font-semibold text-warning">Due in {task.daysRemaining}d</span>
+                            <span className="num text-xs font-semibold text-warning">Due in {task.daysRemaining}d</span>
                           ) : (
-                            <span className="num text-3xs text-fg-subtle">In {task.daysRemaining} days</span>
+                            <span className="num text-xs text-fg-subtle">In {task.daysRemaining} days</span>
                           )}
                         </div>
                       </div>

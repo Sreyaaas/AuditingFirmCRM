@@ -484,14 +484,7 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
     <div className="space-y-6">
       <PageHeader
         section="invoices"
-        title={
-          <span className="flex items-center gap-2">
-            <span>Invoices & Billing</span>
-            <Badge tone="neutral" className="font-mono text-2xs font-normal">
-              {billings.length} {billings.length === 1 ? 'Invoice' : 'Invoices'}
-            </Badge>
-          </span>
-        }
+        title="Invoices & Billing"
         description="Office tax invoices, client billing history, and compliance billing radar."
         actions={
           <div className="flex items-center gap-2">

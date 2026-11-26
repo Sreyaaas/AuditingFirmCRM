@@ -6,6 +6,12 @@
       "sourceType": "github",
       "skillPath": "skills/antigravity-design-expert/SKILL.md",
       "computedHash": "56cca6d5c0e60981e6ace84c442cf7ba85afcc55c587a9e033a28354b6e285eb"
+    },
+    "gemini-frontend-design": {
+      "source": "google-gemini/demolab",
+      "sourceType": "github",
+      "skillPath": "skills/gemini-frontend-design/SKILL.md",
+      "computedHash": "7073b9ac413b719c48b1dd7cbc8bef688dd7de22741ba3a2022f28fd4d0d9155"
     }
   }
 }

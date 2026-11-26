@@ -244,7 +244,7 @@ export const Avatar: React.FC<{ initials: string; size?: 'xs' | 'sm' | 'md' | 'l
       'inline-flex items-center justify-center rounded-full font-semibold shrink-0 select-none',
       avatarHue((seed || initials || '?').trim().toLowerCase()),
       size === 'lg' && 'w-10 h-10 text-sm',
-      size === 'xs' && 'w-5 h-5 text-[10px]',
+      size === 'xs' && 'w-5 h-5 text-[11px]',
       size === 'sm' && 'w-6 h-6 text-2xs',
       size === 'md' && 'w-8 h-8 text-xs',
       className

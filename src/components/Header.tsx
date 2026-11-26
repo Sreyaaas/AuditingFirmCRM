@@ -172,7 +172,7 @@ export const Header: React.FC<HeaderProps> = ({
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <span
-                              className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
+                              className="w-2.5 h-2.5 rounded-[3px] border border-black/10 shrink-0"
                               style={{ backgroundColor: t.accent }}
                             />
                             <span className="truncate">{t.name}</span>
@@ -208,7 +208,7 @@ export const Header: React.FC<HeaderProps> = ({
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <span
-                              className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0"
+                              className="w-2.5 h-2.5 rounded-[3px] border border-white/20 shrink-0"
                               style={{ backgroundColor: t.accent }}
                             />
                             <span className="truncate">{t.name}</span>

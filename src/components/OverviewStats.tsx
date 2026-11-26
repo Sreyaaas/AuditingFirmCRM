@@ -356,7 +356,7 @@ export const OverviewStats: React.FC<OverviewStatsProps> = ({
                     )}
                   >
                     <div className="num text-md font-semibold leading-5">{day}</div>
-                    <div className="text-[10px] font-medium uppercase tracking-wider opacity-80">{mon}</div>
+                    <div className="text-[11px] font-medium uppercase tracking-wider opacity-80">{mon}</div>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium text-fg truncate">{d.title}</div>

@@ -883,7 +883,7 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
                             style={{ backgroundColor: t.canvas }}
                           >
                             <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              className="w-2.5 h-2.5 rounded-[3px] shrink-0"
                               style={{ backgroundColor: t.accent }}
                             />
                             {isSelected && <Check className="w-3.5 h-3.5 text-accent shrink-0" strokeWidth={2.5} />}
@@ -922,7 +922,7 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
                             style={{ backgroundColor: t.canvas }}
                           >
                             <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              className="w-2.5 h-2.5 rounded-[3px] shrink-0"
                               style={{ backgroundColor: t.accent }}
                             />
                             {isSelected && <Check className="w-3.5 h-3.5 text-accent shrink-0" strokeWidth={2.5} />}
