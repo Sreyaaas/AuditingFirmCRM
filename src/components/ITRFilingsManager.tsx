@@ -524,9 +524,9 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                 />
               </div>
             )}
-            <Toolbar className="justify-between">
-              <Segmented
-                size="sm"
+            <div className="px-3 pt-1 flex flex-col lg:flex-row lg:items-end justify-between gap-2 border-b border-line">
+              <Tabs
+                className="border-b-0"
                 value={priorityFilter === 'all' ? statusFilter : '__none'}
                 onChange={(v) => {
                   setStatusFilter(v);
@@ -535,7 +535,18 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                 }}
                 options={statusTabs}
               />
-            <div className="flex items-center gap-2">
+            </div>
+            <Toolbar className="justify-between">
+              <SearchInput
+                placeholder="Client, PAN or form"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                wrapperClassName="w-full sm:w-64"
+                className="h-7 text-xs"
+              />
               <Select
                 value={priorityFilter}
                 onChange={(e) => {
@@ -550,20 +561,9 @@ export const ITRFilingsManager: React.FC<ITRFilingsManagerProps> = ({
                 <option value="upcoming">Upcoming</option>
                 <option value="completed">Filed</option>
               </Select>
-              <SearchInput
-                placeholder="Client, PAN or form"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                wrapperClassName="w-40 sm:w-52"
-                className="h-7 text-xs"
-              />
-            </div>
-          </Toolbar>
-        </>
-      }
+            </Toolbar>
+          </>
+        }
       footer={
           <Pagination
             page={currentPage}
