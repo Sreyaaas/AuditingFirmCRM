@@ -1306,15 +1306,15 @@ export function App() {
                           (t) =>
                             t.category === 'monthly' &&
                             t.period === period &&
-                            t.id.startsWith('task-gen-') &&
-                            t.status === 'Docs Pending' &&
+                            t.status !== 'Filed' &&
+                            t.status !== 'Completed' &&
                             !t.arnNumber
                         );
                         if (targets.length === 0) return 0;
                         const removeIds = new Set(targets.map((t) => t.id));
                         setMonthlyTasks((prev) => prev.filter((t) => !removeIds.has(t.id)));
                         await Promise.all(targets.map((t) => deleteTaskFromDb(t.id)));
-                        showToast(`Cleared ${targets.length} generated tasks for ${period}`);
+                        showToast(`Cleared ${targets.length} unfiled tasks for ${period}`);
                         return targets.length;
                       }
                     : undefined

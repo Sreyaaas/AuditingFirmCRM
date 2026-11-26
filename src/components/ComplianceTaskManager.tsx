@@ -104,8 +104,8 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [confirmClearGenerated, setConfirmClearGenerated] = useState(false);
 
-  const generatedInPeriodCount = tasks.filter(
-    (t) => t.period === selectedPeriod && t.id.startsWith('task-gen-') && t.status === 'Docs Pending' && !t.arnNumber
+  const clearableInPeriodCount = tasks.filter(
+    (t) => t.period === selectedPeriod && t.status !== 'Filed' && t.status !== 'Completed' && !t.arnNumber
   ).length;
   const [itemsPerPage, setItemsPerPage] = useState<number>(5);
 
@@ -317,15 +317,15 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                 Generate Month Tasks
               </Button>
             )}
-            {section === 'monthly' && onClearGeneratedTasks && generatedInPeriodCount > 0 && (
+            {section === 'monthly' && onClearGeneratedTasks && clearableInPeriodCount > 0 && (
               <Button
                 variant="danger"
                 size="md"
                 icon={Trash2}
                 onClick={() => setConfirmClearGenerated(true)}
-                title="Undo / clear untouched auto-generated tasks for this month"
+                title="Clear all unfiled tasks for this month"
               >
-                Clear Generated ({generatedInPeriodCount})
+                Clear Unfiled ({clearableInPeriodCount})
               </Button>
             )}
             {onAddNewTask && (
@@ -608,9 +608,9 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
         <ConfirmDialog
           isOpen={confirmClearGenerated}
           onClose={() => setConfirmClearGenerated(false)}
-          title={`Clear ${generatedInPeriodCount} generated tasks for ${selectedPeriod}?`}
-          description={`This deletes all untouched (Docs Pending) auto-generated tasks for ${selectedPeriod}. Any tasks already marked In Progress, Draft Ready, or Filed are kept.`}
-          confirmLabel="Clear Generated"
+          title={`Clear ${clearableInPeriodCount} unfiled tasks for ${selectedPeriod}?`}
+          description={`This deletes all unfiled tasks (Docs Pending, In Progress, Draft Ready, Overdue) for ${selectedPeriod}. Any tasks already marked Filed or with an ARN are kept.`}
+          confirmLabel="Clear Unfiled"
           danger
           onConfirm={() => {
             onClearGeneratedTasks(selectedPeriod);
