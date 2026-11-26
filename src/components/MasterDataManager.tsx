@@ -398,36 +398,6 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
                 Add Client
               </Button>
             )}
-            {canEdit && (
-              <Button
-                variant="secondary"
-                icon={CalendarPlus}
-                onClick={() => setConfirmStartNext(true)}
-              >
-                Start {formatPeriodLabel(nextPeriod, tabConfig.cadence, true)}
-              </Button>
-            )}
-            {canEdit && (
-              <>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  className="hidden"
-                  onChange={(e) => handleFileChange(e.target.files?.[0])}
-                />
-                <Button
-                  variant="secondary"
-                  icon={Upload}
-                  onClick={() => {
-                    setImportMultiSheet(true);
-                    fileRef.current?.click();
-                  }}
-                >
-                  Import Excel
-                </Button>
-              </>
-            )}
             {filteredRows.length > 0 && (
               <Button
                 variant="secondary"

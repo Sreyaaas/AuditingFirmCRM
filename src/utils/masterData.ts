@@ -61,10 +61,23 @@ export const MASTER_TABS: MasterTabConfig[] = [
 export const getTabConfig = (cat: MasterDataCategory): MasterTabConfig =>
   MASTER_TABS.find((t) => t.id === cat) || MASTER_TABS[0];
 
-/** Current Indian Financial Year key, e.g. 'FY 2026-27'. */
+/** Current Indian Financial Year key in IST (Asia/Kolkata), e.g. 'FY 2026-27'. */
 export const currentFyKey = (d = new Date()): string => {
-  const year = d.getFullYear();
-  const month = d.getMonth() + 1; // 1-12
+  let year = d.getFullYear();
+  let month = d.getMonth() + 1;
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+    }).formatToParts(d);
+    const y = Number(parts.find((p) => p.type === 'year')?.value);
+    const m = Number(parts.find((p) => p.type === 'month')?.value);
+    if (y && m) {
+      year = y;
+      month = m;
+    }
+  } catch {}
   const startYear = month >= 4 ? year : year - 1;
   return `FY ${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`;
 };
@@ -170,6 +183,38 @@ export const startNextMasterPeriod = (
       updatedAt: new Date().toISOString(),
     };
   });
+
+/**
+ * Automatically advances each Master Data category to the current IST month / FY
+ * when the calendar rolls forward, carrying active clients & recurring fees.
+ */
+export const autoAdvanceMasterDataToIST = (
+  records: MasterDataRecord[]
+): { updated: MasterDataRecord[]; changed: MasterDataRecord[] } => {
+  if (records.length === 0) return { updated: records, changed: [] };
+
+  let nextRecords = records;
+  const changedIds = new Set<string>();
+
+  for (const tab of MASTER_TABS) {
+    const catRecords = nextRecords.filter((r) => r.category === tab.id);
+    if (catRecords.length === 0) continue;
+
+    const targetPeriod = defaultPeriodForCadence(tab.cadence);
+    const periods = collectPeriodsForCategory(catRecords, tab.id);
+    const latest = periods[periods.length - 1] || targetPeriod;
+    if (comparePeriodKeys(latest, targetPeriod) >= 0) continue;
+
+    const prevSnapshot = nextRecords;
+    nextRecords = startNextMasterPeriod(nextRecords, tab.id, targetPeriod);
+    for (let i = 0; i < nextRecords.length; i++) {
+      if (nextRecords[i] !== prevSnapshot[i]) changedIds.add(nextRecords[i].id);
+    }
+  }
+
+  const changed = nextRecords.filter((r) => changedIds.has(r.id));
+  return { updated: nextRecords, changed };
+};
 
 /** Normalize common spelling variants in Legal Constitution from office Excel sheets. */
 export const normalizeConstitution = (raw: string): string => {

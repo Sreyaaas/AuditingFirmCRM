@@ -9,8 +9,20 @@ export const monthLabel = (key: string, short = false): string => {
   return `${short ? name.slice(0, 3) : name} ${y}`;
 };
 
-/** Current calendar month as 'YYYY-MM'. */
-export const currentMonthKey = (d = new Date()): string => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+/** Current calendar month in IST (Asia/Kolkata) as 'YYYY-MM'. */
+export const currentMonthKey = (d = new Date()): string => {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+    }).formatToParts(d);
+    const y = parts.find((p) => p.type === 'year')?.value;
+    const m = parts.find((p) => p.type === 'month')?.value;
+    if (y && m) return `${y}-${m}`;
+  } catch {}
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
 
 /** Next calendar month after a 'YYYY-MM' key. */
 export const nextMonthKey = (key: string): string => {
@@ -102,3 +114,32 @@ export const applyBilling = (record: DebtorRecord, amount: number, key?: string)
  */
 export const startMonth = (records: DebtorRecord[], key: string): DebtorRecord[] =>
   records.map((r) => (r.months.some((m) => m.month === key) ? r : recalcDebtor(ensureMonth(r, key))));
+
+/**
+ * Automatically advances debtors to the current IST month if their latest month
+ * is behind `currentMonthKey()`, stepping through any intermediate months so
+ * opening/closing balances carry forward continuously.
+ */
+export const autoAdvanceDebtorsToIST = (
+  records: DebtorRecord[]
+): { updated: DebtorRecord[]; changed: DebtorRecord[]; currentKey: string } => {
+  const currentKey = currentMonthKey();
+  if (records.length === 0) return { updated: records, changed: [], currentKey };
+
+  const months = collectMonths(records);
+  let latest = months[months.length - 1];
+  if (!latest || latest >= currentKey) {
+    return { updated: records, changed: [], currentKey };
+  }
+
+  let nextList = records;
+  let guard = 0;
+  while (latest < currentKey && guard < 24) {
+    latest = nextMonthKey(latest);
+    nextList = startMonth(nextList, latest);
+    guard++;
+  }
+
+  const changed = nextList.filter((r, i) => r !== records[i]);
+  return { updated: nextList, changed, currentKey };
+};

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { SlidersHorizontal, Plus, X, Check, RefreshCw, AlertCircle, MessageSquare, Building2, Download, RotateCcw, Settings2, ShieldCheck, Palette } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { SlidersHorizontal, Plus, X, Check, RefreshCw, AlertCircle, MessageSquare, Building2, Download, Upload, RotateCcw, Settings2, ShieldCheck, Palette } from 'lucide-react';
 import {
   AppPreferences,
   DEFAULT_WHATSAPP_TEMPLATES,
@@ -7,11 +8,15 @@ import {
   WhatsAppTemplateSettings,
   renderTemplate,
 } from '../services/firmConfigService';
-import { ActivityLog, Client, DebtorRecord, GSTComplianceItem, ITRFiling, MonthlyTask, OfficeBillingEntry, StaffTicket, UserProfile } from '../types/crm';
+import { ActivityLog, Client, DebtorRecord, GSTComplianceItem, ITRFiling, MasterDataRecord, MonthlyTask, OfficeBillingEntry, StaffTicket, UserProfile } from '../types/crm';
 import { LIGHT_THEMES, DARK_THEMES } from '../types/themes';
 import { Button, Card, CardHeader, Field, IconButton, Input, Label, Metric, MetricGrid, Segmented, Select, Textarea, cn } from './ui';
 import { Toggle } from './EmployeeManagement';
 import { debtorSheets, downloadExcelBackup } from '../utils/dataExport';
+import { parseDebtorWorkbook, type DebtorWorkbookResult } from '../utils/debtorWorkbook';
+import { parseMasterDataWorkbook } from '../utils/masterDataWorkbook';
+import { currentFyKey, getTabConfig } from '../utils/masterData';
+import { currentMonthKey } from '../utils/debtors';
 import { usePwa } from '../hooks/usePwa';
 import { PwaInstallModal } from './PwaInstallModal';
 
@@ -45,6 +50,9 @@ interface PracticeConfigManagerProps {
   profiles?: UserProfile[];
   tickets?: StaffTicket[];
   activityLogs?: ActivityLog[];
+  masterData?: MasterDataRecord[];
+  onImportMasterData?: (records: MasterDataRecord[]) => Promise<void> | void;
+  onImportDebtors?: (result: DebtorWorkbookResult) => Promise<{ error?: string } | void> | void;
   /** Records the download in the audit trail. */
   onBackupDownloaded?: (format: 'Excel' | 'JSON') => void;
 }
@@ -105,6 +113,9 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
   profiles = [],
   tickets = [],
   activityLogs = [],
+  masterData = [],
+  onImportMasterData,
+  onImportDebtors,
   onBackupDownloaded,
 }) => {
   const [section, setSection] = useState<Section>('general');
@@ -319,7 +330,7 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
     { key: 'firm', label: 'Firm & banking', icon: Building2 },
     { key: 'templates', label: 'Message templates', icon: MessageSquare },
     { key: 'lists', label: 'Lists', icon: SlidersHorizontal },
-    { key: 'backup', label: 'Backup', icon: Download },
+    { key: 'backup', label: 'Backup & Import', icon: Download },
     { key: 'appearance', label: 'Appearance', icon: Palette },
   ];
 
@@ -631,8 +642,130 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
         )}
 
         {section === 'backup' && (
-          <Card>
-            <CardHeader title="Backup" description="Download a full copy of the firm's data" />
+          <div className="space-y-6">
+            {(onImportMasterData || onImportDebtors) && (
+              <Card>
+                <CardHeader
+                  title="Excel bulk import"
+                  description="One-time or bulk import from the office Excel workbooks into the current IST period"
+                />
+                <div className="divide-y divide-line">
+                  {onImportMasterData && (
+                    <Row
+                      title="Master Data workbook"
+                      description="Imports Monthly GST, Annual ITR (Individual & Business), Quarterly / TDS, Tax Audit, and Company / ROC sheets."
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="settings-import-master"
+                          type="file"
+                          accept=".xlsx,.xls,.csv"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            try {
+                              const istMonth = currentMonthKey();
+                              const istFy = currentFyKey();
+                              const parsed = await parseMasterDataWorkbook(file, 'monthly-gst', istMonth, true);
+                              const byKey = new Map<string, MasterDataRecord>();
+                              for (const r of masterData) {
+                                byKey.set(`${r.category}::${r.clientName.trim().toLowerCase()}`, r);
+                              }
+                              const touched: MasterDataRecord[] = [];
+                              for (const sheet of parsed.sheets) {
+                                const periodKey = getTabConfig(sheet.category).cadence === 'monthly' ? istMonth : istFy;
+                                for (const incoming of sheet.records) {
+                                  const key = `${incoming.category}::${incoming.clientName.trim().toLowerCase()}`;
+                                  const existing = byKey.get(key);
+                                  const vals = Object.values(incoming.periodValues)[0];
+                                  if (existing) {
+                                    const updated: MasterDataRecord = {
+                                      ...existing,
+                                      legalConstitution: incoming.legalConstitution || existing.legalConstitution,
+                                      itrType: incoming.itrType || existing.itrType,
+                                      username: incoming.username || existing.username,
+                                      password: incoming.password || existing.password,
+                                      email: incoming.email || existing.email,
+                                      reference: incoming.reference || existing.reference,
+                                      natureOfService: incoming.natureOfService || existing.natureOfService,
+                                      removedFrom: undefined,
+                                      periodValues: { ...existing.periodValues, [periodKey]: vals },
+                                      updatedAt: new Date().toISOString(),
+                                    };
+                                    byKey.set(key, updated);
+                                    touched.push(updated);
+                                  } else {
+                                    const created: MasterDataRecord = {
+                                      ...incoming,
+                                      effectiveFrom: periodKey,
+                                      periodValues: { [periodKey]: vals },
+                                    };
+                                    byKey.set(key, created);
+                                    touched.push(created);
+                                  }
+                                }
+                              }
+                              const unique = Array.from(new Map(touched.map((r) => [r.id, r])).values());
+                              await onImportMasterData(unique);
+                              showBackupMsg(`Imported ${unique.length} Master Data rows`);
+                            } catch (err: any) {
+                              showBackupMsg(err?.message || 'Master Data import failed', true);
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="secondary"
+                          icon={Upload}
+                          onClick={() => document.getElementById('settings-import-master')?.click()}
+                        >
+                          Import Master Data Excel
+                        </Button>
+                      </div>
+                    </Row>
+                  )}
+                  {onImportDebtors && (
+                    <Row
+                      title="Debtors workbook"
+                      description="Imports client debtor accounts, opening balances, receipts, and billing register sheets."
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="settings-import-debtors"
+                          type="file"
+                          accept=".xlsx,.xls"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            try {
+                              const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+                              const parsed = parseDebtorWorkbook(wb);
+                              await onImportDebtors(parsed);
+                              showBackupMsg(`Imported ${parsed.records.length} debtor accounts`);
+                            } catch (err: any) {
+                              showBackupMsg(err?.message || 'Debtors import failed', true);
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="secondary"
+                          icon={Upload}
+                          onClick={() => document.getElementById('settings-import-debtors')?.click()}
+                        >
+                          Import Debtors Excel
+                        </Button>
+                      </div>
+                    </Row>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader title="Backup" description="Download a full copy of the firm's data" />
             <div className="p-4 space-y-4">
               <p className="text-sm text-fg-muted max-w-2xl">
                 Includes clients, filings, GST returns, debtors, the billing register, calls, the team list and the audit trail. Passwords are never included.
@@ -663,6 +796,7 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
               </div>
             </div>
           </Card>
+          </div>
         )}
 
         {section === 'appearance' && (

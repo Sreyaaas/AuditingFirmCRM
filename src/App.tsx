@@ -95,8 +95,8 @@ import {
   saveStoredFirmProfile,
   saveStoredWhatsAppTemplates,
 } from './services/firmConfigService';
-import { applyBilling, applyPayment, currentMonthKey, monthLabel, startMonth } from './utils/debtors';
-import { startNextMasterPeriod } from './utils/masterData';
+import { applyBilling, applyPayment, autoAdvanceDebtorsToIST, currentMonthKey, monthLabel, startMonth } from './utils/debtors';
+import { autoAdvanceMasterDataToIST, startNextMasterPeriod } from './utils/masterData';
 import type { DebtorWorkbookResult } from './utils/debtorWorkbook';
 
 import {
@@ -307,21 +307,32 @@ export function App() {
         loadRemoteSettings(),
         fetchMasterDataFromDb(),
       ]);
+      const debRollover = autoAdvanceDebtorsToIST(deb);
+      const mdRollover = autoAdvanceMasterDataToIST(md);
+
       setPracticeConfigs(cfg);
       setClients(cl);
       setMonthlyTasks(tk);
       setProfiles(pr);
       setItrFilings(itr);
-      setDebtors(deb);
+      setDebtors(debRollover.updated);
       setBillings(bil);
       setGstCompliance(gst.map((i) => withGstPriority(i, settings.preferences.dueSoonDays)));
       setTickets(tix);
       setActivityLogs(logs);
-      setMasterData(md);
+      setMasterData(mdRollover.updated);
       setPreferences(settings.preferences);
       setFirmProfile(settings.firmProfile);
       setTemplates(settings.templates);
       setDataState('ready');
+
+      // Persist automatic IST month/year rollovers in the background
+      if (debRollover.changed.length > 0) {
+        Promise.all(debRollover.changed.map((d) => saveDebtorToDb(d))).catch(() => {});
+      }
+      if (mdRollover.changed.length > 0) {
+        bulkSaveMasterDataToDb(mdRollover.changed).catch(() => {});
+      }
     } catch (err) {
       console.error('Initial load failed:', err);
       setDataState('error');
@@ -1407,6 +1418,21 @@ export function App() {
                     profiles={profiles}
                     tickets={tickets}
                     activityLogs={activityLogs}
+                    masterData={masterData}
+                    onImportMasterData={async (recs) => {
+                      setMasterData((prev) => {
+                        const map = new Map(prev.map((x) => [x.id, x]));
+                        for (const r of recs) map.set(r.id, r);
+                        return Array.from(map.values());
+                      });
+                      const res = await bulkSaveMasterDataToDb(recs);
+                      showToast(
+                        res.error
+                          ? `Imported ${recs.length} clients locally (${res.error})`
+                          : `Imported ${recs.length} clients to Master Data`
+                      );
+                    }}
+                    onImportDebtors={handleImportDebtors}
                     onBackupDownloaded={(format) => addActivityLog('Backup downloaded', `Full data backup (${format})`, undefined, 'Security')}
                   />
                 </div>

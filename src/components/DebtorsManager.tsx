@@ -506,19 +506,6 @@ export const DebtorsManager: React.FC<DebtorsManagerProps> = ({
                 Add Account
               </Button>
             )}
-            {canStartMonth && (
-              <Button icon={CalendarPlus} onClick={() => setConfirmStart(true)}>
-                Start {monthLabel(nextMonth!)}
-              </Button>
-            )}
-            {canImport && (
-              <>
-                <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
-                <Button icon={Upload} onClick={() => fileRef.current?.click()}>
-                  Import Excel
-                </Button>
-              </>
-            )}
             {hasData && (
               <Button icon={Download} onClick={() => exportDebtorsAndGSTWorkbook(debtors, billings, gstCompliance)}>
                 Export
