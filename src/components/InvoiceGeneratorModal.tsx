@@ -97,7 +97,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
   const [phone, setPhone] = useState<string>('');
   const [gstin, setGstin] = useState<string>('');
   const [city, setCity] = useState<string>('');
-  const [saveToOneDrive, setSaveToOneDrive] = useState<boolean>(true);
+  const [saveToOneDrive, setSaveToOneDrive] = useState<boolean>(false);
   const [oneDriveUploaded, setOneDriveUploaded] = useState<boolean>(false);
 
   const defaultInvoiceNo = useMemo(() => {
@@ -485,16 +485,16 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
 
   const [recipientPickerAction, setRecipientPickerAction] = useState<'pdf' | 'text' | null>(null);
 
-  // Actions: Direct OneDrive Upload
+  // Actions: Download PDF & Open Client OneDrive Folder
   const handleStoreToOneDriveDirectly = () => {
     if (!clientName.trim()) {
       dispatchAppToast('Please enter a client name first', true);
       return;
     }
-    const cleanInv = invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_');
-    const path = `${clientOneDriveFolder}/Invoices/INV-${cleanInv}.pdf`;
+    handleDownloadPdf();
+    window.open(clientOneDriveFolder, '_blank', 'noopener,noreferrer');
     setOneDriveUploaded(true);
-    dispatchAppToast(`Invoice ${invoiceNumber} stored in OneDrive: /Clients/${clientName}/Invoices/INV-${cleanInv}.pdf (142 KB)`);
+    dispatchAppToast(`PDF downloaded — drop it into the opened OneDrive folder for ${clientName}`);
   };
 
   // Actions: Print / PDF
@@ -855,8 +855,10 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         }
       } catch {}
 
-      if (saveToOneDrive || oneDriveUploaded) {
-        dispatchAppToast(`Invoice ${invoiceNumber} saved and stored in client OneDrive`);
+      if (saveToOneDrive) {
+        handleDownloadPdf();
+        window.open(clientOneDriveFolder, '_blank', 'noopener,noreferrer');
+        dispatchAppToast(`Invoice ${invoiceNumber} saved — PDF downloaded & OneDrive folder opened`);
       } else {
         dispatchAppToast(`Invoice ${invoiceNumber} saved`);
       }
@@ -889,7 +891,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
           )}
         </div>
       }
-      description="Create authentic tax invoices, live A4 print preview, WhatsApp billing, and automatic OneDrive cloud backup."
+      description="Create tax invoices with high-resolution A4 PDF export and WhatsApp sharing."
       bodyClassName="p-0 overflow-y-auto max-h-[82vh] invoice-modal-body"
       backdropClassName="invoice-modal-backdrop"
       className="invoice-modal-dialog"
@@ -906,9 +908,9 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
               icon={CloudUpload}
               onClick={handleStoreToOneDriveDirectly}
               disabled={isSaving}
-              title="Store PDF copy directly into client SharePoint / OneDrive folder"
+              title="Download PDF and open client OneDrive folder in a new tab"
             >
-              {oneDriveUploaded ? 'Stored in OneDrive' : 'Store in OneDrive'}
+              {oneDriveUploaded ? 'OneDrive Opened' : 'Download & Open OneDrive'}
             </Button>
 
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -1259,7 +1261,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                 />
                 <span className="flex items-center gap-1">
                   <Cloud className="w-3.5 h-3.5 text-accent" />
-                  <span>Store PDF copy directly to client OneDrive</span>
+                  <span>Download PDF &amp; open OneDrive folder on save</span>
                 </span>
               </label>
               <p className="text-3xs text-fg-subtle pl-6 break-all min-w-0">

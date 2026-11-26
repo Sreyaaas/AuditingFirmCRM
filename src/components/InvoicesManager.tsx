@@ -497,10 +497,10 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
             <Button
               variant="secondary"
               icon={CloudUpload}
-              onClick={handleBatchSyncOneDrive}
-              title="Backup all unsynced invoices to client SharePoint folders"
+              onClick={() => window.open(FIRM_ONEDRIVE_ROOT_URL, '_blank', 'noopener,noreferrer')}
+              title="Open firm OneDrive folder in a new tab"
             >
-              Sync to OneDrive
+              Open OneDrive
             </Button>
 
             {canEdit && (
@@ -742,11 +742,15 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
                           size="sm"
                           variant="ghost"
                           icon={CloudUpload}
-                          onClick={() => handleStoreInOneDrive(b)}
+                          onClick={() => {
+                            const url = matchedClient?.oneDriveFolderUrl || FIRM_ONEDRIVE_ROOT_URL;
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                            handleStoreInOneDrive(b);
+                          }}
                           className="h-6 text-2xs px-2 text-fg-subtle hover:text-accent"
-                          title="Store PDF copy directly to client OneDrive folder"
+                          title="Open client OneDrive folder to upload PDF"
                         >
-                          Store in OneDrive
+                          Open OneDrive
                         </Button>
                       )}
                     </td>
