@@ -12,6 +12,7 @@ import {
   History,
   Settings2,
   Receipt,
+  Database,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -29,6 +30,7 @@ export const SECTIONS = {
   assignments: { label: 'Other Assignments', icon: Briefcase, hue: 4 },
   invoices: { label: 'Invoices', icon: Receipt, hue: 2 },
   clients: { label: 'Clients', icon: Building2, hue: 1 },
+  'master-data': { label: 'Master Data', icon: Database, hue: 7 },
   debtors: { label: 'Debtors', icon: Wallet, hue: 2 },
   staff: { label: 'Calls & Tickets', icon: PhoneCall, hue: 4 },
   employees: { label: 'Team', icon: Users, hue: 7 },

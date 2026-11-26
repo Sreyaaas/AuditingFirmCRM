@@ -280,3 +280,9 @@ Dropdown lists remain in `practice_configs`.
   - Created centered Apple/Vercel minimal dialog `PwaInstallModal` with 1-click installation trigger and step-by-step iOS Safari "Add to Home Screen" visual walkthrough.
   - Implemented network connection awareness with subtle `<Badge tone="warning">Offline</Badge>` indicator when connection drops.
   - Optimized production bundle with Rollup code-splitting for vendor libraries (`react`, `supabase`, `xlsx`, `html2pdf`).
+* **Master Data Recurring Registers Module:**
+  - Added **Master Data** navigation item directly under **Clients** in `Sidebar.tsx`, registered in `sections.ts` and `Header.tsx`.
+  - Built `MasterDataManager.tsx` with 5 category tabs (*Monthly GST*, *ITR Individual & Business*, *Quarterly / TDS*, *Tax Audit & Firms*, *Company / ROC*), period switcher (monthly & financial-year cadences), and inline editable cells for Professional Fees, Tax Payable, OOP Expenses, and Current Outstanding Balance.
+  - Implemented non-destructive recurring period carryover (`effectiveFrom` + `removedFrom` in `src/utils/masterData.ts`) so adding or removing clients in a period (e.g. December) carries forward to future months/years without altering historical periods (e.g. November).
+  - Added Excel/CSV import (`src/utils/masterDataWorkbook.ts`) tolerant of office workbook headers and `.xlsx` export per category and period.
+  - Added `supabase/migrations/007_master_data.sql` with RLS policies for authenticated active staff and `dbSyncService.ts` sync with `localStorage` fallback.

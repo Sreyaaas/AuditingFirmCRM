@@ -26,7 +26,8 @@ import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { InvoiceGeneratorModal, InvoiceLineItem } from './components/InvoiceGeneratorModal';
 import { InvoicesManager } from './components/InvoicesManager';
 import { OtherAssignmentsManager } from './components/OtherAssignmentsManager';
-import { TaskCategory } from './types/crm';
+import { MasterDataManager } from './components/MasterDataManager';
+import { MasterDataCategory, MasterDataRecord, TaskCategory } from './types/crm';
 import { Avatar, Button, Card, EmptyState, PageHeader } from './components/ui';
 import { sendToGroup } from './utils/whatsapp';
 
@@ -64,6 +65,10 @@ import {
   updateTicketInDb,
   fetchActivityLogsFromDb,
   saveActivityLogToDb,
+  fetchMasterDataFromDb,
+  saveMasterDataRecordToDb,
+  bulkSaveMasterDataToDb,
+  deleteMasterDataRecordFromDb,
   clearLocalDataCache,
   DEFAULT_PRACTICE_CONFIGS,
 } from './services/dbSyncService';
@@ -91,6 +96,7 @@ import {
   saveStoredWhatsAppTemplates,
 } from './services/firmConfigService';
 import { applyBilling, applyPayment, currentMonthKey, monthLabel, startMonth } from './utils/debtors';
+import { startNextMasterPeriod } from './utils/masterData';
 import type { DebtorWorkbookResult } from './utils/debtorWorkbook';
 
 import {
@@ -270,6 +276,7 @@ export function App() {
   const [billings, setBillings] = useState<OfficeBillingEntry[]>(seed(SAMPLE_BILLINGS));
   const [gstCompliance, setGstCompliance] = useState<GSTComplianceItem[]>(seed(SAMPLE_GST_RETURNS).map((i) => withGstPriority(i)));
   const [tickets, setTickets] = useState<StaffTicket[]>(seed(SAMPLE_TICKETS));
+  const [masterData, setMasterData] = useState<MasterDataRecord[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(seed(SAMPLE_ACTIVITY_LOGS));
   const [practiceConfigs, setPracticeConfigs] = useState<Record<string, string[]>>(DEFAULT_PRACTICE_CONFIGS);
   const [preferences, setPreferences] = useState<AppPreferences>(getStoredPreferences);
@@ -286,7 +293,7 @@ export function App() {
   const loadAll = useCallback(async () => {
     setDataState('loading');
     try {
-      const [cfg, cl, tk, pr, itr, deb, bil, gst, tix, logs, settings] = await Promise.all([
+      const [cfg, cl, tk, pr, itr, deb, bil, gst, tix, logs, settings, md] = await Promise.all([
         fetchPracticeConfigs(),
         fetchClientsFromDb(),
         fetchTasksFromDb(),
@@ -298,6 +305,7 @@ export function App() {
         fetchTicketsFromDb(),
         fetchActivityLogsFromDb(),
         loadRemoteSettings(),
+        fetchMasterDataFromDb(),
       ]);
       setPracticeConfigs(cfg);
       setClients(cl);
@@ -309,6 +317,7 @@ export function App() {
       setGstCompliance(gst.map((i) => withGstPriority(i, settings.preferences.dueSoonDays)));
       setTickets(tix);
       setActivityLogs(logs);
+      setMasterData(md);
       setPreferences(settings.preferences);
       setFirmProfile(settings.firmProfile);
       setTemplates(settings.templates);
@@ -1226,6 +1235,47 @@ export function App() {
                   const task = monthlyTasks.find((t) => t.clientId === c.id);
                   if (task) openWhatsApp({ task });
                   else showToast(`No open filing for ${c.tradeName} to message about`);
+                }}
+              />
+            )}
+
+            {activeTab === 'master-data' && (
+              <MasterDataManager
+                records={masterData}
+                clients={clients}
+                canEdit={Boolean(currentUser)}
+                onSaveRecord={async (rec) => {
+                  setMasterData((prev) => {
+                    const exists = prev.some((x) => x.id === rec.id);
+                    return exists ? prev.map((x) => (x.id === rec.id ? rec : x)) : [...prev, rec];
+                  });
+                  const res = await saveMasterDataRecordToDb(rec);
+                  if (res.error) showToast(`Saved locally (${res.error})`);
+                }}
+                onBulkSaveRecords={async (recs) => {
+                  setMasterData((prev) => {
+                    const map = new Map(prev.map((x) => [x.id, x]));
+                    for (const r of recs) map.set(r.id, r);
+                    return Array.from(map.values());
+                  });
+                  const res = await bulkSaveMasterDataToDb(recs);
+                  showToast(
+                    res.error
+                      ? `Imported ${recs.length} clients locally (${res.error})`
+                      : `Imported ${recs.length} clients to Master Data`
+                  );
+                }}
+                onDeleteRecord={async (id) => {
+                  setMasterData((prev) => prev.filter((x) => x.id !== id));
+                  await deleteMasterDataRecordFromDb(id);
+                  showToast('Client removed from Master Data');
+                }}
+                onStartNextPeriod={async (category: MasterDataCategory, nextKey: string) => {
+                  const nextAll = startNextMasterPeriod(masterData, category, nextKey);
+                  setMasterData(nextAll);
+                  const changed = nextAll.filter((r) => r.category === category);
+                  await bulkSaveMasterDataToDb(changed);
+                  showToast(`Started ${nextKey} · Active clients carried forward`);
                 }}
               />
             )}

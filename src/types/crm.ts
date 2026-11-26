@@ -254,3 +254,39 @@ export interface CloudIntegration {
     storageUsedGb: number;
   };
 }
+
+export type MasterDataCategory =
+  | 'monthly-gst'
+  | 'annual-itr'
+  | 'quarterly-tds'
+  | 'tax-audit'
+  | 'company-roc';
+
+export type MasterDataCadence = 'monthly' | 'yearly';
+
+export interface MasterPeriodValues {
+  professionalFees: number;
+  taxPayable: number;
+  oopExpenses: number;
+  currentOutstanding: number;
+}
+
+export interface MasterDataRecord {
+  id: string;
+  category: MasterDataCategory;
+  clientName: string;
+  legalConstitution: string;
+  itrType?: string;
+  username?: string;
+  password?: string;
+  email?: string;
+  reference?: string;
+  natureOfService?: string;
+  /** Period key when this client became active (e.g. '2026-11' or 'FY 2026-27'). */
+  effectiveFrom: string;
+  /** Period key from which this client was removed (inclusive); undefined if active. */
+  removedFrom?: string;
+  /** Financial values keyed by period ('2026-11', 'FY 2026-27', etc.). */
+  periodValues: Record<string, MasterPeriodValues>;
+  updatedAt?: string;
+}

@@ -33,6 +33,7 @@ const TAB_TITLES: Record<string, string> = {
   assignments: 'Other Assignments',
   invoices: 'Invoices',
   clients: 'Clients',
+  'master-data': 'Master Data',
   debtors: 'Debtors',
   staff: 'Calls & Tickets',
   employees: 'Team',

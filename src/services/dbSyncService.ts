@@ -13,7 +13,8 @@ import {
   UserRole,
   DebtorMonth,
   OfficeBillingEntry,
-  GSTComplianceItem
+  GSTComplianceItem,
+  MasterDataRecord
 } from '../types/crm';
 import {
   SAMPLE_ACTIVITY_LOGS,
@@ -1429,6 +1430,114 @@ export const deleteTaskFromDb = (id: string) => deleteRow('tasks', id);
 export const deleteItrFilingFromDb = (id: string) => deleteRow('itr_filings', id);
 export const deleteTicketFromDb = (id: string) => deleteRow('tickets', id);
 export const deleteDebtorFromDb = (id: string) => deleteRow('debtor_records', id);
+
+// ==============================================================================
+// 9. MASTER DATA RECURRING REGISTERS
+// ==============================================================================
+
+const MASTER_DATA_LOCAL_KEY = 'shameer_crm_master_data_local';
+
+const mapMasterRecordToRow = (r: MasterDataRecord) => ({
+  id: r.id,
+  category: r.category,
+  client_name: r.clientName,
+  legal_constitution: r.legalConstitution || '',
+  itr_type: r.itrType || '',
+  username: r.username || '',
+  password: r.password || '',
+  email: r.email || '',
+  reference: r.reference || '',
+  nature_of_service: r.natureOfService || '',
+  effective_from: r.effectiveFrom,
+  removed_from: r.removedFrom || null,
+  period_values: r.periodValues || {},
+  updated_at: r.updatedAt || new Date().toISOString(),
+});
+
+const mapRowToMasterRecord = (row: any): MasterDataRecord => ({
+  id: row.id,
+  category: row.category,
+  clientName: row.client_name,
+  legalConstitution: row.legal_constitution || '',
+  itrType: row.itr_type || undefined,
+  username: row.username || undefined,
+  password: row.password || undefined,
+  email: row.email || undefined,
+  reference: row.reference || undefined,
+  natureOfService: row.nature_of_service || undefined,
+  effectiveFrom: row.effective_from,
+  removedFrom: row.removed_from || undefined,
+  periodValues: row.period_values || {},
+  updatedAt: row.updated_at || undefined,
+});
+
+const readMasterLocal = (): MasterDataRecord[] => {
+  try {
+    const raw = localStorage.getItem(MASTER_DATA_LOCAL_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeMasterLocal = (records: MasterDataRecord[]) => {
+  try {
+    localStorage.setItem(MASTER_DATA_LOCAL_KEY, JSON.stringify(records));
+  } catch {}
+};
+
+export const fetchMasterDataFromDb = async (): Promise<MasterDataRecord[]> => {
+  if (!isSupabaseConfigured()) return readMasterLocal();
+  try {
+    const { data, error } = await supabase
+      .from('master_data_records')
+      .select('*')
+      .order('client_name', { ascending: true });
+    if (error || !data) {
+      console.warn('Load master_data_records fallback to local:', error?.message);
+      return readMasterLocal();
+    }
+    const mapped = data.map(mapRowToMasterRecord);
+    writeMasterLocal(mapped);
+    return mapped;
+  } catch {
+    return readMasterLocal();
+  }
+};
+
+export const saveMasterDataRecordToDb = async (record: MasterDataRecord): Promise<{ error?: string }> => {
+  const local = readMasterLocal();
+  const idx = local.findIndex((x) => x.id === record.id);
+  const nextLocal = idx >= 0 ? local.map((x, i) => (i === idx ? record : x)) : [...local, record];
+  writeMasterLocal(nextLocal);
+
+  if (!isSupabaseConfigured()) return {};
+  const { error } = await supabase
+    .from('master_data_records')
+    .upsert(mapMasterRecordToRow(record), { onConflict: 'id' });
+  return error ? { error: error.message } : {};
+};
+
+export const bulkSaveMasterDataToDb = async (records: MasterDataRecord[]): Promise<{ error?: string }> => {
+  if (records.length === 0) return {};
+  const local = readMasterLocal();
+  const map = new Map(local.map((x) => [x.id, x]));
+  for (const r of records) map.set(r.id, r);
+  writeMasterLocal(Array.from(map.values()));
+
+  if (!isSupabaseConfigured()) return {};
+  const { error } = await supabase
+    .from('master_data_records')
+    .upsert(records.map(mapMasterRecordToRow), { onConflict: 'id' });
+  return error ? { error: error.message } : {};
+};
+
+export const deleteMasterDataRecordFromDb = async (id: string): Promise<{ error?: string }> => {
+  writeMasterLocal(readMasterLocal().filter((x) => x.id !== id));
+  if (!isSupabaseConfigured()) return {};
+  const { error } = await supabase.from('master_data_records').delete().eq('id', id);
+  return error ? { error: error.message } : {};
+};
 
 /**
  * Removes locally cached copies of firm data (clients, tasks, fees, logs…).
