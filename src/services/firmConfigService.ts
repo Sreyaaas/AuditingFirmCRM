@@ -52,6 +52,10 @@ export interface AppPreferences {
   /** Defaults applied when a new staff member is added. */
   newStaffCanViewFees: boolean;
   newStaffCanRecordPayments: boolean;
+  /** Statutory due-date days (day of the following month) for auto-generated monthly tasks. */
+  gstr1DueDay?: number;
+  gstr3bDueDay?: number;
+  tdsDueDay?: number;
 }
 
 const STORAGE_KEY_WHATSAPP = 'sa_crm_whatsapp_templates';
@@ -99,6 +103,9 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
   idleTimeoutMinutes: 30,
   newStaffCanViewFees: false,
   newStaffCanRecordPayments: false,
+  gstr1DueDay: 11,
+  gstr3bDueDay: 20,
+  tdsDueDay: 7,
 };
 
 const readLocal = <T>(key: string, fallback: T): T => {

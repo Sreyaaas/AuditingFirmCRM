@@ -400,6 +400,55 @@ export const PracticeConfigManager: React.FC<PracticeConfigManagerProps> = ({
 
             <Card>
               <CardHeader
+                title="Statutory due dates"
+                description="Day of the following month used when generating Monthly Compliance tasks (editable if government rules change)"
+              />
+              <div className="divide-y divide-line">
+                <Row title="GSTR-1 (Sales) due day" description="Standard CBIC rule: 11th of the following month.">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={28}
+                      value={String(prefs.gstr1DueDay ?? 11)}
+                      onChange={(e) => setPrefs({ ...prefs, gstr1DueDay: Math.max(1, Math.min(28, Number(e.target.value) || 11)) })}
+                      className="num w-20 text-right"
+                    />
+                    <span className="text-sm text-fg-subtle whitespace-nowrap">of next month</span>
+                  </div>
+                </Row>
+                <Row title="GSTR-3B (Summary) due day" description="Standard CBIC rule: 20th of the following month.">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={28}
+                      value={String(prefs.gstr3bDueDay ?? 20)}
+                      onChange={(e) => setPrefs({ ...prefs, gstr3bDueDay: Math.max(1, Math.min(28, Number(e.target.value) || 20)) })}
+                      className="num w-20 text-right"
+                    />
+                    <span className="text-sm text-fg-subtle whitespace-nowrap">of next month</span>
+                  </div>
+                </Row>
+                <Row title="TDS Payment due day" description="Standard Income Tax rule: 7th of the following month.">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={28}
+                      value={String(prefs.tdsDueDay ?? 7)}
+                      onChange={(e) => setPrefs({ ...prefs, tdsDueDay: Math.max(1, Math.min(28, Number(e.target.value) || 7)) })}
+                      className="num w-20 text-right"
+                    />
+                    <span className="text-sm text-fg-subtle whitespace-nowrap">of next month</span>
+                  </div>
+                </Row>
+              </div>
+              {prefsFooter}
+            </Card>
+
+            <Card>
+              <CardHeader
                 title="Progressive Web App (PWA)"
                 description="Install the CRM as a standalone application on desktop and mobile"
               />

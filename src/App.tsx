@@ -95,8 +95,8 @@ import {
   saveStoredFirmProfile,
   saveStoredWhatsAppTemplates,
 } from './services/firmConfigService';
-import { applyBilling, applyPayment, autoAdvanceDebtorsToIST, currentMonthKey, monthLabel, startMonth } from './utils/debtors';
-import { autoAdvanceMasterDataToIST, startNextMasterPeriod } from './utils/masterData';
+import { applyBilling, applyPayment, autoAdvanceDebtorsToIST, currentMonthKey, monthLabel, nextMonthKey, startMonth } from './utils/debtors';
+import { autoAdvanceMasterDataToIST, getValuesForPeriod, isVisibleInPeriod, startNextMasterPeriod } from './utils/masterData';
 import type { DebtorWorkbookResult } from './utils/debtorWorkbook';
 
 import {
@@ -1166,6 +1166,139 @@ export function App() {
                 onOpenWhatsApp={(task) => openWhatsApp({ task })}
                 onSelectClient={handleSelectClient}
                 onAddNewTask={(service) => handleOpenNewTaskWithService('monthly', service, true)}
+                dueDayConfig={{
+                  gstr1: preferences.gstr1DueDay ?? 11,
+                  gstr3b: preferences.gstr3bDueDay ?? 20,
+                  tds: preferences.tdsDueDay ?? 7,
+                }}
+                onGenerateMonthTasks={async ({ period, includeGstr1, includeGstr3b, includeTds }) => {
+                  const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                  const [monName, yrStr] = period.split(/\s+/);
+                  const mIdx = MONTH_SHORT.findIndex((m) => m.toLowerCase() === (monName || '').toLowerCase());
+                  const periodKey =
+                    mIdx >= 0 && yrStr ? `${yrStr}-${String(mIdx + 1).padStart(2, '0')}` : currentMonthKey();
+                  const dueMonthKey = nextMonthKey(periodKey);
+
+                  const dueIso = (day: number) => `${dueMonthKey}-${String(Math.max(1, Math.min(28, day))).padStart(2, '0')}`;
+                  const daysFromIstToday = (iso: string) => {
+                    const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+                    istNow.setHours(0, 0, 0, 0);
+                    const [y, m, d] = iso.split('-').map(Number);
+                    const target = new Date(y, (m || 1) - 1, d || 1);
+                    return Math.round((target.getTime() - istNow.getTime()) / 86400000);
+                  };
+
+                  const gstr1Due = dueIso(preferences.gstr1DueDay ?? 11);
+                  const gstr3bDue = dueIso(preferences.gstr3bDueDay ?? 20);
+                  const tdsDue = dueIso(preferences.tdsDueDay ?? 7);
+
+                  // Active Monthly GST clients (Master Data + recurring GST clients from Directory)
+                  const mdGst = masterData.filter((r) => r.category === 'monthly-gst' && isVisibleInPeriod(r, periodKey));
+                  const gstTargets: { name: string; clientId: string; gstin: string; phone: string; staffId: string; taxPayable: number }[] = [];
+                  const seenGst = new Set<string>();
+
+                  for (const r of mdGst) {
+                    const key = r.clientName.trim().toLowerCase();
+                    if (seenGst.has(key)) continue;
+                    seenGst.add(key);
+                    const matched = clients.find(
+                      (c) => c.tradeName.toLowerCase() === key || c.name.toLowerCase() === key
+                    );
+                    const vals = getValuesForPeriod(r, periodKey);
+                    gstTargets.push({
+                      name: r.clientName,
+                      clientId: matched?.id || '',
+                      gstin: matched?.gstin || '',
+                      phone: matched?.phone || '',
+                      staffId: matched?.assignedStaffId || staffList[0]?.id || '',
+                      taxPayable: vals.taxPayable || 0,
+                    });
+                  }
+                  for (const c of clients) {
+                    if (!c.isRecurringGST) continue;
+                    const key = (c.tradeName || c.name).trim().toLowerCase();
+                    if (seenGst.has(key)) continue;
+                    seenGst.add(key);
+                    gstTargets.push({
+                      name: c.tradeName || c.name,
+                      clientId: c.id,
+                      gstin: c.gstin || '',
+                      phone: c.phone || '',
+                      staffId: c.assignedStaffId || staffList[0]?.id || '',
+                      taxPayable: 0,
+                    });
+                  }
+
+                  const existingKeys = new Set(
+                    monthlyTasks.map((t) => `${t.clientName.trim().toLowerCase()}::${t.filingType}::${t.period}`)
+                  );
+
+                  const toCreate: MonthlyTask[] = [];
+                  const enqueue = (
+                    target: { name: string; clientId: string; gstin: string; phone: string; staffId: string; taxPayable: number },
+                    filingType: string,
+                    dueDate: string
+                  ) => {
+                    const k = `${target.name.trim().toLowerCase()}::${filingType}::${period}`;
+                    if (existingKeys.has(k)) return;
+                    existingKeys.add(k);
+                    const days = daysFromIstToday(dueDate);
+                    toCreate.push({
+                      id: `task-gen-${Date.now()}-${toCreate.length}-${Math.random().toString(36).slice(2, 6)}`,
+                      clientId: target.clientId,
+                      clientName: target.name,
+                      tradeName: target.name,
+                      gstin: target.gstin,
+                      phone: target.phone,
+                      category: 'monthly',
+                      filingType,
+                      period,
+                      dueDate,
+                      daysRemaining: days,
+                      status: days < 0 ? 'Overdue' : 'Docs Pending',
+                      docsReceived: false,
+                      assignedStaffId: target.staffId,
+                      taxPayable: target.taxPayable || undefined,
+                      lastUpdated: new Date().toISOString().slice(0, 10),
+                    });
+                  };
+
+                  if (includeGstr1) {
+                    for (const t of gstTargets) enqueue(t, 'GSTR-1 (Sales)', gstr1Due);
+                  }
+                  if (includeGstr3b) {
+                    for (const t of gstTargets) enqueue(t, 'GSTR-3B (Summary)', gstr3bDue);
+                  }
+                  if (includeTds) {
+                    const mdTds = masterData.filter((r) => r.category === 'quarterly-tds' && isVisibleInPeriod(r, periodKey));
+                    const tdsSource = mdTds.length > 0
+                      ? mdTds.map((r) => {
+                          const matched = clients.find(
+                            (c) => c.tradeName.toLowerCase() === r.clientName.trim().toLowerCase()
+                          );
+                          return {
+                            name: r.clientName,
+                            clientId: matched?.id || '',
+                            gstin: matched?.gstin || '',
+                            phone: matched?.phone || '',
+                            staffId: matched?.assignedStaffId || staffList[0]?.id || '',
+                            taxPayable: getValuesForPeriod(r, periodKey).taxPayable || 0,
+                          };
+                        })
+                      : gstTargets;
+                    for (const t of tdsSource) enqueue(t, 'TDS Payment', tdsDue);
+                  }
+
+                  if (toCreate.length === 0) {
+                    showToast(`All selected tasks for ${period} already exist`);
+                    return 0;
+                  }
+
+                  setMonthlyTasks((prev) => [...toCreate, ...prev]);
+                  await Promise.all(toCreate.map((task) => saveTaskToDb(task)));
+                  showToast(`Generated ${toCreate.length} monthly tasks for ${period}`);
+                  return toCreate.length;
+                }}
               />
             )}
 

@@ -7,7 +7,8 @@ import {
   Copy, 
   Check, 
   ChevronDown,
-  Plus
+  Plus,
+  CalendarPlus
 } from 'lucide-react';
 import { MonthlyTask, StaffMember, FilingStatus } from '../types/crm';
 import { Trash2 } from 'lucide-react';
@@ -33,6 +34,13 @@ interface ComplianceTaskManagerProps {
   onOpenWhatsApp: (task: MonthlyTask) => void;
   onSelectClient: (clientId: string) => void;
   onAddNewTask?: (service?: string) => void;
+  onGenerateMonthTasks?: (options: {
+    period: string;
+    includeGstr1: boolean;
+    includeGstr3b: boolean;
+    includeTds: boolean;
+  }) => Promise<number> | number;
+  dueDayConfig?: { gstr1: number; gstr3b: number; tds: number };
 }
 
 const ALL_STATUSES: FilingStatus[] = [
@@ -61,6 +69,8 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   onSelectClient,
   onDelete,
   onAddNewTask,
+  onGenerateMonthTasks,
+  dueDayConfig = { gstr1: 11, gstr3b: 20, tds: 7 },
 }) => {
   const [confirmDelete, setConfirmDelete] = useState<MonthlyTask | null>(null);
   const [internalServiceTab, setInternalServiceTab] = useState<string>('All');
@@ -83,6 +93,12 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   const [arnFor, setArnFor] = useState<MonthlyTask | null>(null);
   const [arnInput, setArnInput] = useState('');
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
+  const [genPeriod, setGenPeriod] = useState<string>(periods[periods.length - 1] || selectedPeriod);
+  const [genGstr1, setGenGstr1] = useState(true);
+  const [genGstr3b, setGenGstr3b] = useState(true);
+  const [genTds, setGenTds] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState<number>(5);
 
   const handlePeriodPrev = () => {
@@ -279,6 +295,19 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                   </option>
                 ))}
               </Select>
+            )}
+            {section === 'monthly' && onGenerateMonthTasks && (
+              <Button
+                variant="secondary"
+                size="md"
+                icon={CalendarPlus}
+                onClick={() => {
+                  setGenPeriod(selectedPeriod);
+                  setIsGenerateOpen(true);
+                }}
+              >
+                Generate Month Tasks
+              </Button>
             )}
             {onAddNewTask && (
               <Button
@@ -555,6 +584,104 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
         danger
         onConfirm={() => confirmDelete && onDelete?.(confirmDelete.id)}
       />
+
+      {onGenerateMonthTasks && (
+        <Modal
+          isOpen={isGenerateOpen}
+          onClose={() => setIsGenerateOpen(false)}
+          title="Generate Monthly Compliance Tasks"
+          description="Automatically create tasks from active Master Data clients using your statutory due-date rules."
+          size="md"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setIsGenerateOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                disabled={isGenerating || (!genGstr1 && !genGstr3b && !genTds)}
+                onClick={async () => {
+                  setIsGenerating(true);
+                  try {
+                    await onGenerateMonthTasks({
+                      period: genPeriod,
+                      includeGstr1: genGstr1,
+                      includeGstr3b: genGstr3b,
+                      includeTds: genTds,
+                    });
+                    setSelectedPeriod(genPeriod);
+                    setIsGenerateOpen(false);
+                  } finally {
+                    setIsGenerating(false);
+                  }
+                }}
+              >
+                {isGenerating ? 'Generating…' : 'Generate Tasks'}
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <Field label="Filing period">
+              <Select value={genPeriod} onChange={(e) => setGenPeriod(e.target.value)}>
+                {periods.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <div className="space-y-2">
+              <div className="text-xs font-semibold uppercase tracking-wider text-fg-subtle">
+                Returns to generate (due in following month)
+              </div>
+              <label className="flex items-center justify-between p-2.5 rounded-md border border-line bg-subtle/40 cursor-pointer">
+                <span className="flex items-center gap-2 text-sm text-fg">
+                  <input
+                    type="checkbox"
+                    checked={genGstr1}
+                    onChange={(e) => setGenGstr1(e.target.checked)}
+                    className="rounded text-accent"
+                  />
+                  <span>GSTR-1 (Sales)</span>
+                </span>
+                <span className="num text-xs text-fg-subtle">Due {dueDayConfig.gstr1}th</span>
+              </label>
+
+              <label className="flex items-center justify-between p-2.5 rounded-md border border-line bg-subtle/40 cursor-pointer">
+                <span className="flex items-center gap-2 text-sm text-fg">
+                  <input
+                    type="checkbox"
+                    checked={genGstr3b}
+                    onChange={(e) => setGenGstr3b(e.target.checked)}
+                    className="rounded text-accent"
+                  />
+                  <span>GSTR-3B (Summary)</span>
+                </span>
+                <span className="num text-xs text-fg-subtle">Due {dueDayConfig.gstr3b}th</span>
+              </label>
+
+              <label className="flex items-center justify-between p-2.5 rounded-md border border-line bg-subtle/40 cursor-pointer">
+                <span className="flex items-center gap-2 text-sm text-fg">
+                  <input
+                    type="checkbox"
+                    checked={genTds}
+                    onChange={(e) => setGenTds(e.target.checked)}
+                    className="rounded text-accent"
+                  />
+                  <span>TDS Payment</span>
+                </span>
+                <span className="num text-xs text-fg-subtle">Due {dueDayConfig.tds}th</span>
+              </label>
+            </div>
+
+            <p className="text-xs text-fg-subtle">
+              Existing tasks for the same client, return type, and period are automatically skipped. Due-date days can be changed anytime in <strong>Settings → Preferences</strong>.
+            </p>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
