@@ -439,13 +439,22 @@ export const InvoicesManager: React.FC<InvoicesManagerProps> = ({
         c.name.toLowerCase() === entry.clientName.toLowerCase()
     );
     const total = (Number(entry.professionalIncome) || 0) + (Number(entry.oopExpenses) || 0);
+    let advance = Number(entry.advanceReceived) || 0;
+    if (!advance && entry.invoiceNumber) {
+      try {
+        const metaRaw = localStorage.getItem(`inv_meta_${entry.invoiceNumber}`);
+        if (metaRaw) advance = Number(JSON.parse(metaRaw)?.advanceReceived) || 0;
+      } catch {}
+    }
+    const netPayable = Math.max(0, total - advance);
 
     const msg = `*INVOICE — SHAMEER & ASSOCIATES*\n` +
       `*Invoice No:* ${entry.invoiceNumber || 'SA/' + entry.serialNo}\n` +
       `*Date:* ${entry.date ? formatDate(entry.date) : 'Recent'}\n` +
       `*Billed To:* ${entry.clientName}\n\n` +
       `*Professional Service:* ${entry.natureOfService}\n` +
-      `*Amount:* ₹${total.toLocaleString('en-IN')}\n\n` +
+      (advance > 0 ? `*Subtotal:* ₹${total.toLocaleString('en-IN')}\n*Less Advance Received:* -₹${advance.toLocaleString('en-IN')}\n` : '') +
+      `*Amount Payable:* ₹${netPayable.toLocaleString('en-IN')}\n\n` +
       `*Payment Details:*\n` +
       `Bank: IDFC FIRST Bank\n` +
       `A/c No: 10271724633\n` +

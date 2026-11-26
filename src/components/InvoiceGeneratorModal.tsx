@@ -48,6 +48,7 @@ export interface InvoiceGeneratorModalProps {
     clientName: string;
     amount: number;
     oopExpenses: number;
+    advanceReceived?: number;
     description: string;
     lineItems?: InvoiceLineItem[];
     invoiceNumber: string;
@@ -277,8 +278,22 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       );
       setDebtorBalance(matchedDebtor?.currentBalance || 0);
       setIncludeOutstanding(false);
+
+      let restoredAdvance = Number(prefillBilling.advanceReceived) || 0;
+      if (!restoredAdvance && prefillBilling.invoiceNumber) {
+        try {
+          const metaRaw = localStorage.getItem(`inv_meta_${prefillBilling.invoiceNumber}`);
+          if (metaRaw) {
+            const meta = JSON.parse(metaRaw);
+            restoredAdvance = Number(meta?.advanceReceived) || 0;
+          }
+        } catch {}
+      }
+      setAdvanceReceived(restoredAdvance);
       return;
     }
+
+    setAdvanceReceived(0);
 
     if (initialClient) {
       const isClientObj = 'tradeName' in initialClient;
@@ -649,6 +664,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
     const coverNote = `*TAX INVOICE — ${firmName.toUpperCase()}*\n` +
       `*Invoice No:* ${invoiceNumber || 'SA/0001'}\n` +
       `*Billed To:* ${clientName || 'Valued Client'}\n` +
+      (advanceReceived > 0 ? `*Less Advance Received:* -₹${Number(advanceReceived).toLocaleString('en-IN')}\n` : '') +
       `*Total Due:* ₹${(netPayable || 0).toLocaleString('en-IN')}\n\n` +
       `Please find attached our official tax invoice PDF for your records.\n\n` +
       `*Bank Remittance Details:*\n` +
@@ -820,6 +836,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
         clientName: clientName.trim(),
         amount: servicesTotal,
         oopExpenses: expensesTotal,
+        advanceReceived: Number(advanceReceived) || 0,
         description: primaryServiceDesc,
         lineItems: combinedLineItems,
         invoiceNumber,
@@ -831,6 +848,10 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
       try {
         if (invoiceNumber) {
           localStorage.setItem(`inv_lines_${invoiceNumber}`, JSON.stringify(combinedLineItems));
+          localStorage.setItem(
+            `inv_meta_${invoiceNumber}`,
+            JSON.stringify({ advanceReceived: Number(advanceReceived) || 0 })
+          );
         }
       } catch {}
 
@@ -1219,7 +1240,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                   placeholder="0"
                   value={advanceReceived || ''}
                   onChange={(e) => {
-                    const cleanVal = e.target.value.replace(/,/g, '').trim();
+                    const cleanVal = e.target.value.replace(/[^0-9.]/g, '').trim();
                     setAdvanceReceived(cleanVal === '' ? 0 : Number(cleanVal) || 0);
                   }}
                   className="h-8 text-xs pl-6 text-right num font-medium"
@@ -1241,8 +1262,8 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                   <span>Store PDF copy directly to client OneDrive</span>
                 </span>
               </label>
-              <p className="text-3xs text-fg-subtle pl-6">
-                Folder: <span className="font-mono text-fg">{clientOneDriveFolder}/Invoices/</span>
+              <p className="text-3xs text-fg-subtle pl-6 break-all min-w-0">
+                Folder: <span className="font-mono text-fg break-all">{clientOneDriveFolder}/Invoices/</span>
               </p>
             </div>
 
@@ -1343,19 +1364,19 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', columnGap: 20, rowGap: 5, fontSize: 11.5 }}>
                     <span style={{ color: MUTED, fontWeight: 600 }}>Invoice no.</span>
-                    <span style={{ ...identStyle, fontWeight: 700, textAlign: 'right', color: INK }}>{invoiceNumber}</span>
+                    <span style={{ ...numStyle, fontWeight: 700, textAlign: 'right', color: INK }}>{invoiceNumber}</span>
                     <span style={{ color: MUTED, fontWeight: 600 }}>Date of issue</span>
                     <span style={{ ...dateStyle, fontWeight: 600, textAlign: 'right', color: INK }}>{formattedDate}</span>
                     {firm.gstin && (
                       <>
                         <span style={{ color: MUTED, fontWeight: 600 }}>Our GSTIN</span>
-                        <span style={{ ...identStyle, fontWeight: 600, textAlign: 'right', color: INK }}>{firm.gstin}</span>
+                        <span style={{ ...numStyle, fontWeight: 600, textAlign: 'right', color: INK }}>{firm.gstin}</span>
                       </>
                     )}
                     {firm.pan && (
                       <>
                         <span style={{ color: MUTED, fontWeight: 600 }}>Our PAN</span>
-                        <span style={{ ...identStyle, fontWeight: 600, textAlign: 'right', color: INK }}>{firm.pan}</span>
+                        <span style={{ ...numStyle, fontWeight: 600, textAlign: 'right', color: INK }}>{firm.pan}</span>
                       </>
                     )}
                   </div>
@@ -1371,7 +1392,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                   {gstin && (
                     <div style={{ textAlign: 'right' }}>
                       <div style={label}>GSTIN</div>
-                      <div style={{ ...identStyle, fontWeight: 700, color: INK, marginTop: 6, fontSize: 12 }}>{gstin}</div>
+                      <div style={{ ...numStyle, fontWeight: 600, color: INK, marginTop: 6, fontSize: 12 }}>{gstin}</div>
                     </div>
                   )}
                 </div>
@@ -1391,7 +1412,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                       <tr key={item.id}>
                         <td style={{ ...cell, ...numStyle, color: MUTED, fontWeight: 600 }}>{String(++n).padStart(2, '0')}</td>
                         <td style={{ ...cell, fontWeight: 600, paddingRight: 16, color: INK }}>{item.description || '—'}</td>
-                        {showSac && <td style={{ ...cell, ...identStyle, color: MUTED, fontWeight: 500 }}>{item.sacCode || ''}</td>}
+                        {showSac && <td style={{ ...cell, ...numStyle, color: MUTED, fontWeight: 500 }}>{item.sacCode || ''}</td>}
                         <td style={{ ...cell, ...numStyle, textAlign: 'right', fontWeight: 600, color: INK, fontSize: 12.5 }}>{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
                       </tr>
                     ))}
@@ -1405,7 +1426,7 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                       <tr key={item.id}>
                         <td style={cell} />
                         <td style={{ ...cell, fontWeight: 600, paddingRight: 16, color: INK }}>{item.description || '—'}</td>
-                        {showSac && <td style={{ ...cell, ...identStyle, color: MUTED, fontWeight: 500 }}>{item.sacCode || ''}</td>}
+                        {showSac && <td style={{ ...cell, ...numStyle, color: MUTED, fontWeight: 500 }}>{item.sacCode || ''}</td>}
                         <td style={{ ...cell, ...numStyle, textAlign: 'right', fontWeight: 600, color: INK, fontSize: 12.5 }}>{item.amount > 0 ? formatINR(item.amount) : '—'}</td>
                       </tr>
                     ))}
@@ -1455,13 +1476,13 @@ export const InvoiceGeneratorModal: React.FC<InvoiceGeneratorModalProps> = ({
                       <span style={{ color: MUTED, fontWeight: 600 }}>Bank</span>
                       <span style={{ color: INK, fontWeight: 500 }}>{firm.bank}{firm.branch ? `, ${firm.branch}` : ''}</span>
                       <span style={{ color: MUTED, fontWeight: 600 }}>Account no.</span>
-                      <span style={{ ...identStyle, fontWeight: 600, color: INK }}>{firm.account}</span>
+                      <span style={{ ...numStyle, fontWeight: 500, color: INK }}>{firm.account}</span>
                       <span style={{ color: MUTED, fontWeight: 600 }}>IFSC</span>
-                      <span style={{ ...identStyle, fontWeight: 600, color: INK }}>{firm.ifsc}</span>
+                      <span style={{ ...numStyle, fontWeight: 500, color: INK }}>{firm.ifsc}</span>
                       {firm.upi && (
                         <>
                           <span style={{ color: MUTED, fontWeight: 600 }}>UPI</span>
-                          <span style={{ ...identStyle, fontWeight: 600, color: INK }}>{firm.upi}</span>
+                          <span style={{ ...numStyle, fontWeight: 500, color: INK }}>{firm.upi}</span>
                         </>
                       )}
                     </div>

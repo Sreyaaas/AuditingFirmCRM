@@ -177,6 +177,7 @@ export interface OfficeBillingEntry {
   rcm?: number;
   taxAmount?: number;
   oopExpenses?: number;
+  advanceReceived?: number;
   billingStatus?: 'Billed' | 'Pending' | 'Received' | '';
   user: string;
   invoiceNumber?: string;

@@ -814,6 +814,7 @@ export function App() {
     clientName: string;
     amount: number;
     oopExpenses?: number;
+    advanceReceived?: number;
     description: string;
     lineItems?: InvoiceLineItem[];
     invoiceNumber?: string;
@@ -843,6 +844,7 @@ export function App() {
         natureOfService: billingData.description,
         professionalIncome: billingData.amount,
         oopExpenses: billingData.oopExpenses || 0,
+        advanceReceived: billingData.advanceReceived ?? existing.advanceReceived,
         date,
         period,
         lineItems: billingData.lineItems || existing.lineItems,
@@ -861,6 +863,7 @@ export function App() {
         natureOfService: billingData.description,
         professionalIncome: billingData.amount,
         oopExpenses: billingData.oopExpenses || 0,
+        advanceReceived: billingData.advanceReceived || 0,
         user: currentUser?.name || 'Ameen',
         billingStatus: 'Billed',
         invoiceNumber,
