@@ -305,8 +305,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, description, acti
   const meta = section ? SECTIONS[section] : null;
   const Icon = meta?.icon;
   return (
-  <div className={cn('flex flex-col sm:flex-row sm:items-end justify-between gap-3', className)}>
-    <div className="min-w-0 flex items-center gap-3">
+  <div className={cn('flex flex-wrap items-end justify-between gap-x-6 gap-y-3', className)}>
+    <div className="min-w-[220px] flex-1 flex items-center gap-3">
       {Icon && (
         <span className={cn('w-10 h-10 rounded-lg flex items-center justify-center shrink-0', `av-${meta!.hue}`)} aria-hidden="true">
           <Icon className="w-5 h-5" strokeWidth={1.75} />
@@ -317,7 +317,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, description, acti
         {description && <p className="text-sm text-fg-subtle mt-0.5">{description}</p>}
       </div>
     </div>
-    {actions && <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div>}
+    {actions && <div className="flex flex-wrap items-center gap-2 max-w-full">{actions}</div>}
   </div>
   );
 };
