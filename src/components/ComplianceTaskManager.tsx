@@ -40,6 +40,8 @@ interface ComplianceTaskManagerProps {
     includeGstr3b: boolean;
     includeTds: boolean;
   }) => Promise<number> | number;
+  /** Admin-only: clears untouched auto-generated tasks (`task-gen-*`) for a period. */
+  onClearGeneratedTasks?: (period: string) => Promise<number> | number;
   dueDayConfig?: { gstr1: number; gstr3b: number; tds: number };
 }
 
@@ -70,6 +72,7 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   onDelete,
   onAddNewTask,
   onGenerateMonthTasks,
+  onClearGeneratedTasks,
   dueDayConfig = { gstr1: 11, gstr3b: 20, tds: 7 },
 }) => {
   const [confirmDelete, setConfirmDelete] = useState<MonthlyTask | null>(null);
@@ -99,6 +102,11 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
   const [genGstr3b, setGenGstr3b] = useState(true);
   const [genTds, setGenTds] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [confirmClearGenerated, setConfirmClearGenerated] = useState(false);
+
+  const generatedInPeriodCount = tasks.filter(
+    (t) => t.period === selectedPeriod && t.id.startsWith('task-gen-') && t.status === 'Docs Pending' && !t.arnNumber
+  ).length;
   const [itemsPerPage, setItemsPerPage] = useState<number>(5);
 
   const handlePeriodPrev = () => {
@@ -307,6 +315,17 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
                 }}
               >
                 Generate Month Tasks
+              </Button>
+            )}
+            {section === 'monthly' && onClearGeneratedTasks && generatedInPeriodCount > 0 && (
+              <Button
+                variant="danger"
+                size="md"
+                icon={Trash2}
+                onClick={() => setConfirmClearGenerated(true)}
+                title="Undo / clear untouched auto-generated tasks for this month"
+              >
+                Clear Generated ({generatedInPeriodCount})
               </Button>
             )}
             {onAddNewTask && (
@@ -584,6 +603,21 @@ export const ComplianceTaskManager: React.FC<ComplianceTaskManagerProps> = ({
         danger
         onConfirm={() => confirmDelete && onDelete?.(confirmDelete.id)}
       />
+
+      {onClearGeneratedTasks && (
+        <ConfirmDialog
+          isOpen={confirmClearGenerated}
+          onClose={() => setConfirmClearGenerated(false)}
+          title={`Clear ${generatedInPeriodCount} generated tasks for ${selectedPeriod}?`}
+          description={`This deletes all untouched (Docs Pending) auto-generated tasks for ${selectedPeriod}. Any tasks already marked In Progress, Draft Ready, or Filed are kept.`}
+          confirmLabel="Clear Generated"
+          danger
+          onConfirm={() => {
+            onClearGeneratedTasks(selectedPeriod);
+            setConfirmClearGenerated(false);
+          }}
+        />
+      )}
 
       {onGenerateMonthTasks && (
         <Modal

@@ -1299,6 +1299,26 @@ export function App() {
                   showToast(`Generated ${toCreate.length} monthly tasks for ${period}`);
                   return toCreate.length;
                 }}
+                onClearGeneratedTasks={
+                  isAdmin
+                    ? async (period) => {
+                        const targets = monthlyTasks.filter(
+                          (t) =>
+                            t.category === 'monthly' &&
+                            t.period === period &&
+                            t.id.startsWith('task-gen-') &&
+                            t.status === 'Docs Pending' &&
+                            !t.arnNumber
+                        );
+                        if (targets.length === 0) return 0;
+                        const removeIds = new Set(targets.map((t) => t.id));
+                        setMonthlyTasks((prev) => prev.filter((t) => !removeIds.has(t.id)));
+                        await Promise.all(targets.map((t) => deleteTaskFromDb(t.id)));
+                        showToast(`Cleared ${targets.length} generated tasks for ${period}`);
+                        return targets.length;
+                      }
+                    : undefined
+                }
               />
             )}
 
