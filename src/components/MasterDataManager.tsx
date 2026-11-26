@@ -482,7 +482,7 @@ export const MasterDataManager: React.FC<MasterDataManagerProps> = ({
       </div>
 
       {/* KPI Metrics */}
-      <MetricGrid>
+      <MetricGrid className="grid-cols-2 lg:grid-cols-4">
         <Metric
           label="Active Clients"
           value={filteredRows.length}
